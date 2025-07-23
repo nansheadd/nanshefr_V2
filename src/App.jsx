@@ -1,35 +1,56 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// Fichier: src/App.jsx (MIS À JOUR)
+import React from 'react';
+import { Routes, Route, Navigate, Link } from 'react-router-dom'; // Ajoute Link
+import LoginPage from './features/authentication/pages/LoginPage';
+import RegisterPage from './features/authentication/pages/RegisterPage'; // <--- AJOUTE CET IMPORT
+import useAuthStore from './store/authStore';
+
+// Page d'accueil simple pour les utilisateurs non connectés
+const HomePage = () => (
+  <div>
+    <h1>Bienvenue sur Nanshe</h1>
+    <Link to="/login">Se connecter</Link> | <Link to="/register">S'inscrire</Link>
+  </div>
+);
+
+// Un composant simple pour le tableau de bord
+const Dashboard = () => {
+  const logout = useAuthStore((state) => state.logout);
+  return (
+    <div>
+      <h1>Bienvenue sur votre Dashboard !</h1>
+      <button onClick={logout}>Déconnexion</button>
+    </div>
+  );
+};
+
+// Un composant pour protéger les routes
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
 
 function App() {
-  const [count, setCount] = useState(0)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} /> {/* <--- AJOUTE CETTE LIGNE */}
+
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } 
+      />
+      {/* Si l'utilisateur est connecté, la page par défaut est le dashboard, sinon c'est la page de login */}
+      <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
+    </Routes>
+  );
 }
 
-export default App
+export default App;
