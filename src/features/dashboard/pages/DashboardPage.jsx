@@ -3,6 +3,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import useAuthStore from '../../../store/authStore';
 import apiClient from '../../../api/axiosConfig';
+import CourseList from '../../courses/components/CourseList';
 import CreateCourseForm from '../../courses/components/CreateCourseForm';
 import { Box, Button, Container, Typography, CircularProgress, Alert } from '@mui/material';
 
@@ -63,6 +64,8 @@ const DashboardPage = () => {
         {/* --- AJOUT DU FORMULAIRE --- */}
             <CreateCourseForm />
         {/* --------------------------- */}
+        
+        <CourseList />
         <Button variant="contained" onClick={logout} sx={{ mt: 2 }}>
           Déconnexion
         </Button>

@@ -1,6 +1,7 @@
 // Fichier: src/features/courses/components/CreateCourseForm.jsx (CORRIGÉ)
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../../../api/axiosConfig';
 import useAuthStore from '../../../store/authStore';
 import { Box, Button, TextField, Typography, CircularProgress, Alert } from '@mui/material';
@@ -18,12 +19,13 @@ const createCourse = async ({ courseData, token }) => {
 const CreateCourseForm = () => {
   const [title, setTitle] = useState('');
   const token = useAuthStore((state) => state.token);
+  const navigate = useNavigate();
 
   const mutation = useMutation({
     mutationFn: createCourse,
     onSuccess: (data) => {
       console.log('Cours créé avec succès:', data);
-      alert(`Cours "${data.title}" de type "${data.course_type}" créé !`);
+      navigate(`/courses/${data.id}`);
     },
     onError: (error) => {
       console.error('Erreur lors de la création du cours:', error);

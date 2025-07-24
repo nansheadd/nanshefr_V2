@@ -1,11 +1,14 @@
-// Fichier: src/api/axiosConfig.js
+// Fichier: src/api/axiosConfig.js (CORRIGÉ)
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api/v2', // L'URL de base de notre backend
+  // --- CORRECTION ICI ---
+  baseURL: 'http://localhost:8000/api/v2',
+  // --- FIN DE LA CORRECTION ---
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
 
 export default apiClient;

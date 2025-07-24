@@ -10,7 +10,10 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const login = useAuthStore((state) => state.login);
+  
+  // --- CORRECTION ICI : On sélectionne précisément la fonction dont on a besoin ---
+  const checkAuth = useAuthStore((state) => state.checkAuth);
+  // --------------------------------------------------------------------------
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,16 +23,14 @@ const LoginPage = () => {
       formData.append('username', username);
       formData.append('password', password);
 
-      // --- CORRECTION ICI ---
-      // On ajoute un objet de configuration pour spécifier le bon Content-Type
-      const response = await apiClient.post('/users/login', formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+      // L'appel de login ne renvoie plus de token, il attache juste le cookie
+      await apiClient.post('/users/login', formData, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
-      // --- FIN DE LA CORRECTION ---
+
+      // Maintenant on appelle checkAuth, qui va faire un /users/me pour mettre à jour l'état
+      await checkAuth();
       
-      login(response.data.access_token);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.detail || 'Nom d\'utilisateur ou mot de passe incorrect.');
@@ -37,6 +38,7 @@ const LoginPage = () => {
     }
   };
 
+  // Le JSX ne change pas
   return (
     <Container maxWidth="xs">
       <Box sx={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
