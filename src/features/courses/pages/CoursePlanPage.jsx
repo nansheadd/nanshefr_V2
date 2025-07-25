@@ -1,63 +1,51 @@
-// Fichier: src/features/courses/pages/CoursePlanPage.jsx
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
-import useAuthStore from '../../../store/authStore';
-import { Box, Container, Typography, CircularProgress, Alert, List, ListItem, ListItemText, Divider } from '@mui/material';
+import { useAuth } from '../../../hooks/useAuth';
+import { Box, Container, Typography, CircularProgress, Alert, List, ListItem, ListItemButton, ListItemText, Divider, Paper } from '@mui/material';
 
-// Fonction pour fetcher un cours spécifique par son ID
-const fetchCourseById = async ({ courseId, token }) => {
-  const { data } = await apiClient.get(`/courses/${courseId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const fetchCourseById = async (courseId) => {
+  const { data } = await apiClient.get(`/courses/${courseId}`);
   return data;
 };
 
 const CoursePlanPage = () => {
-  const { courseId } = useParams(); // Récupère l'ID depuis l'URL (ex: /courses/1)
-  const token = useAuthStore((state) => state.token);
+  const { courseId } = useParams();
+  const { isAuthenticated } = useAuth();
 
   const { data: course, isLoading, isError, error } = useQuery({
-    queryKey: ['course', courseId], // Clé unique pour cette requête
-    queryFn: () => fetchCourseById({ courseId, token }),
-    enabled: !!token, // La requête ne se lance que si l'utilisateur est connecté
+    queryKey: ['course', courseId],
+    queryFn: () => fetchCourseById(courseId),
+    enabled: !!isAuthenticated,
   });
-
-  if (isLoading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
-  }
-
-  if (isError) {
-    return <Alert severity="error">Erreur : {error.message}</Alert>;
-  }
-
+  
+  // ... (le reste du composant est identique)
+  if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
+  if (isError) return <Alert severity="error">Erreur : {error.message}</Alert>;
+  const learningPlan = course?.learning_plan_json;
   return (
     <Container>
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h3" component="h1" gutterBottom>
-          {course?.title}
-        </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          {course?.learning_plan_json?.overview}
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        <Typography variant="h5" component="h2" gutterBottom>
-          Votre Plan d'Apprentissage
-        </Typography>
-        <List>
-          {course?.learning_plan_json?.levels?.map((level, index) => (
-            <ListItem key={index}>
-              <ListItemText
-                primary={`${index + 1}. ${level.level_title}`}
-                secondary={`Catégorie : ${level.category}`}
-              />
-            </ListItem>
-          ))}
-        </List>
-      </Box>
+      <Paper sx={{ my: 4, p: 3 }}>
+        <Typography variant="h3" component="h1" gutterBottom>{course?.title}</Typography>
+        {learningPlan ? (
+          <>
+            <Typography variant="body1" color="text.secondary" paragraph>{learningPlan.overview}</Typography>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h5" component="h2" gutterBottom>Votre Plan d'Apprentissage</Typography>
+            <List>
+              {learningPlan.levels?.map((level, index) => (
+                <ListItem key={index} disablePadding>
+                  <ListItemButton component={RouterLink} to={`/courses/${course.id}/levels/${index}`}>
+                    <ListItemText primary={`${index + 1}. ${level.level_title}`} secondary={`Catégorie : ${level.category}`} />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          </>
+        ) : (<Typography sx={{ mt: 2 }}>Le plan d'apprentissage est en cours de préparation...</Typography>)}
+      </Paper>
     </Container>
   );
 };
-
 export default CoursePlanPage;

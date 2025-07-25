@@ -1,24 +1,21 @@
-// Fichier: src/features/courses/components/CourseList.jsx
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link as RouterLink } from 'react-router-dom';
 import apiClient from '../../../api/axiosConfig';
-import useAuthStore from '../../../store/authStore';
+import { useAuth } from '../../../hooks/useAuth';
 import { Box, Typography, CircularProgress, Alert, List, ListItem, ListItemButton, ListItemText, Divider } from '@mui/material';
 
-const fetchCourses = async (token) => {
-  const { data } = await apiClient.get('/courses/', {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const fetchCourses = async () => {
+  const { data } = await apiClient.get('/courses/');
   return data;
 };
 
 const CourseList = () => {
-  const token = useAuthStore((state) => state.token);
+  const { isAuthenticated } = useAuth();
   const { data: courses, isLoading, isError } = useQuery({
     queryKey: ['courses'],
-    queryFn: () => fetchCourses(token),
-    enabled: !!token,
+    queryFn: fetchCourses,
+    enabled: isAuthenticated,
   });
 
   if (isLoading) return <CircularProgress />;
@@ -44,5 +41,4 @@ const CourseList = () => {
     </Box>
   );
 };
-
 export default CourseList;

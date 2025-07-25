@@ -1,47 +1,51 @@
-// Fichier: src/App.jsx (Version finale et complète)
+// Fichier: src/App.jsx
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
+import { CircularProgress, Box } from '@mui/material';
+
 import LoginPage from './features/authentication/pages/LoginPage';
 import RegisterPage from './features/authentication/pages/RegisterPage';
 import DashboardPage from './features/dashboard/pages/DashboardPage';
 import CoursePlanPage from './features/courses/pages/CoursePlanPage';
-import useAuthStore from './store/authStore';
+import LevelViewPage from './features/courses/pages/LevelViewPage';
 
-// Un composant simple pour protéger les routes
-const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  return isAuthenticated ? children : <Navigate to="/login" />;
+
+const ProtectedRoute = () => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
+const PublicRoute = () => {
+    const { isAuthenticated } = useAuth();
+    return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Outlet />;
+}
+
 function App() {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Routes>
-      {/* Routes publiques */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route element={<PublicRoute />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+      </Route>
 
-      {/* Routes protégées */}
-      <Route 
-        path="/dashboard" 
-        element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/courses/:courseId"
-        element={
-          <ProtectedRoute>
-            <CoursePlanPage />
-          </ProtectedRoute>
-        } 
-      />
-
-      {/* Route par défaut : redirige vers le dashboard si connecté, sinon vers le login */}
-      <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
+      <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/courses/:courseId" element={<CoursePlanPage />} />
+          <Route path="/courses/:courseId/levels/:levelOrder" element={<LevelViewPage />} />
+      </Route>
+      
+      <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>
   );
 }
