@@ -3,10 +3,10 @@ import React from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
-import { useAuth } from '../../../hooks/useAuth'; // On utilise notre hook central
-import { Box, Container, Typography, CircularProgress, Alert, Paper, Divider, Button } from '@mui/material';
+import { useAuth } from '../../../hooks/useAuth';
+import { Box, Container, Typography, CircularProgress, Alert, Divider, Button } from '@mui/material';
+import KnowledgeComponentViewer from '../../learning/components/KnowledgeComponentViewer'; // NOUVEL IMPORT
 
-// La fonction de fetch n'a plus besoin du token
 const fetchLevelContent = async ({ courseId, levelOrder }) => {
   const { data } = await apiClient.get(`/courses/${courseId}/levels/${levelOrder}`);
   return data;
@@ -14,12 +14,12 @@ const fetchLevelContent = async ({ courseId, levelOrder }) => {
 
 const LevelViewPage = () => {
   const { courseId, levelOrder } = useParams();
-  const { isAuthenticated } = useAuth(); // On récupère l'état d'authentification
+  const { isAuthenticated } = useAuth();
 
   const { data: level, isLoading, isError, error } = useQuery({
     queryKey: ['level', courseId, levelOrder],
     queryFn: () => fetchLevelContent({ courseId, levelOrder }),
-    enabled: !!isAuthenticated, // La requête ne se lance que si on est authentifié
+    enabled: !!isAuthenticated,
   });
 
   if (isLoading) {
@@ -39,18 +39,11 @@ const LevelViewPage = () => {
         <Typography variant="h4" component="h1" gutterBottom sx={{ mt: 2 }}>
           Niveau {parseInt(levelOrder) + 1}: {level?.title}
         </Typography>
-        <Divider sx={{ mb: 2 }} />
+        <Divider sx={{ mb: 3 }} />
 
+        {/* ON UTILISE NOTRE NOUVEAU SYSTÈME ICI */}
         {level?.knowledge_components.map((component) => (
-          <Paper key={component.id} sx={{ p: 2, mb: 2 }}>
-            <Typography variant="h6">{component.title}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Catégorie: {component.category} | Type: {component.component_type}
-            </Typography>
-            <Divider sx={{ my: 1 }} />
-            {/* On affiche simplement le JSON du contenu pour l'instant */}
-            <pre>{JSON.stringify(component.content_json, null, 2)}</pre>
-          </Paper>
+          <KnowledgeComponentViewer key={component.id} component={component} />
         ))}
       </Box>
     </Container>
