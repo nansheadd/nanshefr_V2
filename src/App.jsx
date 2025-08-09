@@ -10,6 +10,7 @@ import DashboardPage from './features/dashboard/pages/DashboardPage';
 import CoursePlanPage from './features/courses/pages/CoursePlanPage';
 import LevelViewPage from './features/courses/pages/LevelViewPage';
 import ChapterViewPage from './features/courses/pages/ChapterViewPage';
+import StatsPage from './features/dashboard/pages/StatsPage';
 
 const ProtectedRoute = () => {
   const { isAuthenticated } = useAuth();
@@ -43,6 +44,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/courses/:courseId" element={<CoursePlanPage />} />
         <Route path="/levels/:levelId" element={<LevelViewPage />} />
+        <Route path="/stats" element={<StatsPage />} />
         <Route path="/chapters/:chapterId" element={<ChapterViewPage />} />
       </Route>
 

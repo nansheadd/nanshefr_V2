@@ -6,6 +6,8 @@ import apiClient from '../../../api/axiosConfig';
 import { useAuth } from '../../../hooks/useAuth';
 import { Box, Container, Typography, CircularProgress, Alert, List, ListItem, ListItemButton, ListItemText, Divider, Paper, ListItemIcon } from '@mui/material';
 import StairsIcon from '@mui/icons-material/Stairs'; // Icône pour les niveaux
+import CourseStats from '../components/CourseStats'; // Importez le composant
+
 
 const fetchCourseById = async (courseId) => {
   const { data } = await apiClient.get(`/courses/${courseId}`);
@@ -48,6 +50,9 @@ const CoursePlanPage = () => {
         <Paper sx={{ my: 4, p: 3, textAlign: 'center' }}>
           <Typography variant="h4" component="h1" gutterBottom>{course?.title}</Typography>
           <Divider sx={{ my: 2 }} />
+          <Typography variant="body1" color="text.secondary" paragraph>{course?.description} TESTIO</Typography>
+<CourseStats courseId={courseId} /> {/* <-- Ajoutez cette ligne */}
+<Divider sx={{ my: 2 }} />
           <Box my={4}>
             <CircularProgress />
             <Typography variant="h6" sx={{ mt: 2 }}>Génération du plan de cours en cours...</Typography>
