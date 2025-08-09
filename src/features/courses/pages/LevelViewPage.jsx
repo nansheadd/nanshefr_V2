@@ -1,12 +1,12 @@
-// Fichier: src/features/courses/pages/LevelViewPage.jsx (VERSION FINALE AVEC CADENAS)
+// Fichier: src/features/courses/pages/LevelViewPage.jsx (FINAL CORRIGÉ)
 import React from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
 import { useAuth } from '../../../hooks/useAuth';
 import { Box, Container, Typography, CircularProgress, Alert, List, ListItem, ListItemButton, ListItemText, Divider, Paper, Button, ListItemIcon } from '@mui/material';
-import LockIcon from '@mui/icons-material/Lock'; // Cadenas fermé
-import LockOpenIcon from '@mui/icons-material/LockOpen'; // Cadenas ouvert
+import LockIcon from '@mui/icons-material/Lock';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
 
 const fetchLevelById = async (levelId) => {
   const { data } = await apiClient.get(`/levels/${levelId}`);
@@ -23,11 +23,10 @@ const LevelViewPage = () => {
     enabled: !!isAuthenticated,
   });
 
-  // --- SIMULATION DE LA PROGRESSION DE L'UTILISATEUR ---
-  // Plus tard, cette information viendra de l'API (ex: /users/me/progress/{courseId})
-  const userProgress = {
-      current_chapter_order: 1 // L'utilisateur a fini le chapitre 0 (order), il a donc accès au chapitre 1.
-  };
+  // --- CORRECTION : SUPPRESSION DE LA SIMULATION ---
+  // Nous n'avons plus besoin de données fictives.
+  // La logique d'accessibilité est maintenant 100% gérée par le backend.
+  // const userProgress = { ... }; // Ligne supprimée
   // ----------------------------------------------------
 
   if (isLoading) {
@@ -50,15 +49,17 @@ const LevelViewPage = () => {
         <Typography variant="h5" component="h2" gutterBottom>Chapitres</Typography>
         <List>
           {level?.chapters?.sort((a,b) => a.chapter_order - b.chapter_order).map((chapter) => {
-            // On détermine si le chapitre est accessible
-            const isAccessible = chapter.chapter_order <= userProgress.current_chapter_order;
+            // --- CORRECTION CLÉ ---
+            // On utilise directement la valeur `is_accessible` fournie par l'API.
+            // Il n'y a plus de calcul ou de simulation ici.
+            const isAccessible = chapter.is_accessible;
             
             return (
               <ListItem key={chapter.id} disablePadding>
                 <ListItemButton 
                   component={RouterLink} 
                   to={`/chapters/${chapter.id}`}
-                  disabled={!isAccessible} // On désactive le bouton si non accessible
+                  disabled={!isAccessible}
                 >
                   <ListItemIcon>
                     {isAccessible ? <LockOpenIcon color="success" /> : <LockIcon />}

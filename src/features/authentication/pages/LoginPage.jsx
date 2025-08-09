@@ -2,11 +2,39 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
-import { TextField, Button, Container, Typography, Box, Alert, CircularProgress } from '@mui/material';
+import {
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Alert,
+  CircularProgress,
+  Paper,
+  InputAdornment,
+  IconButton,
+  Stack,
+  Divider
+} from '@mui/material';
+import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
+import LockRoundedIcon from '@mui/icons-material/LockRounded';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+
+// Palette inspirée du logo
+const palette = {
+  navy: '#0D0F1E',
+  plum: '#6C3FA1',
+  orchid: '#9E57C5',
+  peach: '#F6B899',
+  white: '#FFFFFF'
+};
+
+const logoSrc = '/logo192.png';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const { login, isLoading } = useAuth();
 
@@ -15,29 +43,149 @@ const LoginPage = () => {
     setError('');
     try {
       await login({ username, password });
-      // La redirection est maintenant gérée automatiquement par App.jsx
     } catch (err) {
-      setError(err.response?.data?.detail || 'Nom d\'utilisateur ou mot de passe incorrect.');
+      setError(err.response?.data?.detail || "Nom d'utilisateur ou mot de passe incorrect.");
     }
   };
 
   return (
-    <Container maxWidth="xs">
-      <Box sx={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <Typography component="h1" variant="h5">Connexion</Typography>
-        {error && <Alert severity="error" sx={{ width: '100%', mt: 2 }}>{error}</Alert>}
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-          <TextField margin="normal" required fullWidth label="Nom d'utilisateur" value={username} onChange={(e) => setUsername(e.target.value)} />
-          <TextField margin="normal" required fullWidth label="Mot de passe" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} disabled={isLoading}>
-            {isLoading ? <CircularProgress size={24} /> : 'Se Connecter'}
-          </Button>
-           <Link to="/register" style={{ textDecoration: 'none' }}>
-              <Typography variant="body2" textAlign="center">Pas de compte ? Inscrivez-vous</Typography>
-            </Link>
-        </Box>
-      </Box>
-    </Container>
+    <Box
+    sx={{
+      width: '100%',
+      background: `radial-gradient(1200px 600px at 10% 10%, ${palette.orchid}22, transparent 60%),
+                   radial-gradient(1200px 600px at 90% 90%, ${palette.peach}22, transparent 60%),
+                   linear-gradient(135deg, ${palette.navy} 0%, #151833 100%)`
+    }}
+  >
+    <Paper
+      elevation={0}
+      sx={{
+        width: '100%',
+        maxWidth: 420,
+        mx: 'auto', // centre horizontal dans AuthShell
+        p: 4,
+        borderRadius: 3,
+        backdropFilter: 'blur(8px)',
+        background: `linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06))`,
+        border: `1px solid ${palette.orchid}33`,
+        boxShadow: `0 20px 50px rgba(0,0,0,.35)`
+      }}
+    >
+        <Stack spacing={3} alignItems="center">
+          <Box
+            component="img"
+            src={logoSrc}
+            alt="Logo"
+            sx={{
+              width: 84,
+              height: 84,
+              borderRadius: '50%',
+              boxShadow: `0 6px 18px ${palette.plum}55`
+            }}
+          />
+          <Box textAlign="center" sx={{ width: '100%' }}>
+            <Typography component="h1" variant="h5" sx={{ fontWeight: 700, letterSpacing: .3, color: palette.white }}>
+              Connexion
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#C9C9D5', mt: .5 }}>
+              Heureux de vous revoir ✨
+            </Typography>
+          </Box>
+
+          {error && <Alert severity="error" sx={{ width: '100%' }}>{error}</Alert>}
+
+          <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+            <TextField
+              fullWidth
+              required
+              label="Nom d'utilisateur"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              margin="normal"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PersonOutlineRoundedIcon />
+                  </InputAdornment>
+                )
+              }}
+              sx={{
+                '& .MuiInputBase-root': { borderRadius: 2 },
+                '& label.Mui-focused': { color: palette.peach }
+              }}
+            />
+
+            <TextField
+              fullWidth
+              required
+              label="Mot de passe"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              margin="normal"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockRoundedIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword((s) => !s)} edge="end">
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+              sx={{
+                '& .MuiInputBase-root': { borderRadius: 2 },
+                '& label.Mui-focused': { color: palette.peach }
+              }}
+            />
+
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              disabled={isLoading}
+              sx={{
+                mt: 3,
+                py: 1.3,
+                borderRadius: 2,
+                fontWeight: 700,
+                textTransform: 'none',
+                letterSpacing: .4,
+                background: `linear-gradient(90deg, ${palette.plum}, ${palette.orchid})`,
+                boxShadow: `0 10px 24px ${palette.plum}55, inset 0 0 0 1px ${palette.peach}44`,
+                '&:hover': {
+                  background: `linear-gradient(90deg, ${palette.orchid}, ${palette.plum})`,
+                  boxShadow: `0 10px 30px ${palette.orchid}66`
+                }
+              }}
+            >
+              {isLoading ? <CircularProgress size={22} /> : 'Se connecter'}
+            </Button>
+
+            <Stack direction="row" alignItems="center" justifyContent="center" sx={{ mt: 2 }}>
+              <Typography variant="body2" sx={{ color: '#C9C9D5' }}>
+                Pas de compte ?
+              </Typography>
+              <Link to="/register" style={{ textDecoration: 'none', marginLeft: 6 }}>
+                <Typography variant="body2" sx={{ color: palette.peach, fontWeight: 600 }}>
+                  Inscrivez-vous
+                </Typography>
+              </Link>
+            </Stack>
+
+            <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.12)' }} />
+
+            <Typography variant="caption" sx={{ color: '#A8A8BA', display: 'block', textAlign: 'center' }}>
+              Conseil : utilisez vos identifiants fournis par l’administrateur.
+            </Typography>
+          </Box>
+        </Stack>
+      </Paper>
+    </Box>
   );
 };
 
