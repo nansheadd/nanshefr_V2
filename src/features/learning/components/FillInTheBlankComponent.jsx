@@ -1,33 +1,46 @@
-// Fichier: src/features/learning/components/FillInTheBlankComponent.jsx
-import React, { useState } from 'react';
+// Fichier: src/features/learning/components/FillInTheBlankComponent.jsx (VERSION FINALE COMPLÈTE)
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
 import { Box, Typography, Button, TextField, Alert, CircularProgress, Stack } from '@mui/material';
 
-// La fonction qui envoie la réponse au backend (elle est générique)
 const submitAnswer = async (answerData) => {
   const { data } = await apiClient.post('/progress/answer', answerData);
   return data;
 };
 
-const FillInTheBlankComponent = ({ component }) => {
-  // On initialise un tableau pour stocker les réponses de l'utilisateur
-  const [userAnswers, setUserAnswers] = useState(Array(component.content_json.answers.length).fill(''));
-  const [result, setResult] = useState(null);
+const FillInTheBlankComponent = ({ component, submittedAnswer }) => {
+  const { content_json } = component;
   const queryClient = useQueryClient();
+
+  // On rend le composant intelligent pour trouver les données dont il a besoin.
+  const textToDisplay = content_json.sentence || content_json.text_with_blanks || '';
+  const answerOrAnswers = content_json.answer || content_json.correct_answer || content_json.answers || [];
+  const numberOfBlanks = Array.isArray(answerOrAnswers) ? answerOrAnswers.length : (answerOrAnswers ? 1 : 0);
+
+  const [userAnswers, setUserAnswers] = useState(Array(numberOfBlanks).fill(''));
+  const [result, setResult] = useState(submittedAnswer);
+
+  // Gère la restauration de la réponse et du feedback au chargement
+  useEffect(() => {
+    if (submittedAnswer) {
+      setUserAnswers(submittedAnswer.user_answer_json?.filled_blanks || Array(numberOfBlanks).fill(''));
+      setResult(submittedAnswer);
+    }
+  }, [submittedAnswer, numberOfBlanks]);
 
   const mutation = useMutation({
     mutationFn: submitAnswer,
     onSuccess: (data) => {
       setResult(data);
       queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.invalidateQueries({ queryKey: ['chapter', component.chapter_id] });
     },
     onError: (error) => {
       setResult({ is_correct: false, feedback: error.message });
     }
   });
 
-  // Gère le changement dans un des champs de texte
   const handleInputChange = (index, value) => {
     const newAnswers = [...userAnswers];
     newAnswers[index] = value;
@@ -41,18 +54,17 @@ const FillInTheBlankComponent = ({ component }) => {
     });
   };
 
-  const { text_with_blanks, answers } = component.content_json;
-
   return (
     <Box>
       <Typography variant="h6" gutterBottom sx={{ whiteSpace: 'pre-wrap' }}>
-        {text_with_blanks}
+        {textToDisplay.replace(/_{3,}/g, '______').replace(/\[BLANK\]/g, '______')}
       </Typography>
+      
       <Stack spacing={2} sx={{ my: 2 }}>
-        {answers.map((_, index) => (
+        {numberOfBlanks > 0 && Array.from({ length: numberOfBlanks }).map((_, index) => (
           <TextField
             key={index}
-            label={`Mot manquant ${index + 1}`}
+            label={`Réponse ${index + 1}`}
             variant="outlined"
             value={userAnswers[index]}
             onChange={(e) => handleInputChange(index, e.target.value)}
@@ -60,6 +72,7 @@ const FillInTheBlankComponent = ({ component }) => {
           />
         ))}
       </Stack>
+      
       <Button 
         variant="contained" 
         onClick={handleSubmit} 
