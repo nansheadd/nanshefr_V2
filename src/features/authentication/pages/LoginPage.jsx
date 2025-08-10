@@ -68,7 +68,8 @@ const LoginPage = () => {
         backdropFilter: 'blur(8px)',
         background: `linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06))`,
         border: `1px solid ${palette.orchid}33`,
-        boxShadow: `0 20px 50px rgba(0,0,0,.35)`
+        boxShadow: `0 20px 50px rgba(0,0,0,.35)`,
+        animation: 'fadeIn 0.6s ease-out'
       }}
     >
         <Stack spacing={3} alignItems="center">
@@ -110,7 +111,15 @@ const LoginPage = () => {
                 )
               }}
               sx={{
-                '& .MuiInputBase-root': { borderRadius: 2 },
+                '& .MuiInputBase-root': {
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  backdropFilter: 'blur(4px)',
+                  transition: 'background-color .3s'
+                },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: palette.peach },
+                '& label': { color: '#C9C9D5' },
                 '& label.Mui-focused': { color: palette.peach }
               }}
             />
@@ -138,7 +147,15 @@ const LoginPage = () => {
                 )
               }}
               sx={{
-                '& .MuiInputBase-root': { borderRadius: 2 },
+                '& .MuiInputBase-root': {
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  backdropFilter: 'blur(4px)',
+                  transition: 'background-color .3s'
+                },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: palette.peach },
+                '& label': { color: '#C9C9D5' },
                 '& label.Mui-focused': { color: palette.peach }
               }}
             />

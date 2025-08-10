@@ -10,8 +10,12 @@ import {
   Alert,
   CircularProgress,
   Paper,
-  Stack
+  Stack,
+  InputAdornment
 } from '@mui/material';
+import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import LockRoundedIcon from '@mui/icons-material/LockRounded';
 
 const palette = {
   navy: '#0D0F1E',
@@ -63,7 +67,8 @@ const RegisterPage = () => {
           backdropFilter: 'blur(8px)',
           background: `linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06))`,
           border: `1px solid ${palette.orchid}33`,
-          boxShadow: `0 20px 50px rgba(0,0,0,.35)`
+          boxShadow: `0 20px 50px rgba(0,0,0,.35)`,
+          animation: 'fadeIn 0.6s ease-out'
         }}
       >
         <Stack spacing={3} alignItems="center">
@@ -89,6 +94,25 @@ const RegisterPage = () => {
               value={formData.username}
               onChange={handleChange}
               autoFocus
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PersonOutlineRoundedIcon />
+                  </InputAdornment>
+                )
+              }}
+              sx={{
+                '& .MuiInputBase-root': {
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  backdropFilter: 'blur(4px)',
+                  transition: 'background-color .3s'
+                },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: palette.peach },
+                '& label': { color: '#C9C9D5' },
+                '& label.Mui-focused': { color: palette.peach }
+              }}
             />
             <TextField
               margin="normal"
@@ -99,6 +123,25 @@ const RegisterPage = () => {
               type="email"
               value={formData.email}
               onChange={handleChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <MailOutlineIcon />
+                  </InputAdornment>
+                )
+              }}
+              sx={{
+                '& .MuiInputBase-root': {
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  backdropFilter: 'blur(4px)',
+                  transition: 'background-color .3s'
+                },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: palette.peach },
+                '& label': { color: '#C9C9D5' },
+                '& label.Mui-focused': { color: palette.peach }
+              }}
             />
             <TextField
               margin="normal"
@@ -109,6 +152,25 @@ const RegisterPage = () => {
               type="password"
               value={formData.password}
               onChange={handleChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockRoundedIcon />
+                  </InputAdornment>
+                )
+              }}
+              sx={{
+                '& .MuiInputBase-root': {
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  backdropFilter: 'blur(4px)',
+                  transition: 'background-color .3s'
+                },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: palette.peach },
+                '& label': { color: '#C9C9D5' },
+                '& label.Mui-focused': { color: palette.peach }
+              }}
             />
 
             <Button
