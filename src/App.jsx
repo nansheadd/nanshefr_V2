@@ -19,7 +19,7 @@ function AppShell() {
   // Shell pour les pages protégées de l'application
   return (
     <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <Container maxWidth="lg" sx={{ py: 3, flexGrow: 1 }}>
+      <Container component="main" sx={{ py: { xs: 2, md: 3 }, flexGrow: 1 }}>
         <Outlet />
       </Container>
       <Footer />

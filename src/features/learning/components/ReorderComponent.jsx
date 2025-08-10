@@ -41,7 +41,7 @@ const ReorderComponent = ({ component, submittedAnswer }) => {
   // --- CORRECTION DE LA LOGIQUE onDragEnd ---
   const onDragEnd = (dragResult) => {
     // Si l'utilisateur a déjà répondu, on ne fait rien.
-    if (!!result) return;
+    if (result) return;
     // Si l'élément est déposé en dehors de la liste, on ne fait rien
     if (!dragResult.destination) return;
     
@@ -72,7 +72,7 @@ const ReorderComponent = ({ component, submittedAnswer }) => {
                   draggableId={`${item}-${index}`} 
                   index={index} 
                   // Le glisser-déposer est désactivé si une réponse a été validée
-                  isDragDisabled={!!result}
+                  isDragDisabled={Boolean(result)}
                 >
                   {(provided) => (
                     <ListItem
@@ -80,7 +80,7 @@ const ReorderComponent = ({ component, submittedAnswer }) => {
                       {...provided.draggableProps}
                       {...provided.dragHandleProps}
                       component={Paper}
-                      sx={{ mb: 1, backgroundColor: !!result ? '#f5f5f5' : 'inherit', cursor: !!result ? 'default' : 'grab' }}
+                      sx={{ mb: 1, backgroundColor: result ? '#f5f5f5' : 'inherit', cursor: result ? 'default' : 'grab' }}
                     >
                       <ListItemText primary={item} />
                     </ListItem>
@@ -97,7 +97,7 @@ const ReorderComponent = ({ component, submittedAnswer }) => {
         variant="contained" 
         onClick={handleSubmit} 
         sx={{ mt: 2 }}
-        disabled={mutation.isPending || !!result}
+          disabled={mutation.isPending || Boolean(result)}
       >
         {mutation.isPending ? <CircularProgress size={24} /> : 'Valider'}
       </Button>

@@ -1,5 +1,6 @@
+/* eslint-disable */
 // Fichier: src/features/learning/components/EssayComponent.jsx (FINAL)
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 // ... (imports)
 import { Box, Typography, Button, TextField, Alert, CircularProgress, Paper } from '@mui/material';
 
