@@ -8,9 +8,13 @@ import { Link as RouterLink } from 'react-router-dom';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import { ColorModeContext } from '../theme/ColorModeContext';
 
 export default function Footer({ compact = false }) {
   const year = new Date().getFullYear();
+  const { mode, toggleColorMode } = React.useContext(ColorModeContext);
   return (
     <Box
       component="footer"
@@ -43,7 +47,10 @@ export default function Footer({ compact = false }) {
             </Stack>
           )}
 
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <IconButton size="small" color="inherit" onClick={toggleColorMode} aria-label="toggle theme">
+              {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
+            </IconButton>
             <IconButton size="small" color="inherit" aria-label="GitHub"><GitHubIcon /></IconButton>
             <IconButton size="small" color="inherit" aria-label="LinkedIn"><LinkedInIcon /></IconButton>
             <IconButton size="small" color="inherit" aria-label="Email"><MailOutlineIcon /></IconButton>
