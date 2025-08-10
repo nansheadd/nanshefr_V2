@@ -21,27 +21,32 @@ let theme = createTheme({
   shape: { borderRadius: 12 },
   typography: {
     fontFamily: "'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial",
-    h1: { fontWeight: 800, letterSpacing: 0.3 },
-    h2: { fontWeight: 800, letterSpacing: 0.3 },
-    h3: { fontWeight: 700, letterSpacing: 0.2 },
-    h4: { fontWeight: 700, letterSpacing: 0.2 },
-    h5: { fontWeight: 700, letterSpacing: 0.2 },
-    h6: { fontWeight: 700, letterSpacing: 0.1 },
-    subtitle1: { fontWeight: 600 },
+    h1: { fontWeight: 800, letterSpacing: 0.3, lineHeight: 1.1 },
+    h2: { fontWeight: 800, letterSpacing: 0.3, lineHeight: 1.2 },
+    h3: { fontWeight: 700, letterSpacing: 0.2, lineHeight: 1.3 },
+    h4: { fontWeight: 700, letterSpacing: 0.2, lineHeight: 1.3 },
+    h5: { fontWeight: 700, letterSpacing: 0.2, lineHeight: 1.4 },
+    h6: { fontWeight: 700, letterSpacing: 0.1, lineHeight: 1.4 },
+    subtitle1: { fontWeight: 600, lineHeight: 1.5 },
+    body1: { lineHeight: 1.7 },
+    body2: { lineHeight: 1.6 },
     button: { textTransform: 'none', fontWeight: 700, letterSpacing: .4 }
   },
   components: {
     MuiCssBaseline: {
       styleOverrides: {
         '*, *::before, *::after': { boxSizing: 'border-box' },
+        html: { height: '100%' },
         body: {
+          height: '100%',
           WebkitFontSmoothing: 'antialiased',
           MozOsxFontSmoothing: 'grayscale',
           background:
             `radial-gradient(1200px 600px at 10% 10%, ${alpha(palette.orchid,0.13)}, transparent 60%),
              radial-gradient(1200px 600px at 90% 90%, ${alpha(palette.peach,0.13)}, transparent 60%),
              linear-gradient(135deg, ${palette.navy} 0%, #151833 100%)`
-        }
+        },
+        '#root': { minHeight: '100%' }
       }
     },
     MuiPaper: {
@@ -69,6 +74,19 @@ let theme = createTheme({
           }
         }
       ]
+    },
+    MuiContainer: {
+      defaultProps: { maxWidth: 'lg' },
+      styleOverrides: {
+        root: {
+          paddingLeft: '1.5rem',
+          paddingRight: '1.5rem',
+          '@media (min-width:600px)': {
+            paddingLeft: '3rem',
+            paddingRight: '3rem'
+          }
+        }
+      }
     },
     MuiLink: { styleOverrides: { root: { color: palette.peach, fontWeight: 600 } } }
   }

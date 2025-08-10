@@ -1,5 +1,5 @@
 // Fichier: src/features/courses/components/CourseList.jsx (FORTEMENT MODIFIÉ)
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link as RouterLink } from 'react-router-dom';
 import apiClient from '../../../api/axiosConfig';

@@ -6,7 +6,7 @@ const fetchUser = async () => {
   try {
     const { data } = await apiClient.get('/users/me');
     return data;
-  } catch (error) {
+  } catch {
     return null;
   }
 };

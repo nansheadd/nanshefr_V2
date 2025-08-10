@@ -53,19 +53,18 @@ const ChapterViewPage = () => {
   });
 
   // --- Mutations ---
-  const createMutation = (mutationFn) => {
-    return useMutation({
+  const useChapterMutation = (mutationFn) =>
+    useMutation({
       mutationFn,
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['chapter', chapterId] });
         queryClient.invalidateQueries({ queryKey: ['level', chapter?.level_id] });
       },
     });
-  };
 
-  const lessonMutation = createMutation(triggerLessonGeneration);
-  const exercisesMutation = createMutation(triggerExercisesGeneration);
-  const resetMutation = createMutation(resetChapterAnswers);
+  const lessonMutation = useChapterMutation(triggerLessonGeneration);
+  const exercisesMutation = useChapterMutation(triggerExercisesGeneration);
+  const resetMutation = useChapterMutation(resetChapterAnswers);
   
   // --- Logique de Progression ---
   const { isChapterComplete, nextChapterId } = useMemo(() => {

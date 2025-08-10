@@ -12,31 +12,30 @@ const DashboardPage = () => {
   const { user, logout } = useAuth();
 
   return (
-    <Container>
-      <Box sx={{ my: 4 }}>
+    <Container component="section" sx={{ py: 4 }}>
+      <Stack spacing={4}>
         <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-            <Box>
-                <Typography variant="h4" component="h1" gutterBottom>Tableau de Bord</Typography>
-                {user && <Typography variant="h6">Bienvenue, {user.username} !</Typography>}
-            </Box>
-            <Stack direction="row" spacing={1}>
-                {/* --- NOUVEAU BOUTON --- */}
-                <Button variant="outlined" component={RouterLink} to="/stats" startIcon={<QueryStatsIcon />}>
-                  Mes Stats
-                </Button>
-                {/* --------------------- */}
-                <Button variant="contained" color="secondary" onClick={logout} startIcon={<LogoutIcon />}>
-                  Déconnexion
-                </Button>
-            </Stack>
+          <Box>
+            <Typography variant="h4" component="h1" gutterBottom>Tableau de Bord</Typography>
+            {user && <Typography variant="h6">Bienvenue, {user.username} !</Typography>}
+          </Box>
+          <Stack direction="row" spacing={1}>
+            {/* --- NOUVEAU BOUTON --- */}
+            <Button variant="outlined" component={RouterLink} to="/stats" startIcon={<QueryStatsIcon />}>
+              Mes Stats
+            </Button>
+            {/* --------------------- */}
+            <Button variant="contained" color="secondary" onClick={logout} startIcon={<LogoutIcon />}>
+              Déconnexion
+            </Button>
+          </Stack>
         </Stack>
-        
+
         <CreateCourseForm />
-        
+
         <CourseList listType="my-courses" />
         <CourseList listType="public" />
-        
-      </Box>
+      </Stack>
     </Container>
   );
 };
