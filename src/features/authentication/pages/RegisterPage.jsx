@@ -13,17 +13,10 @@ import {
   Stack,
   InputAdornment
 } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
-
-const palette = {
-  navy: '#0D0F1E',
-  plum: '#6C3FA1',
-  orchid: '#9E57C5',
-  peach: '#F6B899',
-  white: '#FFFFFF'
-};
 
 const logoSrc = '/logo192.png';
 
@@ -31,6 +24,46 @@ const RegisterPage = () => {
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
   const [error, setError] = useState('');
   const { registerAndLogin, isLoading } = useAuth();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
+  const background = isDark
+    ? `radial-gradient(1200px 600px at 10% 10%, ${alpha(theme.palette.primary.main,0.13)}, transparent 60%),
+       radial-gradient(1200px 600px at 90% 90%, ${alpha(theme.palette.secondary.main,0.13)}, transparent 60%),
+       linear-gradient(135deg, ${theme.palette.background.default} 0%, #151833 100%)`
+    : `linear-gradient(135deg, #ffffff 0%, #f0f0f5 100%)`;
+
+  const inputStyles = {
+    '& .MuiInputBase-root': {
+      borderRadius: 2,
+      backgroundColor: isDark
+        ? alpha(theme.palette.common.white, 0.05)
+        : alpha(theme.palette.common.black, 0.04),
+      backdropFilter: 'blur(4px)',
+      transition: 'background-color .3s'
+    },
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: isDark
+        ? alpha(theme.palette.common.white, 0.2)
+        : alpha(theme.palette.common.black, 0.2)
+    },
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: theme.palette.secondary.main
+    },
+    '& label': {
+      color: theme.palette.text.secondary,
+      fontWeight: 600,
+      fontSize: 14
+    },
+    '& label.Mui-focused': {
+      color: theme.palette.secondary.main
+    },
+    '& input': {
+      color: theme.palette.text.primary,
+      fontWeight: 500,
+      fontSize: 16
+    }
+  };
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -47,13 +80,11 @@ const RegisterPage = () => {
   return (
     <Box
       sx={{
-        minHeight: '100dvh',
+        minHeight: '100vh',
         display: 'grid',
         placeItems: 'center',
         px: 2,
-        background: `radial-gradient(1200px 600px at 10% 10%, ${palette.orchid}22, transparent 60%),
-                     radial-gradient(1200px 600px at 90% 90%, ${palette.peach}22, transparent 60%),
-                     linear-gradient(135deg, ${palette.navy} 0%, #151833 100%)`
+        background
       }}
     >
       <Paper
@@ -64,20 +95,16 @@ const RegisterPage = () => {
           mx: 'auto',
           p: 4,
           borderRadius: 3,
-          backdropFilter: 'blur(8px)',
-          background: `linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06))`,
-          border: `1px solid ${palette.orchid}33`,
-          boxShadow: `0 20px 50px rgba(0,0,0,.35)`,
           animation: 'fadeIn 0.6s ease-out'
         }}
       >
         <Stack spacing={3} alignItems="center">
-          <Box component="img" src={logoSrc} alt="Logo" sx={{ width: 72, height: 72, borderRadius: '50%' }} />
+          <Box component="img" src={logoSrc} alt="Logo" sx={{ width: 72, height: 72, borderRadius: '50%', boxShadow: `0 6px 18px ${alpha(theme.palette.primary.main, 0.55)}` }} />
           <Box textAlign="center" sx={{ width: '100%' }}>
-            <Typography component="h1" variant="h5" sx={{ fontWeight: 700, color: palette.white }}>
+            <Typography component="h1" variant="h5" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
               Inscription
             </Typography>
-            <Typography variant="body2" sx={{ color: '#C9C9D5', mt: .5 }}>
+            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: .5 }}>
               Créez votre compte en quelques secondes
             </Typography>
           </Box>
@@ -101,18 +128,7 @@ const RegisterPage = () => {
                   </InputAdornment>
                 )
               }}
-              sx={{
-                '& .MuiInputBase-root': {
-                  borderRadius: 2,
-                  backgroundColor: 'rgba(255,255,255,0.05)',
-                  backdropFilter: 'blur(4px)',
-                  transition: 'background-color .3s'
-                },
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: palette.peach },
-                '& label': { color: '#C9C9D5' },
-                '& label.Mui-focused': { color: palette.peach }
-              }}
+              sx={inputStyles}
             />
             <TextField
               margin="normal"
@@ -130,18 +146,7 @@ const RegisterPage = () => {
                   </InputAdornment>
                 )
               }}
-              sx={{
-                '& .MuiInputBase-root': {
-                  borderRadius: 2,
-                  backgroundColor: 'rgba(255,255,255,0.05)',
-                  backdropFilter: 'blur(4px)',
-                  transition: 'background-color .3s'
-                },
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: palette.peach },
-                '& label': { color: '#C9C9D5' },
-                '& label.Mui-focused': { color: palette.peach }
-              }}
+              sx={inputStyles}
             />
             <TextField
               margin="normal"
@@ -159,47 +164,25 @@ const RegisterPage = () => {
                   </InputAdornment>
                 )
               }}
-              sx={{
-                '& .MuiInputBase-root': {
-                  borderRadius: 2,
-                  backgroundColor: 'rgba(255,255,255,0.05)',
-                  backdropFilter: 'blur(4px)',
-                  transition: 'background-color .3s'
-                },
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: palette.peach },
-                '& label': { color: '#C9C9D5' },
-                '& label.Mui-focused': { color: palette.peach }
-              }}
+              sx={inputStyles}
             />
 
             <Button
               type="submit"
               fullWidth
-              variant="contained"
+              variant="gradient"
               disabled={isLoading}
-              sx={{
-                mt: 3,
-                py: 1.3,
-                borderRadius: 2,
-                fontWeight: 700,
-                textTransform: 'none',
-                background: `linear-gradient(90deg, ${palette.plum}, ${palette.orchid})`,
-                boxShadow: `0 10px 24px ${palette.plum}55, inset 0 0 0 1px ${palette.peach}44`,
-                '&:hover': {
-                  background: `linear-gradient(90deg, ${palette.orchid}, ${palette.plum})`
-                }
-              }}
+              sx={{ mt: 3, py: 1.3, borderRadius: 2 }}
             >
               {isLoading ? <CircularProgress size={22} /> : "S'inscrire"}
             </Button>
 
             <Stack direction="row" justifyContent="center" sx={{ mt: 2 }}>
-              <Typography variant="body2" sx={{ color: '#C9C9D5' }}>
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
                 Déjà un compte ?
               </Typography>
               <Link to="/login" style={{ textDecoration: 'none', marginLeft: 6 }}>
-                <Typography variant="body2" sx={{ color: palette.peach, fontWeight: 600 }}>
+                <Typography variant="body2" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>
                   Connectez-vous
                 </Typography>
               </Link>
