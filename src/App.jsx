@@ -12,6 +12,9 @@ import DashboardPage from './features/dashboard/pages/DashboardPage';
 import CoursePlanPage from './features/courses/pages/CoursePlanPage';
 import LevelViewPage from './features/courses/pages/LevelViewPage';
 import ChapterViewPage from './features/courses/pages/ChapterViewPage';
+import LanguageChapterViewPage from './features/courses/pages/LanguageChapterViewPage';
+import ChapterPageSwitcher from './features/courses/pages/ChapterPageSwitcher'; // <-- AJOUTER L'IMPORT
+
 import StatsPage from './features/dashboard/pages/StatsPage';
 
 // === Layouts ===
@@ -104,7 +107,11 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/courses/:courseId" element={<CoursePlanPage />} />
           <Route path="/levels/:levelId" element={<LevelViewPage />} />
-          <Route path="/chapters/:chapterId" element={<ChapterViewPage />} />
+          {/* <Route path="/chapters/:chapterId" element={<ChapterViewPage />} /> 
+             <Route path="/chapters/:chapterId" element={<LanguageChapterViewPage />} />
+          */}
+          
+          <Route path="/chapters/:chapterId" element={<ChapterPageSwitcher />} />
           <Route path="/stats" element={<StatsPage />} />
         </Route>
       </Route>

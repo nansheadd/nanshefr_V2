@@ -1,18 +1,47 @@
-// Fichier: src/features/courses/pages/CoursePlanPage.jsx (VERSION FINALE AVEC ICÔNES)
+// Fichier à modifier : nanshe/frontend/src/features/courses/pages/CoursePlanPage.jsx
+
 import React, { useEffect } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
 import { useAuth } from '../../../hooks/useAuth';
-import { Box, Container, Typography, CircularProgress, Alert, List, ListItem, ListItemButton, ListItemText, Divider, Paper, ListItemIcon } from '@mui/material';
-import StairsIcon from '@mui/icons-material/Stairs'; // Icône pour les niveaux
-import CourseStats from '../components/CourseStats'; // Importez le composant
+import { 
+    Box, Container, Typography, CircularProgress, Alert, List, ListItem, 
+    ListItemButton, ListItemText, Divider, Paper, ListItemIcon,
+    // --- NOUVEAUX IMPORTS ---
+    Accordion, AccordionSummary, AccordionDetails, Grid 
+} from '@mui/material';
+import StairsIcon from '@mui/icons-material/Stairs';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'; // Pour l'accordéon
+import CourseStats from '../components/CourseStats';
 
 
 const fetchCourseById = async (courseId) => {
   const { data } = await apiClient.get(`/courses/${courseId}`);
   return data;
 };
+
+// --- NOUVEAU SOUS-COMPOSANT POUR AFFICHER LES CARACTÈRES ---
+const CharacterSetViewer = ({ characterSet }) => (
+    <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography sx={{ fontWeight: 'bold' }}>{characterSet.name}</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+            <Grid container spacing={1}>
+                {characterSet.characters.map(char => (
+                    <Grid item xs={2} sm={1} key={char.id}>
+                        <Paper variant="outlined" sx={{ textAlign: 'center', p: 1 }}>
+                            <Typography variant="h6">{char.symbol}</Typography>
+                            <Typography variant="caption">{char.pronunciation}</Typography>
+                        </Paper>
+                    </Grid>
+                ))}
+            </Grid>
+        </AccordionDetails>
+    </Accordion>
+);
+
 
 const CoursePlanPage = () => {
   const { courseId } = useParams();
@@ -25,7 +54,7 @@ const CoursePlanPage = () => {
     enabled: !!isAuthenticated,
   });
 
-  // Polling pour la génération du cours
+  // Polling pour la génération (inchangé)
   useEffect(() => {
     const isGenerating = course?.generation_status === 'generating' || course?.generation_status === 'pending';
     if (isGenerating) {
@@ -43,8 +72,8 @@ const CoursePlanPage = () => {
     return <Alert severity="error">Impossible de charger le plan du cours.</Alert>;
   }
 
-  // Affichage pendant la génération
-  if (course?.generation_status !== 'completed') {
+  // Affichage pendant la génération (inchangé)
+    if (course?.generation_status !== 'completed') {
     return (
       <Container>
         <Paper sx={{ my: 4, p: 3, textAlign: 'center' }}>
@@ -70,6 +99,21 @@ const CoursePlanPage = () => {
         <Typography variant="h3" component="h1" gutterBottom>{course?.title}</Typography>
         <Typography variant="body1" color="text.secondary" paragraph>{course?.description}</Typography>
         <Divider sx={{ my: 2 }} />
+
+        {/* --- NOUVELLE SECTION POUR LES ALPHABETS --- */}
+        {course?.character_sets && course.character_sets.length > 0 && (
+            <>
+                <Typography variant="h5" component="h2" gutterBottom>Alphabets à Maîtriser</Typography>
+                <Box sx={{ mb: 3 }}>
+                    {course.character_sets.map(set => (
+                        <CharacterSetViewer key={set.id} characterSet={set} />
+                    ))}
+                </Box>
+                <Divider sx={{ my: 2 }} />
+            </>
+        )}
+        {/* --- FIN DE LA NOUVELLE SECTION --- */}
+
         <Typography variant="h5" component="h2" gutterBottom>Niveaux du Cours</Typography>
         <List>
           {course?.levels?.sort((a, b) => a.level_order - b.level_order).map((level) => (

@@ -1,47 +1,65 @@
-// Fichier: src/features/learning/components/KnowledgeComponentViewer.jsx (FINAL)
+// Fichier: src/features/learning/components/KnowledgeComponentViewer.jsx (FINAL CORRIGÉ ET MIS À JOUR)
 import React from 'react';
 import { Typography, Paper, Divider } from '@mui/material';
+
+// Imports des composants d'exercices existants
 import QcmComponent from './QcmComponent';
 import FillInTheBlankComponent from './FillInTheBlankComponent';
 import ReorderComponent from './ReorderComponent';
 import WritingComponent from './WritingComponent';
-import QuizComponent from './QuizComponent'; // <-- Nouvel import
-import EssayComponent from './EssayComponent'; // <-- Nouvel import
-import DiscussionComponent from './DiscussionComponent'; // <-- Nouvel import
+import QuizComponent from './QuizComponent';
+import EssayComponent from './EssayComponent';
+import DiscussionComponent from './DiscussionComponent';
+
+// --- IMPORTS DES NOUVEAUX COMPOSANTS DE LANGUE ---
+import CharacterRecognitionComponent from './CharacterRecognitionComponent';
+import AssociationDragDropComponent from './AssociationDragDropComponent';
+import SentenceConstructionComponent from './SentenceConstructionComponent';
 
 const KnowledgeComponentViewer = ({ component, submittedAnswer }) => {
 
   const renderExercise = () => {
-    // On met le type en minuscule pour être insensible à la casse
+    // On met le type en minuscule pour être insensible à la casse, c'est une bonne pratique
     const componentType = component.component_type.toLowerCase();
 
     switch (componentType) {
+      // --- Composants de base ---
       case 'qcm':
         return <QcmComponent component={component} submittedAnswer={submittedAnswer} />;
       
       case 'fill_in_the_blank':
-        return <FillInTheBlankComponent component={component} submittedAnswer={submittedAnswer}/>;
+        return <FillInTheBlankComponent component={component} submittedAnswer={submittedAnswer} />;
         
       case 'reorder':
         return <ReorderComponent component={component} submittedAnswer={submittedAnswer} />;
 
-      case 'rédaction':
-      case 'writing':
-        return <WritingComponent component={component} submittedAnswer={submittedAnswer} />;
-
-      // --- NOUVEAUX CAS GÉRÉS ---
       case 'quiz':
         return <QuizComponent component={component} submittedAnswer={submittedAnswer} />;
+
+      // --- Composants de rédaction / analyse ---
+      case 'rédaction': // Alias français
+      case 'writing':
+        return <WritingComponent component={component} submittedAnswer={submittedAnswer} />;
       
-      case 'essai':
+      case 'essai': // Alias français
       case 'essay':
         return <EssayComponent component={component} submittedAnswer={submittedAnswer} />;
 
       case 'discussion':
         return <DiscussionComponent component={component} submittedAnswer={submittedAnswer} />;
-      // --------------------------
 
-      case 'lesson':
+      // --- NOUVEAUX COMPOSANTS SPÉCIFIQUES AUX LANGUES ---
+      case 'character_recognition':
+        return <CharacterRecognitionComponent component={component} submittedAnswer={submittedAnswer} />;
+      
+      case 'association_drag_drop':
+        return <AssociationDragDropComponent component={component} submittedAnswer={submittedAnswer} />;
+
+      case 'sentence_construction':
+        return <SentenceConstructionComponent component={component} submittedAnswer={submittedAnswer} />;
+      // ----------------------------------------------------
+
+      case 'lesson': // Leçon n'est pas un exercice, on ne rend rien
         return null; 
         
       default:
