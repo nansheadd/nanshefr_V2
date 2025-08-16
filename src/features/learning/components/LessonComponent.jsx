@@ -1,4 +1,4 @@
-// Fichier: src/features/learning/components/LessonComponent.jsx
+// Fichier: src/features/learning/components/LessonComponent.jsx (VERSION CORRIGÉE)
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 
@@ -50,25 +50,15 @@ const LessonComponent = ({ content }) => {
             </Typography>
           )}
 
-          {(turn.vocab_refs?.length || turn.grammar_refs?.length || turn.notes_fr) && (
+          {/* --- BLOC SUPPRIMÉ ---
+              Le code qui affichait les vocab_refs et grammar_refs a été retiré d'ici.
+              On garde l'affichage des notes culturelles car elles sont utiles.
+          --- FIN DE LA MODIFICATION --- */}
+          {turn.notes_fr && (
             <Box sx={{ mt: 0.5 }}>
-              {turn.vocab_refs?.length && (
-                <Typography variant="caption" display="block">
-                  Vocabulaire : {turn.vocab_refs.join(', ')}
-                </Typography>
-              )}
-
-              {turn.grammar_refs?.length && (
-                <Typography variant="caption" display="block">
-                  Grammaire : {turn.grammar_refs.join(', ')}
-                </Typography>
-              )}
-
-              {turn.notes_fr && (
                 <Typography variant="caption" display="block">
                   {turn.notes_fr}
                 </Typography>
-              )}
             </Box>
           )}
         </Box>
