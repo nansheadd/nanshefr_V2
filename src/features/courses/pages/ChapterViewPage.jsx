@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
 import { Box, Container, Typography, CircularProgress, Alert, Divider, Paper, Button } from '@mui/material';
 import KnowledgeComponentViewer from '../../learning/components/KnowledgeComponentViewer';
+import LessonComponent from '../../learning/components/LessonComponent';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import RefreshIcon from '@mui/icons-material/Refresh';
 
@@ -120,7 +121,7 @@ const ChapterViewPage = () => {
             <Divider sx={{ mb: 2 }} />
             {renderContentSection(
               chapter.lesson_status,
-              <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{chapter.lesson_text}</Typography>,
+              <LessonComponent content={{ lesson_text: chapter.lesson_text }} />,
               lessonMutation, "Générer la leçon", "La leçon est prête à être créée par l'IA."
             )}
         </Paper>
