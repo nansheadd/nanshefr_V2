@@ -14,7 +14,8 @@ const FillInTheBlankComponent = ({ component, submittedAnswer }) => {
   const queryClient = useQueryClient();
 
   // On rend le composant intelligent pour trouver les données dont il a besoin.
-  const textToDisplay = content_json.sentence || content_json.text_with_blanks || '';
+  const textToDisplay =
+    content_json.prompt || content_json.sentence || content_json.text_with_blanks || '';
   const answerOrAnswers = content_json.answer || content_json.correct_answer || content_json.answers || [];
   const numberOfBlanks = Array.isArray(answerOrAnswers) ? answerOrAnswers.length : (answerOrAnswers ? 1 : 0);
 

@@ -15,7 +15,7 @@ const QcmComponent = ({ component, submittedAnswer }) => {
 
   // --- BLOC DE CORRECTION ---
   // On rend le composant intelligent pour trouver les données, peu importe le nom de la clé.
-  const question = content_json.question || "Question non trouvée.";
+  const question = content_json.prompt || content_json.question || "Question non trouvée.";
   const options = content_json.options || content_json.choices || [];
   // -------------------------
 
