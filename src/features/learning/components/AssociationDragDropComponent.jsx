@@ -25,9 +25,14 @@ const AssociationDragDropComponent = ({ component, submittedAnswer }) => {
   const { content_json } = component;
   const queryClient = useQueryClient();
 
-  const initialPairs = content_json.pairs || [];
-  const prompts = initialPairs.map(p => p.prompt);
-  const initialAnswers = shuffleArray(initialPairs.map(p => p.answer));
+  const initialPairs = Array.isArray(content_json.pairs)
+    ? content_json.pairs
+    : Object.entries(content_json.pairs || {}).map(([prompt, answer]) => ({
+        prompt,
+        answer,
+      }));
+  const prompts = initialPairs.map((p) => p.prompt);
+  const initialAnswers = shuffleArray(initialPairs.map((p) => p.answer));
 
   const [answers, setAnswers] = useState(initialAnswers);
   const [associations, setAssociations] = useState({});
@@ -79,7 +84,9 @@ const AssociationDragDropComponent = ({ component, submittedAnswer }) => {
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>{content_json.instruction}</Typography>
+      <Typography variant="h6" gutterBottom>
+        {content_json.prompt || content_json.instruction}
+      </Typography>
       
       <DragDropContext onDragEnd={onDragEnd}>
         <Grid container spacing={2} sx={{ mt: 2 }}>

@@ -55,7 +55,9 @@ const SentenceConstructionComponent = ({ component, submittedAnswer }) => {
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>{content_json.instruction}</Typography>
+      <Typography variant="h6" gutterBottom>
+        {content_json.prompt || content_json.instruction}
+      </Typography>
       
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId={`sentence-${component.id}`} direction="horizontal">
