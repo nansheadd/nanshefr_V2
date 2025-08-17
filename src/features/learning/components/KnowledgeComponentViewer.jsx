@@ -53,6 +53,7 @@ const KnowledgeComponentViewer = ({ component, submittedAnswer }) => {
         return <CharacterRecognitionComponent component={component} submittedAnswer={submittedAnswer} />;
       
       case 'association_drag_drop':
+      case 'drag_drop': // <-- On ajoute un alias pour ce cas
         return <AssociationDragDropComponent component={component} submittedAnswer={submittedAnswer} />;
 
       case 'sentence_construction':

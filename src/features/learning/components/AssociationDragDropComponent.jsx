@@ -1,5 +1,5 @@
 // Fichier: nanshe/frontend/src/features/learning/components/AssociationDragDropComponent.jsx (NOUVEAU)
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import apiClient from '../../../api/axiosConfig';
@@ -25,12 +25,26 @@ const AssociationDragDropComponent = ({ component, submittedAnswer }) => {
   const { content_json } = component;
   const queryClient = useQueryClient();
 
-  const initialPairs = Array.isArray(content_json.pairs)
-    ? content_json.pairs
-    : Object.entries(content_json.pairs || {}).map(([prompt, answer]) => ({
-        prompt,
-        answer,
-      }));
+  // --- LOGIQUE DE NORMALISATION DES DONNÉES ---
+  // On rend le composant capable de comprendre plusieurs formats de JSON
+  const initialPairs = useMemo(() => {
+    if (Array.isArray(content_json.pairs)) {
+        return content_json.pairs; // Format standard {prompt, answer}
+    }
+    if (Array.isArray(content_json.items_left) && Array.isArray(content_json.items_right)) {
+        // Format avec deux listes séparées
+        return content_json.items_left.map((prompt, index) => ({
+            prompt,
+            answer: content_json.items_right[index]
+        }));
+    }
+    // Fallback pour les anciens formats ou les formats inattendus
+    if (typeof content_json.pairs === 'object' && content_json.pairs !== null) {
+        return Object.entries(content_json.pairs).map(([prompt, answer]) => ({ prompt, answer }));
+    }
+    return []; // Retourne un tableau vide si le format est inconnu
+  }, [content_json]);
+
   const prompts = initialPairs.map((p) => p.prompt);
   const initialAnswers = shuffleArray(initialPairs.map((p) => p.answer));
 
