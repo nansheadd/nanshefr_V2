@@ -14,6 +14,7 @@ import LevelViewPage from './features/courses/pages/LevelViewPage';
 import ChapterViewPage from './features/courses/pages/ChapterViewPage';
 import LanguageChapterViewPage from './features/courses/pages/LanguageChapterViewPage';
 import ChapterPageSwitcher from './features/courses/pages/ChapterPageSwitcher'; // <-- AJOUTER L'IMPORT
+import Toolbox from './features/toolbox/components/Toolbox';
 
 import StatsPage from './features/dashboard/pages/StatsPage';
 
@@ -26,6 +27,7 @@ function AppShell() {
         <Outlet />
       </Container>
       <Footer />
+      <Toolbox />
     </Box>
   );
 }
