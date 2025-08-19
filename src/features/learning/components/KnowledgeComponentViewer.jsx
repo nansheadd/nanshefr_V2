@@ -10,13 +10,16 @@ import WritingComponent from './WritingComponent';
 import QuizComponent from './QuizComponent';
 import EssayComponent from './EssayComponent';
 import DiscussionComponent from './DiscussionComponent';
+import FeedbackButtons from './FeedbackButtons';
 
 // --- IMPORTS DES NOUVEAUX COMPOSANTS DE LANGUE ---
 import CharacterRecognitionComponent from './CharacterRecognitionComponent';
 import AssociationDragDropComponent from './AssociationDragDropComponent';
 import SentenceConstructionComponent from './SentenceConstructionComponent';
 
-const KnowledgeComponentViewer = ({ component, submittedAnswer }) => {
+
+
+const KnowledgeComponentViewer = ({ component, submittedAnswer, initialVote, onFeedbackSuccess }) => {
 
   const renderExercise = () => {
     // On met le type en minuscule pour être insensible à la casse, c'est une bonne pratique
@@ -73,6 +76,12 @@ const KnowledgeComponentViewer = ({ component, submittedAnswer }) => {
       <Typography variant="h5" component="h2" gutterBottom>
         {component.title}
       </Typography>
+      <FeedbackButtons 
+                contentType="knowledge_component" 
+                contentId={component.id} 
+                initialVote={initialVote}
+                onSuccess={onFeedbackSuccess}
+            />
       <Typography variant="caption" color="text.secondary" display="block">
         Catégorie: {component.category}
       </Typography>
