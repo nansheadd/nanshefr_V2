@@ -1,76 +1,25 @@
-// Fichier : nanshe/frontend/src/features/courses/pages/CoursePlanPage.jsx
+// Fichier : frontend/src/features/courses/pages/CoursePlanPage.jsx (VERSION FINALE)
 
-import React, { useEffect, useState, useRef } from 'react';
-import { useParams, Link as RouterLink } from 'react-router-dom';
+import React, { useEffect, useMemo } from 'react';
+import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
 import { useAuth } from '../../../hooks/useAuth';
 import {
     Box, Container, Typography, CircularProgress, Alert, List, ListItem,
     ListItemButton, ListItemText, Divider, Paper, ListItemIcon,
-    Accordion, AccordionSummary, AccordionDetails, Grid, LinearProgress
+    Accordion, AccordionSummary, AccordionDetails, Grid
 } from '@mui/material';
 import StairsIcon from '@mui/icons-material/Stairs';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CourseStats from '../components/CourseStats';
 import VocabularyTrainer from '../components/VocabularyTrainer';
+import KnowledgeGraphPage from './KnowledgeGraphPage'; // <-- On importe la vue du graphe
 
 const fetchCourseById = async (courseId) => {
   const { data } = await apiClient.get(`/courses/${courseId}`);
   return data;
 };
-
-// Les jalons de progression connus du backend pour un cours de langue.
-const PROGRESS_STEPS = [0, 5, 10, 30, 60, 80, 95, 100];
-
-// Hook personnalisé contenant la logique d'animation
-const useAnimatedProgress = (serverProgress, isGenerating) => {
-    const [displayedProgress, setDisplayedProgress] = useState(0);
-    const animationInterval = useRef(null);
-
-    useEffect(() => {
-        // Si la génération est terminée, on force 100% et on arrête tout.
-        if (!isGenerating) {
-            if (animationInterval.current) clearInterval(animationInterval.current);
-            // S'assure que la barre va bien à 100 quand c'est fini.
-            if (serverProgress > 0) setDisplayedProgress(100);
-            return;
-        }
-
-        // On arrête l'ancienne animation avant d'en lancer une nouvelle.
-        if (animationInterval.current) clearInterval(animationInterval.current);
-
-        // On lance la nouvelle animation.
-        animationInterval.current = setInterval(() => {
-            setDisplayedProgress(prev => {
-                // Si la progression affichée est en retard sur le serveur, on la rattrape vite.
-                if (prev < serverProgress) {
-                    return Math.min(prev + 2, serverProgress); // Rattrapage rapide
-                }
-
-                // Logique d'anticipation
-                const nextStepIndex = PROGRESS_STEPS.findIndex(step => step > prev);
-                const nextStepTarget = nextStepIndex !== -1 ? PROGRESS_STEPS[nextStepIndex] : 100;
-                const animationTarget = nextStepTarget - 1;
-
-                // Si on a atteint la cible d'animation, on attend.
-                if (prev >= animationTarget) {
-                    return prev;
-                }
-
-                // Sinon, on continue d'avancer lentement.
-                return prev + 1;
-            });
-        }, 700); // Vitesse de l'animation artificielle (plus lente pour être visible)
-
-        // Nettoyage de l'intervalle
-        return () => clearInterval(animationInterval.current);
-
-    }, [serverProgress, isGenerating]);
-
-    return displayedProgress;
-};
-
 
 const CharacterSetViewer = ({ characterSet }) => (
     <Accordion>
@@ -92,32 +41,33 @@ const CharacterSetViewer = ({ characterSet }) => (
     </Accordion>
 );
 
-
 const CoursePlanPage = () => {
   const { courseId } = useParams();
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: course, isLoading, isError } = useQuery({
     queryKey: ['course', courseId],
     queryFn: () => fetchCourseById(courseId),
     enabled: !!isAuthenticated,
+    // Polling pour rafraîchir le statut pendant la génération
+    refetchInterval: (query) => {
+        const data = query.state.data;
+        return ['generating', 'pending'].includes(data?.generation_status) ? 3000 : false;
+    },
   });
-
-  const isGenerating = course?.generation_status === 'generating' || course?.generation_status === 'pending';
-  const serverProgress = course?.generation_progress || 0;
-  const animatedProgress = useAnimatedProgress(serverProgress, isGenerating);
-
-  // Le polling pour rafraîchir les données du serveur
   useEffect(() => {
-    if (isGenerating) {
-      const interval = setInterval(() => {
-        queryClient.invalidateQueries({ queryKey: ['course', courseId] });
-      }, 3000);
-      return () => clearInterval(interval);
+    if (course && course.course_type === 'philosophie') {
+      navigate(`/courses/${courseId}/graph`, { replace: true });
     }
-  }, [isGenerating, queryClient, courseId]);
+  }, [course, courseId, navigate]);
 
+  if (course?.course_type === 'philosophie') {
+    // On passe l'objet course en prop
+    return <KnowledgeGraphPage course={course} />;
+  }
+  
   if (isLoading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
   }
@@ -125,33 +75,13 @@ const CoursePlanPage = () => {
     return <Alert severity="error">Impossible de charger le plan du cours.</Alert>;
   }
 
-  // --- AFFICHAGE PENDANT LA GÉNÉRATION ---
-  if (course?.generation_status !== 'completed') {
-    return (
-      <Container>
-        <Paper sx={{ my: 4, p: 3, textAlign: 'center' }}>
-          <Typography variant="h4" component="h1" gutterBottom>{course?.title}</Typography>
-          <Divider sx={{ my: 2 }} />
-          <Box my={4}>
-            <Typography variant="h6" sx={{ mt: 2 }}>Génération de votre cours personnalisé...</Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
-                <Box sx={{ width: '100%', mr: 1 }}>
-                    <LinearProgress variant="determinate" value={animatedProgress} />
-                </Box>
-                <Box sx={{ minWidth: 35 }}>
-                    <Typography variant="body2" color="text.secondary">{`${Math.round(animatedProgress)}%`}</Typography>
-                </Box>
-            </Box>
-            <Typography color="text.secondary">
-                Étape : {course.generation_step || 'Initialisation...'}
-            </Typography>
-          </Box>
-        </Paper>
-      </Container>
-    );
+  // --- AIGUILLEUR DE VUE ---
+  // Si le cours est de type philosophie, on affiche directement le composant du graphe.
+  if (course?.course_type === 'philosophie') {
+    return <KnowledgeGraphPage course={course} />;
   }
-
-  // --- AFFICHAGE NORMAL DU COURS TERMINÉ ---
+  
+  // --- AFFICHAGE POUR LES COURS LINÉAIRES (Langues, etc.) ---
   return (
     <Container>
       <Paper sx={{ my: 4, p: 3 }}>

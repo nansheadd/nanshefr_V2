@@ -13,7 +13,9 @@ import CoursePlanPage from './features/courses/pages/CoursePlanPage';
 import LevelViewPage from './features/courses/pages/LevelViewPage';
 import ChapterViewPage from './features/courses/pages/ChapterViewPage';
 import LanguageChapterViewPage from './features/courses/pages/LanguageChapterViewPage';
-import ChapterPageSwitcher from './features/courses/pages/ChapterPageSwitcher'; // <-- AJOUTER L'IMPORT
+import ChapterPageSwitcher from './features/courses/pages/ChapterPageSwitcher';
+import KnowledgeGraphPage from './features/courses/pages/KnowledgeGraphPage'; // <-- NOUVEL IMPORT
+import NodeViewPage from './features/courses/pages/NodeViewPage'; // <-- NOUVEL IMPORT
 import Toolbox from './features/toolbox/components/Toolbox';
 
 import StatsPage from './features/dashboard/pages/StatsPage';
@@ -112,6 +114,8 @@ export default function App() {
           {/* <Route path="/chapters/:chapterId" element={<ChapterViewPage />} /> 
              <Route path="/chapters/:chapterId" element={<LanguageChapterViewPage />} />
           */}
+          <Route path="/courses/:courseId/graph" element={<KnowledgeGraphPage />} />
+          <Route path="/nodes/:nodeId" element={<NodeViewPage />} />
           
           <Route path="/chapters/:chapterId" element={<ChapterPageSwitcher />} />
           <Route path="/stats" element={<StatsPage />} />

@@ -11,6 +11,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import KnowledgeComponentViewer from '../../learning/components/KnowledgeComponentViewer';
 import LessonComponent from '../../learning/components/LessonComponent';
+import DiscussionComponent from '../../learning/components/DiscussionComponent';
 
 // --- Fonctions d'API ---
 const fetchChapterById = async (chapterId) => {
@@ -195,14 +196,11 @@ const LanguageChapterViewPage = () => {
                 <>
                     {chapter.vocabulary_items?.length > 0 && <VocabularyList items={chapter.vocabulary_items} />}
                     {chapter.grammar_rules?.length > 0 && <GrammarRules rules={chapter.grammar_rules} />}
-                    {chapter.lesson_text && (
-                        <Box sx={{mt: 3}}>
+                    <Box sx={{mt: 3}}>
                             <Typography variant="h6" gutterBottom>Dialogue</Typography>
-                            <Paper variant="outlined" sx={{ p: 3, backgroundColor: 'rgba(0,0,0,0.03)' }}>
-                                <LessonComponent content={{ lesson_text: chapter.lesson_text }} />
-                            </Paper>
+                            {/* On remplace le Paper et LessonComponent par notre composant spécialisé */}
+                            <DiscussionComponent content={chapter.lesson_text} />
                         </Box>
-                    )}
                 </>
             )}
         </Paper>

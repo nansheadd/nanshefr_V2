@@ -1,4 +1,4 @@
-// Fichier: src/features/learning/components/KnowledgeComponentViewer.jsx (FINAL CORRIGÉ ET MIS À JOUR)
+// Fichier: src/features/learning/components/KnowledgeComponentViewer.jsx (FINAL)
 import React from 'react';
 import { Typography, Paper, Divider } from '@mui/material';
 
@@ -17,12 +17,10 @@ import CharacterRecognitionComponent from './CharacterRecognitionComponent';
 import AssociationDragDropComponent from './AssociationDragDropComponent';
 import SentenceConstructionComponent from './SentenceConstructionComponent';
 
-
-
 const KnowledgeComponentViewer = ({ component, submittedAnswer, initialVote, onFeedbackSuccess }) => {
 
   const renderExercise = () => {
-    // On met le type en minuscule pour être insensible à la casse, c'est une bonne pratique
+    // On met le type en minuscule pour être insensible à la casse
     const componentType = component.component_type.toLowerCase();
 
     switch (componentType) {
@@ -39,31 +37,31 @@ const KnowledgeComponentViewer = ({ component, submittedAnswer, initialVote, onF
       case 'quiz':
         return <QuizComponent component={component} submittedAnswer={submittedAnswer} />;
 
-      // --- Composants de rédaction / analyse ---
-      case 'rédaction': // Alias français
+      // --- NOUVEAUX TYPES PHILOSOPHIQUES MAPPÉS SUR DES COMPOSANTS EXISTANTS ---
+      case 'argument_analysis': // <- Nouveau type
+      case 'rédaction':
       case 'writing':
         return <WritingComponent component={component} submittedAnswer={submittedAnswer} />;
       
-      case 'essai': // Alias français
+      case 'essai':
       case 'essay':
         return <EssayComponent component={component} submittedAnswer={submittedAnswer} />;
 
       case 'discussion':
         return <DiscussionComponent component={component} submittedAnswer={submittedAnswer} />;
-
-      // --- NOUVEAUX COMPOSANTS SPÉCIFIQUES AUX LANGUES ---
+      
+      // --- COMPOSANTS SPÉCIFIQUES AUX LANGUES ---
       case 'character_recognition':
         return <CharacterRecognitionComponent component={component} submittedAnswer={submittedAnswer} />;
       
       case 'association_drag_drop':
-      case 'drag_drop': // <-- On ajoute un alias pour ce cas
+      case 'drag_drop':
         return <AssociationDragDropComponent component={component} submittedAnswer={submittedAnswer} />;
 
       case 'sentence_construction':
         return <SentenceConstructionComponent component={component} submittedAnswer={submittedAnswer} />;
-      // ----------------------------------------------------
-
-      case 'lesson': // Leçon n'est pas un exercice, on ne rend rien
+      
+      case 'lesson':
         return null; 
         
       default:
