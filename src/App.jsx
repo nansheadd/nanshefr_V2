@@ -17,6 +17,8 @@ import ChapterPageSwitcher from './features/courses/pages/ChapterPageSwitcher';
 import KnowledgeGraphPage from './features/courses/pages/KnowledgeGraphPage'; // <-- NOUVEL IMPORT
 import NodeViewPage from './features/courses/pages/NodeViewPage'; // <-- NOUVEL IMPORT
 import Toolbox from './features/toolbox/components/Toolbox';
+import LibraryPage from './features/courses/pages/LibraryPage';
+
 
 import StatsPage from './features/dashboard/pages/StatsPage';
 
@@ -109,6 +111,8 @@ export default function App() {
       <Route element={<PrivateRoute />}>
         <Route element={<AppShell />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/library" element={<LibraryPage />} />
+
           <Route path="/courses/:courseId" element={<CoursePlanPage />} />
           <Route path="/levels/:levelId" element={<LevelViewPage />} />
           {/* <Route path="/chapters/:chapterId" element={<ChapterViewPage />} /> 

@@ -62,15 +62,16 @@ const ChapterViewPage = () => {
   const queryClient = useQueryClient();
 
   // Requête pour récupérer les données du chapitre
-  const { data: chapter, isLoading, isError, error } = useQuery({
+const { data: chapter, isLoading, isError, error } = useQuery({
     queryKey: ['chapter', chapterId],
     queryFn: () => fetchChapterById(chapterId),
-    // Fait un refresh automatique toutes les 3s si le contenu est en cours de génération
     refetchInterval: (query) => {
         const data = query.state.data;
-        return ['generating', 'pending'].includes(data?.lesson_status) ? 3000 : false;
+        // Si un exercice est en attente d'analyse, on rafraîchit toutes les 3 secondes
+        const isPending = data?.knowledge_components?.some(c => c.user_answer?.status === 'pending_review');
+        return isPending ? 3000 : false;
     },
-  });
+});
 
   // Requête pour récupérer les données du niveau (activée seulement quand on a l'ID du niveau)
   const { data: level } = useQuery({
