@@ -1,6 +1,8 @@
 // src/features/dashboard/components/StatsCards.jsx
 import React from 'react';
-import { Grid, Card, CardContent, Typography, Box, LinearProgress } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '../../../api/axiosConfig'; // Assurez-vous d'avoir ce fichier
+import { Grid, Card, CardContent, Typography, Box, Skeleton } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SchoolIcon from '@mui/icons-material/School';
@@ -77,46 +79,75 @@ const stats = [
   },
 ];
 
+// Fonction pour formater les secondes en heures/minutes
+const formatTime = (seconds) => {
+    if (seconds < 60) return `${seconds}s`;
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours > 0 ? `${hours}h ` : ''}${minutes}m`;
+};
+
 const StatsCards = () => {
+  // Query 1: Récupérer les capsules de l'utilisateur
+  const { data: enrolledCapsules, isLoading: isLoadingCapsules } = useQuery({
+    queryKey: ['my-capsules'],
+    queryFn: async () => (await apiClient.get('/capsules/me')).data,
+  });
+
+  // Query 2: Récupérer les stats de progression
+  const { data: progressStats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['my-progress-stats'],
+    queryFn: async () => (await apiClient.get('/progress/stats')).data,
+  });
+
+  const isLoading = isLoadingCapsules || isLoadingStats;
+
+  const stats = [
+    {
+      title: 'Capsules Actives',
+      value: isLoading ? '...' : enrolledCapsules?.length || 0,
+      icon: <SchoolIcon />,
+      color: 'primary',
+    },
+    {
+      title: 'Temps d\'apprentissage',
+      value: isLoading ? '...' : formatTime(progressStats?.total_study_time_seconds || 0),
+      icon: <AccessTimeIcon />,
+      color: 'secondary',
+    },
+    {
+      title: 'Streak Actuel',
+      value: isLoading ? '...' : `${progressStats?.current_streak_days || 0} jours`,
+      icon: <TrendingUpIcon />,
+      color: 'success',
+    },
+    {
+      title: 'Badges Obtenus',
+      value: '8', // Donnée statique pour le moment
+      icon: <EmojiEventsIcon />,
+      color: 'warning',
+    },
+  ];
+
   return (
     <Grid container spacing={3}>
       {stats.map((stat, index) => (
         <Grid item xs={12} sm={6} lg={3} key={index}>
-          <StatCard color={stat.color}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                    {stat.title}
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700, mt: 1 }}>
-                    {stat.value}
-                  </Typography>
-                  <Typography variant="caption" color={`${stat.color}.main`} sx={{ fontWeight: 600 }}>
-                    {stat.change}
-                  </Typography>
+          {isLoading ? (
+            <Skeleton variant="rectangular" height={150} sx={{ borderRadius: 4 }} />
+          ) : (
+            <StatCard color={stat.color}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">{stat.title}</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mt: 1 }}>{stat.value}</Typography>
+                  </Box>
+                  <IconContainer color={stat.color}>{stat.icon}</IconContainer>
                 </Box>
-                <IconContainer color={stat.color}>
-                  {stat.icon}
-                </IconContainer>
-              </Box>
-              <Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={stat.progress}
-                  sx={{
-                    height: 6,
-                    borderRadius: 3,
-                    backgroundColor: `${stat.color}.50`,
-                    '& .MuiLinearProgress-bar': {
-                      borderRadius: 3,
-                      background: `linear-gradient(90deg, ${stat.color === 'primary' ? '#1976d2' : stat.color === 'secondary' ? '#9c27b0' : stat.color === 'success' ? '#2e7d32' : '#ed6c02'}, ${stat.color === 'primary' ? '#42a5f5' : stat.color === 'secondary' ? '#ba68c8' : stat.color === 'success' ? '#66bb6a' : '#ffb74d'})`,
-                    }
-                  }}
-                />
-              </Box>
-            </CardContent>
-          </StatCard>
+              </CardContent>
+            </StatCard>
+          )}
         </Grid>
       ))}
     </Grid>

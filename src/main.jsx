@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import getTheme from './theme';
 import { ColorModeContext } from './theme/ColorModeContext';
+import ClassifierTest from './features/courses/pages/ClassifierTest';
 import App from './App';
 import './index.css';
 

@@ -15,7 +15,7 @@ import {
   Stack,
   Divider
 } from '@mui/material';
-import { useTheme, alpha } from '@mui/material/styles';
+import { styled, alpha, keyframes, useTheme } from '@mui/material/styles';
 import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import Visibility from '@mui/icons-material/Visibility';

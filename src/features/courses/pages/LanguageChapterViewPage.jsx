@@ -1,16 +1,15 @@
+// Fichier: frontend/src/features/courses/pages/LanguageChapterViewPage.jsx (VERSION MISE À JOUR)
 import React, { useMemo } from 'react';
 import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
-import { 
-    Box, Container, Typography, CircularProgress, Alert, Divider, Paper, 
-    Button, Grid, Accordion, AccordionSummary, AccordionDetails 
+import {
+    Box, Container, Typography, CircularProgress, Alert, Divider, Paper,
+    Button, Grid, List, ListItem, ListItemText, LinearProgress
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import KnowledgeComponentViewer from '../../learning/components/KnowledgeComponentViewer';
-import LessonComponent from '../../learning/components/LessonComponent';
 import DiscussionComponent from '../../learning/components/DiscussionComponent';
 
 // --- Fonctions d'API ---
@@ -33,7 +32,6 @@ const completeChapter = (chapterId) => {
     return apiClient.post(`/progress/chapter/${chapterId}/complete`);
 };
 
-// NOUVELLE FONCTION API POUR RÉCUPÉRER LES VOTES
 const fetchFeedbackStatuses = async ({ contentType, contentIds }) => {
     if (!contentIds || contentIds.length === 0) {
         return { statuses: {} };
@@ -46,40 +44,58 @@ const fetchFeedbackStatuses = async ({ contentType, contentIds }) => {
 };
 
 
-// --- SOUS-COMPOSANTS ---
-const VocabularyList = ({ items }) => (
-    <Box>
-        <Typography variant="h6" gutterBottom>Vocabulaire à Apprendre</Typography>
-        <Grid container spacing={2}>
-            {items.map(item => (
-                <Grid item xs={12} sm={6} md={4} key={item.id}>
-                    <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-                        <Typography variant="h6" component="p">{item.term} <Typography component="span" color="text.secondary">({item.pronunciation})</Typography></Typography>
-                        <Typography variant="body1">{item.translation}</Typography>
-                        {item.example_sentence && <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>"{item.example_sentence}"</Typography>}
-                    </Paper>
-                </Grid>
+// --- SOUS-COMPOSANTS POUR AFFICHER LA MAÎTRISE ---
+
+const CharacterList = ({ items }) => (
+    <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
+        <Typography variant="h5" gutterBottom>Caractères</Typography>
+        <List>
+            {items.map((char, index) => (
+                <React.Fragment key={char.id}>
+                    <ListItem disableGutters>
+                        <ListItemText
+                            primary={<Typography variant="h6" component="span" sx={{ fontFamily: 'monospace' }}>{char.character}</Typography>}
+                            secondary={`${char.pinyin} - ${char.meaning}`}
+                        />
+                        <Box sx={{ width: '30%', ml: 2 }}>
+                            <LinearProgress variant="determinate" value={char.strength * 100} />
+                            <Typography variant="caption" align="right" component="div" color="text.secondary">
+                                {`${Math.round(char.strength * 100)}%`}
+                            </Typography>
+                        </Box>
+                    </ListItem>
+                    {index < items.length - 1 && <Divider component="li" />}
+                </React.Fragment>
             ))}
-        </Grid>
-    </Box>
+        </List>
+    </Paper>
 );
 
-const GrammarRules = ({ rules }) => (
-    <Box>
-        <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Points de Grammaire</Typography>
-        {rules.map(rule => (
-            <Accordion key={rule.id}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography sx={{ fontWeight: 'bold' }}>{rule.rule_name}</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                    <Typography sx={{ whiteSpace: 'pre-wrap', mb: 1 }}>{rule.explanation}</Typography>
-                    {rule.example_sentence && <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>Exemple : "{rule.example_sentence}"</Typography>}
-                </AccordionDetails>
-            </Accordion>
-        ))}
-    </Box>
+const VocabularyList = ({ items }) => (
+    <Paper elevation={2} sx={{ p: 2 }}>
+        <Typography variant="h5" gutterBottom>Vocabulaire</Typography>
+        <List>
+            {items.map((item, index) => (
+                <React.Fragment key={item.id}>
+                    <ListItem disableGutters>
+                        <ListItemText
+                            primary={<Typography variant="h6" component="span">{item.word}</Typography>}
+                            secondary={`${item.pinyin} - ${item.translation}`}
+                        />
+                        <Box sx={{ width: '30%', ml: 2 }}>
+                            <LinearProgress variant="determinate" value={item.strength * 100} />
+                            <Typography variant="caption" align="right" component="div" color="text.secondary">
+                                {`${Math.round(item.strength * 100)}%`}
+                            </Typography>
+                        </Box>
+                    </ListItem>
+                    {index < items.length - 1 && <Divider component="li" />}
+                </React.Fragment>
+            ))}
+        </List>
+    </Paper>
 );
+
 
 // --- COMPOSANT PRINCIPAL ---
 const LanguageChapterViewPage = () => {
@@ -102,22 +118,20 @@ const LanguageChapterViewPage = () => {
       enabled: !!chapter?.level?.id,
   });
 
-  // --- NOUVELLE REQUÊTE POUR LES FEEDBACKS ---
-  const componentIds = useMemo(() => 
+  const componentIds = useMemo(() =>
       chapter?.knowledge_components?.map(c => c.id) || [],
       [chapter]
   );
 
   const { data: feedbackData } = useQuery({
       queryKey: ['feedbackStatus', 'knowledge_component', componentIds],
-      queryFn: () => fetchFeedbackStatuses({ 
-          contentType: 'knowledge_component', 
-          contentIds: componentIds 
+      queryFn: () => fetchFeedbackStatuses({
+          contentType: 'knowledge_component',
+          contentIds: componentIds
       }),
       enabled: !!chapter && componentIds.length > 0,
   });
 
-  // --- Mutations ---
   const resetMutation = useMutation({
       mutationFn: () => resetChapterAnswers(chapterId),
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chapter', chapterId] })
@@ -132,14 +146,12 @@ const LanguageChapterViewPage = () => {
       }
   });
 
-  // --- Logique de progression ---
   const { isChapterComplete, nextChapterId } = useMemo(() => {
     if (!chapter || !level) return { isChapterComplete: false, nextChapterId: null };
-    
-    const sortedChapters = [...level.chapters].sort((a, b) => a.chapter_order - b.chapter_order);
-    const currentIndex = sortedChapters.findIndex(c => c.id === chapter.id);
-    const nextChapter = currentIndex !== -1 && currentIndex < sortedChapters.length - 1 
-      ? sortedChapters[currentIndex + 1] 
+    const sortedChapters = [...level.chapters].sort((a, b) => a.order - b.order);
+    const currentIndex = sortedChapters.findIndex(c => c.id === parseInt(chapterId, 10));
+    const nextChapter = currentIndex !== -1 && currentIndex < sortedChapters.length - 1
+      ? sortedChapters[currentIndex + 1]
       : null;
 
     if (chapter.is_theoretical) {
@@ -147,9 +159,8 @@ const LanguageChapterViewPage = () => {
     }
 
     const allCorrect = chapter.knowledge_components?.length > 0 && chapter.knowledge_components.every(comp => comp.user_answer?.is_correct === true);
-    
     return { isChapterComplete: allCorrect, nextChapterId: nextChapter?.id };
-  }, [chapter, level]);
+  }, [chapter, level, chapterId]);
 
 
   // --- RENDU ---
@@ -169,7 +180,7 @@ const LanguageChapterViewPage = () => {
           </Container>
       );
   }
-  
+
   if (chapter.lesson_status === 'failed') {
       return <Alert severity="error">La génération de ce chapitre a échoué.</Alert>;
   }
@@ -178,12 +189,12 @@ const LanguageChapterViewPage = () => {
     <Container>
       <Box sx={{ my: 4 }}>
         <Button component={RouterLink} to={`/levels/${chapter?.level.id}`}>&larr; Retour à la liste des chapitres</Button>
-        
+
         <Paper sx={{ p: 3, mt: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Typography variant="h4" component="h1" gutterBottom>{chapter?.title}</Typography>
               {!chapter.is_theoretical && (
-                <Button onClick={() => resetMutation.mutate()} size="small" startIcon={<RefreshIcon />} disabled={resetMutation.isLoading}>
+                <Button onClick={() => resetMutation.mutate()} size="small" startIcon={<RefreshIcon />} disabled={resetMutation.isPending}>
                   Réinitialiser
                 </Button>
               )}
@@ -191,16 +202,25 @@ const LanguageChapterViewPage = () => {
             <Divider sx={{ mb: 3 }} />
 
             {chapter.is_theoretical ? (
-                <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{chapter.lesson_text}</Typography>
+                <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{chapter.lesson_content}</Typography>
             ) : (
                 <>
-                    {chapter.vocabulary_items?.length > 0 && <VocabularyList items={chapter.vocabulary_items} />}
-                    {chapter.grammar_rules?.length > 0 && <GrammarRules rules={chapter.grammar_rules} />}
-                    <Box sx={{mt: 3}}>
-                            <Typography variant="h6" gutterBottom>Dialogue</Typography>
-                            {/* On remplace le Paper et LessonComponent par notre composant spécialisé */}
-                            <DiscussionComponent content={chapter.lesson_text} />
+                    {/* NOUVELLE LOGIQUE D'AFFICHAGE */}
+                    <Grid container spacing={4}>
+                        <Grid item xs={12} md={6}>
+                            {chapter.characters?.length > 0 && <CharacterList items={chapter.characters} />}
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            {chapter.vocabulary?.length > 0 && <VocabularyList items={chapter.vocabulary} />}
+                        </Grid>
+                    </Grid>
+                    
+                    {chapter.lesson_content && (
+                        <Box sx={{mt: 4}}>
+                            <Typography variant="h5" gutterBottom>Dialogue</Typography>
+                            <DiscussionComponent content={chapter.lesson_content} />
                         </Box>
+                    )}
                 </>
             )}
         </Paper>
@@ -209,11 +229,11 @@ const LanguageChapterViewPage = () => {
           <>
             <Divider sx={{ my: 4 }}><Typography variant="h6">Exercices Pratiques</Typography></Divider>
             {chapter.knowledge_components.map((component) => (
-              <KnowledgeComponentViewer 
-                key={component.id} 
-                component={component} 
+              <KnowledgeComponentViewer
+                key={component.id}
+                component={component}
                 submittedAnswer={component.user_answer}
-                initialVote={feedbackData?.statuses?.[component.id]} 
+                initialVote={feedbackData?.statuses?.[component.id]}
               />
             ))}
           </>
@@ -227,7 +247,7 @@ const LanguageChapterViewPage = () => {
                   onClick={() => completeChapterMutation.mutate()}
                   disabled={completeChapterMutation.isPending}
               >
-                  {nextChapterId ? 'Continuer vers la première leçon' : 'Terminer le Niveau'}
+                  {nextChapterId ? 'Continuer' : 'Terminer le Niveau'}
               </Button>
           ) : (
              chapter.exercises_status === 'completed' && (
@@ -235,7 +255,7 @@ const LanguageChapterViewPage = () => {
                   <Button
                     variant="contained" color="primary" size="large"
                     endIcon={<NavigateNextIcon />}
-                    disabled={!isChapterComplete}
+                    disabled={!isChapterComplete || completeChapterMutation.isPending}
                     onClick={() => navigate(nextChapterId ? `/chapters/${nextChapterId}` : `/levels/${chapter.level.id}`)}
                   >
                     {nextChapterId ? 'Chapitre Suivant' : 'Retour au Niveau'}

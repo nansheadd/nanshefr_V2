@@ -1,160 +1,366 @@
-// Fichier: src/features/courses/components/CreateCourseForm.jsx (VERSION AVEC CHOIX DU MODÈLE À L'ÉTAPE 2)
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../../../api/axiosConfig';
-import { Box, Button, TextField, Typography, CircularProgress, Alert, Stepper, Step, StepLabel, Paper, RadioGroup, FormControlLabel, Radio, FormControl, FormLabel } from '@mui/material';
-import DynamicPersonalizationForm from './DynamicPersonalizationForm';
+import api from '../../../api/axiosConfig';
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Alert,
+  CircularProgress,
+  Paper,
+  Stack,
+  Chip,
+  Fade,
+  Card,
+  CardContent,
+  IconButton,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  FormControl,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Collapse
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
+import ScienceIcon from '@mui/icons-material/Science';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CategoryIcon from '@mui/icons-material/Category';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import ThumbDownIcon from '@mui/icons-material/ThumbDown';
+import SchoolIcon from '@mui/icons-material/School';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
+import CloseIcon from '@mui/icons-material/Close';
+import TranslateIcon from '@mui/icons-material/Translate';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import BiotechIcon from '@mui/icons-material/Biotech';
+import FunctionsIcon from '@mui/icons-material/Functions';
+import GroupsIcon from '@mui/icons-material/Groups';
+import CodeIcon from '@mui/icons-material/Code';
+import EngineeringIcon from '@mui/icons-material/Engineering';
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import PaletteIcon from '@mui/icons-material/Palette';
+import BusinessIcon from '@mui/icons-material/Business';
+import EmojiPeopleIcon from '@mui/icons-material/EmojiPeople';
+import QuizIcon from '@mui/icons-material/Quiz';
+import WorkIcon from '@mui/icons-material/Work';
+import HubIcon from '@mui/icons-material/Hub';
+import StarIcon from '@mui/icons-material/Star';
 
-// Fonctions API (inchangées)
-const getPersonalizationForm = async (courseData) => {
-  const { data } = await apiClient.post('/courses/personalization-form', courseData);
+const domainIcons = {
+  'langues': TranslateIcon,
+  'humanites': MenuBookIcon,
+  'sciences_naturelles': BiotechIcon,
+  'sciences_formelles': FunctionsIcon,
+  'sciences_sociales': GroupsIcon,
+  'informatique_data': CodeIcon,
+  'ingenierie_tech': EngineeringIcon,
+  'sante_medecine': LocalHospitalIcon,
+  'arts_creation': PaletteIcon,
+  'business_droit': BusinessIcon,
+  'soft_skills': EmojiPeopleIcon,
+  'tests_concours': QuizIcon,
+  'metiers_pro': WorkIcon
+};
+
+const StyledCard = styled(Card)(({ theme }) => ({
+  borderRadius: 24,
+  background: 'rgba(255, 255, 255, 0.95)',
+  backdropFilter: 'blur(20px)',
+  border: `1px solid ${theme.palette.divider}30`,
+  boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+  overflow: 'visible',
+}));
+
+const ResultBox = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  borderRadius: 16,
+  background: `linear-gradient(135deg, ${theme.palette.primary.main}05, ${theme.palette.secondary.main}05)`,
+  border: `1px solid ${theme.palette.divider}20`,
+  marginTop: theme.spacing(3),
+}));
+
+const StatsCard = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(2),
+  borderRadius: 12,
+  background: 'white',
+  border: `1px solid ${theme.palette.divider}20`,
+  textAlign: 'center',
+  flex: 1,
+}));
+
+const ActionCard = styled(Card)(({ theme, disabled }) => ({
+  padding: theme.spacing(3),
+  borderRadius: 16,
+  border: `2px solid ${disabled ? theme.palette.divider : theme.palette.primary.main}30`,
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  opacity: disabled ? 0.5 : 1,
+  transition: 'all 0.3s ease',
+  background: disabled ? 'rgba(200,200,200,0.1)' : 'white',
+  '&:hover': !disabled && {
+    transform: 'translateY(-4px)',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+    borderColor: theme.palette.primary.main,
+  }
+}));
+
+const FeedbackButton = styled(IconButton)(({ theme, active }) => ({
+  border: `2px solid ${active ? theme.palette.primary.main : theme.palette.divider}`,
+  backgroundColor: active ? `${theme.palette.primary.main}10` : 'transparent',
+  marginLeft: theme.spacing(1),
+  '&:hover': {
+    backgroundColor: `${theme.palette.primary.main}20`,
+  }
+}));
+
+const createCapsule = async (capsuleData) => {
+  console.log("--- [FRONTEND] Lancement de la création de la capsule avec le titre :", capsuleData.title);
+  const { data } = await api.post('/capsules/', capsuleData);
+  console.log("--- [FRONTEND] Réponse reçue du backend :", data);
   return data;
 };
-const createCourse = async (courseData) => {
-  const { data } = await apiClient.post('/courses/', courseData);
-  return data;
-};
 
+function ClassifierTest() {
+  const [text, setText] = useState('');
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+  const [showActions, setShowActions] = useState(false);
+  const [dislikeDialog, setDislikeDialog] = useState(false);
+  const [dislikeReason, setDislikeReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
 
-const CreateCourseForm = () => {
-  const [step, setStep] = useState(0);
-  const [courseData, setCourseData] = useState({
-    title: '',
-    model_choice: 'openai_gpt4o_mini', // On garde une valeur par défaut
-    creation_mode: 'full',
-    personalization_details: {},
-  });
-  const [formSchema, setFormSchema] = useState(null);
-  
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
-  const formMutation = useMutation({
-    mutationFn: getPersonalizationForm,
+  const capsuleCreationMutation = useMutation({
+    mutationFn: createCapsule,
     onSuccess: (data) => {
-      setFormSchema(data);
-      if (!data.fields || data.fields.length === 0) {
-        setStep(1); // Pas de questions, on passe directement au choix du modèle
-      } else {
-        setStep(2); // On passe à l'étape de personnalisation
-      }
-    }
-  });
-
-  const courseCreationMutation = useMutation({
-    mutationFn: createCourse,
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['courses', 'my-courses'] });
-      navigate(`/courses/${data.id}`);
+      const newCapsule = response.data;
+      console.log("--- [FRONTEND] Réponse reçue du backend :", newCapsule);
+      const url = `/capsule/${newCapsule.domain}/${newCapsule.area}/${newCapsule.id}`;
+      console.log("--- [FRONTEND] Redirection vers la nouvelle page de la capsule :", url);
+      navigate(url);
     },
+    onError: (err) => {
+      console.error("--- [FRONTEND] Erreur lors de la création de la capsule :", err);
+      setError(err.response?.data?.detail || "Une erreur est survenue lors du lancement de la création.");
+    }
   });
-  
-  const handleNextStep = () => {
-    if (step === 0) { // Après titre et mode
-      setStep(1);
-    } else if (step === 1) { // Après choix du modèle
-      if (courseData.creation_mode === 'adaptive') {
-        formMutation.mutate({ title: courseData.title, model_choice: courseData.model_choice });
-      } else {
-        courseCreationMutation.mutate(courseData);
-      }
-    } else if (step === 2) { // Après personnalisation
-      courseCreationMutation.mutate(courseData);
+
+  const handleClassify = async () => {
+    if (!text) {
+      setError('Veuillez entrer un sujet.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setResult(null);
+    setFeedback(null);
+    setShowActions(false);
+    try {
+      const response = await api.post('/capsules/classify-topic/', {
+        text: text, // Conforme au modèle Pydantic `ClassifyRequest`
+      });
+      setResult(response.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Une erreur est survenue.');
+    } finally {
+      setLoading(false);
     }
   };
-  
-  const handleBackStep = () => {
-      setStep((prevStep) => prevStep - 1);
+
+  const handleFeedback = (type) => {
+    setFeedback(type);
+    if (type === 'like') {
+      setShowActions(true);
+    } else {
+      setShowActions(false);
+      setDislikeDialog(true);
+    }
   };
 
-  const handleChange = (e) => {
-    setCourseData({ ...courseData, [e.target.name]: e.target.value });
+  const handleCreateCapsule = () => {
+    console.log("--- [FRONTEND] Clic sur 'Lancer la Capsule'. Lancement de la mutation.");
+    capsuleCreationMutation.mutate({
+      title: text,
+    });
   };
-  
-  const steps = ['Configuration', 'Moteur IA', 'Personnalisation', 'Création'];
-  // On ajuste le nombre d'étapes si le cours n'est pas adaptatif
-  const activeSteps = courseData.creation_mode === 'adaptive' ? steps : [steps[0], steps[1], steps[3]];
 
-  const isLoading = formMutation.isPending || courseCreationMutation.isPending;
+  const dislikeReasons = [
+    'Mauvaise catégorie principale', 'Compétences non pertinentes', 'Niveau mal évalué',
+    'Domaine incorrect', 'Classification trop générale', 'Autre'
+  ];
+
+  const getDomainIcon = (domain) => {
+    const key = domain?.toLowerCase().replace(/\s+/g, '_');
+    const Icon = domainIcons[key] || CategoryIcon;
+    return <Icon />;
+  };
 
   return (
-    <Paper component="form" onSubmit={(e) => { e.preventDefault(); handleNextStep(); }} sx={{ mt: 4, p: 3 }}>
-      <Typography variant="h6" gutterBottom>Lancer un nouveau cours</Typography>
-      <Stepper activeStep={step} sx={{ my: 3 }}>
-        {activeSteps.map(label => <Step key={label}><StepLabel>{label}</StepLabel></Step>)}
-      </Stepper>
+      <Box sx={{ p: 3, maxWidth: 900, mx: 'auto' }}>
+        <StyledCard>
+          <CardContent sx={{ p: 4 }}>
+            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
+              <ScienceIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>Test du Classifieur de Sujet</Typography>
+                <Typography variant="body2" color="text.secondary">Analysez votre sujet avec l'IA</Typography>
+              </Box>
+            </Stack>
 
-      {/* ÉTAPE 0 : Titre et Mode de création */}
-      {step === 0 && (
-        <Box>
-          <TextField
-            margin="normal" required fullWidth name="title" label="Sur quel sujet veux-tu apprendre ?"
-            value={courseData.title} onChange={handleChange} autoFocus disabled={isLoading}
-          />
-          <FormControl component="fieldset" margin="normal">
-            <FormLabel>Type de cours</FormLabel>
-            <RadioGroup row name="creation_mode" value={courseData.creation_mode} onChange={handleChange}>
-              <FormControlLabel value="full" control={<Radio disabled={isLoading} />} label="De A à Z (Classique)" />
-              <FormControlLabel value="adaptive" control={<Radio disabled={isLoading} />} label="Adapté à mon niveau" />
-            </RadioGroup>
-          </FormControl>
-        </Box>
-      )}
-      
-      {/* ÉTAPE 1 : Choix du Modèle IA */}
-      {step === 1 && (
-        <FormControl component="fieldset" margin="normal">
-          <FormLabel component="legend">Choisir le moteur d'IA pour la création</FormLabel>
-          <RadioGroup row name="model_choice" value={courseData.model_choice} onChange={handleChange}>
-            <FormControlLabel value="openai_gpt4o_mini" control={<Radio disabled={isLoading} />} label="OpenAI GPT-4o Mini (Recommandé)" />
-            <FormControlLabel value="gemini" control={<Radio disabled={isLoading} />} label="Google Gemini" />
-            <FormControlLabel value="local" control={<Radio disabled={isLoading} />} label="Mon Modèle (Local)" />
-          </RadioGroup>
-        </FormControl>
-      )}
+            <Stack spacing={3}>
+              <TextField
+                fullWidth variant="outlined" label="Entrez votre sujet"
+                value={text} onChange={(e) => setText(e.target.value)}
+                placeholder="Ex: apprendre python, les hiragana, etc."
+                disabled={loading || capsuleCreationMutation.isPending}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+              />
+              <Button
+                variant="contained" onClick={handleClassify} disabled={loading || !text || capsuleCreationMutation.isPending}
+                startIcon={loading ? <CircularProgress size={20} /> : <AutoAwesomeIcon />}
+                sx={{
+                  borderRadius: 3, py: 1.5,
+                  background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                  '&:hover': { background: 'linear-gradient(135deg, #1565c0, #1976d2)' }
+                }}
+              >
+                {loading ? 'Classification en cours...' : 'Classifier le sujet'}
+              </Button>
 
-      {/* ÉTAPE 2 : Formulaire de Personnalisation Dynamique */}
-      {step === 2 && courseData.creation_mode === 'adaptive' && (
-        <DynamicPersonalizationForm 
-          formSchema={formSchema}
-          courseData={courseData}
-          setCourseData={setCourseData} 
-        />
-      )}
-      
-      {/* Affichage du chargement */}
-      {isLoading && (
-        <Box sx={{ textAlign: 'center', my: 2 }}>
-            <CircularProgress />
-            <Typography>
-              {formMutation.isPending ? "Analyse du sujet..." : "Création du cours..."}
-            </Typography>
-        </Box>
-      )}
-      
-      {/* Gestion des erreurs */}
-      {(formMutation.isError || courseCreationMutation.isError) && 
-        <Alert severity="error" sx={{ mt: 2 }}>
-            {formMutation.error?.message || courseCreationMutation.error?.message || "Une erreur est survenue."}
-        </Alert>
-      }
-      
-      {/* Boutons de navigation */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-        <Button disabled={step === 0 || isLoading} onClick={handleBackStep}>
-          Précédent
-        </Button>
-        {!isLoading && (
-          <Button type="submit">
-            {step === 0 && 'Suivant'}
-            {step === 1 && courseData.creation_mode === 'full' && 'Lancer la création'}
-            {step === 1 && courseData.creation_mode === 'adaptive' && 'Suivant'}
-            {step === 2 && 'Créer le cours personnalisé'}
-          </Button>
-        )}
+              {(error || capsuleCreationMutation.isError) && (
+                <Fade in>
+                  <Alert severity="error" sx={{ borderRadius: 2 }}>
+                    {error || capsuleCreationMutation.error.message}
+                  </Alert>
+                </Fade>
+              )}
+
+              {/* --- MODIFICATION 1: On vérifie que `result` existe avant de l'afficher --- */}
+              {result && (
+                <Fade in>
+                  <ResultBox>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        {/* --- MODIFICATION 2: On accède directement à `result.domain` --- */}
+                        {getDomainIcon(result.domain)}
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                          Classification: {result.domain || 'Non défini'}
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row">
+                        <FeedbackButton active={feedback === 'like'} onClick={() => handleFeedback('like')} color="success"><ThumbUpIcon /></FeedbackButton>
+                        <FeedbackButton active={feedback === 'dislike'} onClick={() => handleFeedback('dislike')} color="error"><ThumbDownIcon /></FeedbackButton>
+                      </Stack>
+                    </Stack>
+
+                    <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+                      <StatsCard>
+                        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+                          {/* --- MODIFICATION 3: On adapte toutes les références --- */}
+                          {getDomainIcon(result.domain)}
+                          <Typography variant="h4" color="primary.main">{result.domain !== 'others' ? 1 : 0}</Typography>
+                        </Stack>
+                        <Typography variant="caption" color="text.secondary">Domaine</Typography>
+                      </StatsCard>
+                      <StatsCard>
+                        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+                          <HubIcon color="secondary" />
+                          <Typography variant="h4" color="secondary.main">{result.area !== 'default' ? 1 : 0}</Typography>
+                        </Stack>
+                        <Typography variant="caption" color="text.secondary">Area</Typography>
+                      </StatsCard>
+                      <StatsCard>
+                        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+                          <StarIcon sx={{ color: '#ffa726' }} />
+                          <Typography variant="h4" sx={{ color: '#ffa726' }}>{result.main_skill ? 1 : 0}</Typography>
+                        </Stack>
+                        <Typography variant="caption" color="text.secondary">Skill</Typography>
+                      </StatsCard>
+                    </Stack>
+
+                    <Collapse in={showActions}>
+                      <Divider sx={{ my: 3 }} />
+                      <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>🎯 Créer votre parcours</Typography>
+                      <Stack spacing={2}>
+                        <ActionCard onClick={handleCreateCapsule} disabled={capsuleCreationMutation.isPending}>
+                          <Stack direction="row" spacing={2} alignItems="center">
+                            {capsuleCreationMutation.isPending ?
+                              <CircularProgress size={40} /> :
+                              <SchoolIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+                            }
+                            <Box>
+                              <Typography variant="h6" sx={{ fontWeight: 600 }}>Lancer la Capsule</Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {capsuleCreationMutation.isPending ? "Initialisation de la capsule..." : "Crée un parcours d'apprentissage complet"}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </ActionCard>
+                        <ActionCard onClick={() => console.log('Cours adaptatif')}>
+                          <Stack direction="row" spacing={2} alignItems="center">
+                            <RocketLaunchIcon sx={{ fontSize: 40, color: 'secondary.main' }} />
+                            <Box>
+                              <Typography variant="h6" sx={{ fontWeight: 600 }}>Parcours Adaptatif</Typography>
+                              <Typography variant="body2" color="text.secondary">Personnalisé selon votre niveau</Typography>
+                            </Box>
+                          </Stack>
+                        </ActionCard>
+                        <ActionCard disabled>
+                          <Stack direction="row" spacing={2} alignItems="center">
+                            <SportsEsportsIcon sx={{ fontSize: 40 }} />
+                            <Box>
+                              <Typography variant="h6" sx={{ fontWeight: 600 }}>Mode Aventure</Typography>
+                              <Typography variant="body2" color="text.secondary">Bientôt disponible - Apprenez en jouant!</Typography>
+                            </Box>
+                          </Stack>
+                        </ActionCard>
+                      </Stack>
+                    </Collapse>
+                  </ResultBox>
+                </Fade>
+              )}
+            </Stack>
+          </CardContent>
+        </StyledCard>
+
+        <Dialog open={dislikeDialog} onClose={() => setDislikeDialog(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="h6">Aidez-nous à améliorer</Typography>
+              <IconButton onClick={() => setDislikeDialog(false)}><CloseIcon /></IconButton>
+            </Stack>
+          </DialogTitle>
+          <DialogContent>
+            <FormControl fullWidth>
+              <RadioGroup value={dislikeReason} onChange={(e) => setDislikeReason(e.target.value)}>
+                {dislikeReasons.map((reason) => (
+                  <FormControlLabel key={reason} value={reason} control={<Radio />} label={reason} />
+                ))}
+              </RadioGroup>
+              {dislikeReason === 'Autre' && (
+                <TextField multiline rows={3} placeholder="Précisez votre feedback..."
+                  value={customReason} onChange={(e) => setCustomReason(e.target.value)} sx={{ mt: 2 }} />
+              )}
+            </FormControl>
+            <Button fullWidth variant="contained" sx={{ mt: 3 }}
+              onClick={() => {
+                console.log('Feedback:', dislikeReason, customReason);
+                setDislikeDialog(false);
+              }}>
+              Envoyer le feedback
+            </Button>
+          </DialogContent>
+        </Dialog>
       </Box>
-    </Paper>
   );
-};
-export default CreateCourseForm;
+}
+
+export default ClassifierTest;

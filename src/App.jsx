@@ -1,7 +1,7 @@
 // Fichier: src/App.jsx
 import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { Container, Box, CircularProgress } from '@mui/material';
+import { Container, Box, CircularProgress, Grid } from '@mui/material';
 import Footer from './components/Footer';
 import { useAuth } from './hooks/useAuth';
 
@@ -18,9 +18,18 @@ import KnowledgeGraphPage from './features/courses/pages/KnowledgeGraphPage'; //
 import NodeViewPage from './features/courses/pages/NodeViewPage'; // <-- NOUVEL IMPORT
 import Toolbox from './features/toolbox/components/Toolbox';
 import LibraryPage from './features/courses/pages/LibraryPage';
+import NansheHomepage from './pages/NansheHomepage';
+import CapsuleList from './features/capsules/components/CapsuleList'; // Mettez le bon chemin
+import LearningSessionPage from './features/learning/pages/LearningSessionPage';
+import LessonComponent from './features/learning/components/LessonComponent';
+import CapsuleDetail from './features/capsules/components/CapsuleDetail';
+
+
 
 
 import StatsPage from './features/dashboard/pages/StatsPage';
+import CoursePageHandler from './features/courses/pages/CoursePageHandler';
+import CapsulePlanPage from './features/capsules/pages/CapsulePlanPage';
 
 // === Layouts ===
 function AppShell() {
@@ -71,7 +80,7 @@ function PrivateRoute() {
     );
   }
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+  return isAuthenticated ? <Outlet /> : <Navigate to="/" replace />;
 }
 
 function PublicOnlyRoute() {
@@ -101,7 +110,9 @@ export default function App() {
     <Routes>
       {/* Groupe PUBLIC */}
       <Route element={<PublicOnlyRoute />}>
+        <Route path='/' element={<NansheHomepage />} />
         <Route element={<AuthShell />}>
+
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
         </Route>
@@ -112,8 +123,20 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/library" element={<LibraryPage />} />
+        
+          <Route path="/capsules" element={<CapsuleList />} />
+          <Route path="/capsule/:domain/:area/:capsuleId"  element={<CapsuleDetail/>} />
+          <Route 
+            path="/capsule/:capsuleId/granule/:granuleOrder/molecule/:moleculeOrder" 
+            element={<LearningSessionPage />} 
+          />
 
-          <Route path="/courses/:courseId" element={<CoursePlanPage />} />
+          <Route 
+            path="/capsule/:capsuleId/level/:levelOrder/chapter/:chapterIndex" 
+            element={<LessonComponent />} 
+          />
+          
+          <Route path="/courses/:courseId" element={<CoursePageHandler />} />
           <Route path="/levels/:levelId" element={<LevelViewPage />} />
           {/* <Route path="/chapters/:chapterId" element={<ChapterViewPage />} /> 
              <Route path="/chapters/:chapterId" element={<LanguageChapterViewPage />} />

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import { 
   Box, 
@@ -20,8 +21,7 @@ import {
 } from '@mui/material';
 import { styled, alpha, keyframes } from '@mui/material/styles';
 import apiClient from '../../../api/axiosConfig';
-import CodeIdeComponent from '../components/CodeIdeComponent';
-import KnowledgeComponentViewer from '../../learning/components/KnowledgeComponentViewer'
+import KnowledgeComponentViewer from '../../learning/components/KnowledgeComponentViewer';
 import SchoolIcon from '@mui/icons-material/School';
 import CodeIcon from '@mui/icons-material/Code';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -193,35 +193,38 @@ const FloatingFab = styled(Fab)(({ theme }) => ({
 const NodeViewPage = () => {
   const { nodeId } = useParams();
   const navigate = useNavigate();
-  const [node, setNode] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(10);
   const [nextNodeId, setNextNodeId] = useState(null);
 
-  // Fonction pour récupérer les données du nœud
-  const fetchNodeData = async () => {
-    try {
-      const response = await apiClient.get(`/knowledge-nodes/${nodeId}`);
-      const data = response.data;
-      setNode(data);
+  // Requête principale pour les données du nœud avec useQuery
+  const { data: node, isLoading, isError, error, isRefetching } = useQuery({
+    queryKey: ['node', nodeId],
+    queryFn: async () => {
+      const { data } = await apiClient.get(`/knowledge-nodes/${nodeId}`);
+      return data;
+    },
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      // Polling automatique si le contenu n'est pas encore généré
+      return data && !data.content_json ? 5000 : false;
+    },
+  });
 
-      if (data && !data.content_json) {
-        setIsGenerating(true);
-        setProgress(prev => Math.min(prev + Math.random() * 15, 90));
-      } else {
-        setIsGenerating(false);
-        setProgress(100);
-      }
-    } catch (err) {
-      setError('Erreur lors de la récupération du contenu de la leçon.');
-      console.error(err);
-      setIsGenerating(false);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Requête pour les votes de feedback
+  const exerciseIds = useMemo(() => node?.exercises?.map(ex => ex.id) || [], [node]);
+
+  const { data: feedbackData } = useQuery({
+    queryKey: ['feedbackStatus', 'node_exercise', exerciseIds],
+    queryFn: async () => {
+      if (!exerciseIds || exerciseIds.length === 0) return { statuses: {} };
+      const { data } = await apiClient.post('/feedback/status', {
+        content_type: 'node_exercise',
+        content_ids: exerciseIds,
+      });
+      return data;
+    },
+    enabled: exerciseIds.length > 0,
+  });
 
   // Fonction pour récupérer le node suivant
   const fetchNextNode = async () => {
@@ -241,25 +244,21 @@ const NodeViewPage = () => {
     }
   };
 
-  // Premier chargement des données
+  // Récupération du node suivant
   useEffect(() => {
-    setLoading(true);
-    setProgress(10);
-    fetchNodeData();
-    fetchNextNode();
+    if (nodeId) {
+      fetchNextNode();
+    }
   }, [nodeId]);
 
-  // Système de polling pour la génération
+  // Simulation du progrès pour l'affichage
   useEffect(() => {
-    if (!isGenerating) return;
-
-    const intervalId = setInterval(() => {
-      console.log("Vérification du statut de la génération du contenu...");
-      fetchNodeData();
-    }, 5000);
-
-    return () => clearInterval(intervalId);
-  }, [isGenerating, nodeId]);
+    if (node && !node.content_json && isRefetching) {
+      setProgress(prev => Math.min(prev + Math.random() * 15, 90));
+    } else if (node && node.content_json) {
+      setProgress(100);
+    }
+  }, [node, isRefetching]);
 
   const getNodeTypeIcon = (type) => {
     switch (type) {
@@ -305,8 +304,11 @@ const NodeViewPage = () => {
     }
   };
 
+  // Détecte si la génération est en cours
+  const isGenerating = node && !node.content_json && isRefetching;
+
   // Loading State
-  if (loading) {
+  if (isLoading) {
     return (
       <GradientContainer maxWidth="lg">
         <LoadingCard elevation={4}>
@@ -315,7 +317,7 @@ const NodeViewPage = () => {
             sx={{ mb: 2, color: 'primary.main' }} 
           />
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-            🚀 Chargement de votre leçon
+            Chargement de votre leçon
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Préparation du contenu en cours...
@@ -326,7 +328,7 @@ const NodeViewPage = () => {
   }
 
   // Error State
-  if (error) {
+  if (isError) {
     return (
       <GradientContainer maxWidth="lg">
         <Alert 
@@ -335,10 +337,10 @@ const NodeViewPage = () => {
           icon={<AutoAwesomeIcon />}
         >
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Oops ! Une erreur s'est produite
+            Une erreur s'est produite
           </Typography>
           <Typography variant="body2">
-            {error}
+            {error?.message || 'Erreur lors de la récupération du contenu de la leçon.'}
           </Typography>
         </Alert>
       </GradientContainer>
@@ -351,7 +353,7 @@ const NodeViewPage = () => {
       <GradientContainer maxWidth="lg">
         <Alert severity="warning" sx={{ borderRadius: 3, fontSize: '1rem' }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            🔍 Leçon introuvable
+            Leçon introuvable
           </Typography>
           <Typography variant="body2">
             Impossible de trouver cette leçon. Elle a peut-être été déplacée ou supprimée.
@@ -409,7 +411,7 @@ const NodeViewPage = () => {
                   <TimerIcon />
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                      🤖 IA en action !
+                      IA en action !
                     </Typography>
                     <Typography variant="body2">
                       Notre intelligence artificielle rédige cette leçon spécialement pour vous...
@@ -445,7 +447,7 @@ const NodeViewPage = () => {
                 <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
                   <SchoolIcon sx={{ color: 'primary.main', fontSize: 28 }} />
                   <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    📚 Leçon
+                    Leçon
                   </Typography>
                 </Stack>
                 <Divider sx={{ mb: 3, opacity: 0.6 }} />
@@ -462,27 +464,36 @@ const NodeViewPage = () => {
         {/* Exercises Section */}
         {node.exercises && node.exercises.length > 0 && (
           <Fade in={true} timeout={1200}>
-            <Stack spacing={3}>
+            <Box>
+              <Divider sx={{ mb: 4 }}>
+                <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                  Exercices Pratiques
+                </Typography>
+              </Divider>
               {node.exercises.map((exercise, index) => (
-                <ModernCard key={exercise.id}>
+                <ModernCard key={exercise.id} sx={{ mb: 3 }}>
                   <CardContent sx={{ p: 4 }}>
                     <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-                      <CodeIcon sx={{ color: 'secondary.main', fontSize: 28 }} />
-                      <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                        {getExerciseIcon(exercise.component_type)} Exercice {index + 1}
+                      <Typography sx={{ fontSize: 28 }}>
+                        {getExerciseIcon(exercise.component_type)}
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                        Exercice {index + 1}
                       </Typography>
                     </Stack>
                     <Divider sx={{ mb: 3, opacity: 0.6 }} />
                     <KnowledgeComponentViewer
                       component={exercise}
-                      submittedAnswer={null} // À adapter si vous avez les réponses soumises
-                      initialVote={null} // À adapter si vous avez les votes de feedback
-                      onFeedbackSuccess={() => {}} // Callback optionnel
+                      submittedAnswer={exercise.user_answer}
+                      initialVote={feedbackData?.statuses?.[exercise.id]}
+                      onFeedbackSuccess={() => {
+                        // Callback pour rafraîchir les feedbacks si nécessaire
+                      }}
                     />
                   </CardContent>
                 </ModernCard>
               ))}
-            </Stack>
+            </Box>
           </Fade>
         )}
 
@@ -496,7 +507,7 @@ const NodeViewPage = () => {
                 onClick={handleNextNode}
                 endIcon={<ArrowForwardIcon />}
               >
-                🚀 Leçon Suivante
+                Leçon Suivante
               </NextButton>
             </Box>
           </Fade>
