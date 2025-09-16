@@ -7,6 +7,9 @@ import {
 } from '@mui/icons-material';
 import LessonAtom from './atoms/LessonAtom';
 import QuizAtom from './atoms/QuizAtom';
+import CodeExampleAtom from './atoms/CodeExampleAtom';
+import CodeChallengeAtom from './atoms/CodeChallengeAtom';
+import LiveCodeExecutorAtom from './atoms/LiveCodeExecutorAtom';
 
 const AtomViewer = ({ atoms }) => {
   const theme = useTheme();
@@ -26,6 +29,27 @@ const AtomViewer = ({ atoms }) => {
           color: '#f59e0b',
           bgGradient: 'linear-gradient(135deg, #f59e0b15 0%, #ef444415 100%)',
           label: 'Quiz'
+        };
+      case 'code_example':
+        return {
+          icon: <ExtensionIcon />,
+          color: '#10b981',
+          bgGradient: 'linear-gradient(135deg, #10b98115 0%, #05966915 100%)',
+          label: 'Exemple'
+        };
+      case 'code_challenge':
+        return {
+          icon: <ExtensionIcon />,
+          color: '#3b82f6',
+          bgGradient: 'linear-gradient(135deg, #3b82f615 0%, #2563eb15 100%)',
+          label: 'Challenge'
+        };
+      case 'live_code_executor':
+        return {
+          icon: <ExtensionIcon />,
+          color: '#9333ea',
+          bgGradient: 'linear-gradient(135deg, #9333ea15 0%, #7c3aed15 100%)',
+          label: 'Atelier'
         };
       default:
         return {
@@ -187,6 +211,12 @@ const AtomViewer = ({ atoms }) => {
                       return <LessonAtom atom={atom} />;
                     case 'quiz':
                       return <QuizAtom atom={atom} />;
+                    case 'code_example':
+                      return <CodeExampleAtom atom={atom} />;
+                    case 'code_challenge':
+                      return <CodeChallengeAtom atom={atom} />;
+                    case 'live_code_executor':
+                      return <LiveCodeExecutorAtom atom={atom} />;
                     default:
                       return (
                         <Box 

@@ -310,6 +310,7 @@ const LessonAtom = ({ atom }) => {
           mb: 0
         }
       }}
+      data-coach-section="lesson"
     >
       {/* Decorative element */}
       <Box
