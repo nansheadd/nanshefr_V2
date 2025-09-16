@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import apiClient from '../../../api/axiosConfig';
 import { useAuth } from '../../../hooks/useAuth';
 import { 
@@ -33,6 +33,8 @@ import ComputerIcon from '@mui/icons-material/Computer';
 import BrushIcon from '@mui/icons-material/Brush';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
+
+import CreateCapsuleModal from './CreateCapsuleModal';
 
 // Enhanced domain configuration with gradients
 const domainConfig = {
@@ -198,9 +200,12 @@ const DomainBadge = styled(Badge)(({ theme }) => ({
 const CapsuleList = () => {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedDomains, setExpandedDomains] = useState(new Set());
   const [bookmarkedCapsules, setBookmarkedCapsules] = useState(new Set());
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+  const [creationStatus, setCreationStatus] = useState({ phase: 'idle' });
 
   // Fetch public capsules
   const { data: capsules, isLoading, isError } = useQuery({
@@ -322,6 +327,15 @@ const CapsuleList = () => {
           Découvrez des cours organisés par catégorie
         </Typography>
 
+        <Button
+          variant="contained"
+          startIcon={<AddCircleIcon />}
+          onClick={() => setCreateModalOpen(true)}
+          sx={{ mb: 4 }}
+        >
+          Créer une capsule
+        </Button>
+
         {/* Search Bar */}
         <Box sx={{ maxWidth: 600, mx: 'auto', mb: 4 }}>
           <SearchBar
@@ -364,6 +378,27 @@ const CapsuleList = () => {
           />
         </Stack>
       </Box>
+
+      {creationStatus.phase === 'classifying' && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Classification du sujet en cours...
+        </Alert>
+      )}
+      {creationStatus.phase === 'creating' && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Génération de la capsule en cours... tu seras notifié dès qu'elle sera prête.
+        </Alert>
+      )}
+      {creationStatus.phase === 'created' && (
+        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setCreationStatus({ phase: 'idle' })}>
+          Capsule créée ! Les contenus se remplissent en arrière-plan.
+        </Alert>
+      )}
+      {creationStatus.phase === 'error' && creationStatus.message && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setCreationStatus({ phase: 'idle' })}>
+          {creationStatus.message}
+        </Alert>
+      )}
 
       {/* Domains Grid */}
       <Grid container spacing={3}>
@@ -577,6 +612,17 @@ const CapsuleList = () => {
           </Grid>
         )}
       </Grid>
+
+      <CreateCapsuleModal
+        open={isCreateModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onStatus={(status) => setCreationStatus(status)}
+        onCreated={(capsule) => {
+          setCreateModalOpen(false);
+          setCreationStatus({ phase: 'created' });
+          navigate(`/capsule/${capsule.domain}/${capsule.area}/${capsule.id}/plan`);
+        }}
+      />
     </Container>
   );
 };

@@ -1,435 +1,343 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
 import { useAuth } from '../../../hooks/useAuth';
 import {
-  Box, Typography, CircularProgress, Alert, Button, Paper,
-  Container, Grid, Card, CardContent, Chip, IconButton,
-  List, ListItem, ListItemText, ListItemIcon, Divider,
-  Breadcrumbs, Link, Avatar, Stack, Collapse, Tooltip,
-  LinearProgress, Badge, alpha
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Collapse,
+  Container,
+  Grid,
+  IconButton,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Paper,
+  Stack,
+  Typography,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
-
-// Icons
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ArticleIcon from '@mui/icons-material/Article';
+import QuizIcon from '@mui/icons-material/Quiz';
+import TopicIcon from '@mui/icons-material/Topic';
 import SchoolIcon from '@mui/icons-material/School';
-import TimerIcon from '@mui/icons-material/Timer';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import LockIcon from '@mui/icons-material/Lock';
-import PublicIcon from '@mui/icons-material/Public';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-
-// Domain Icons (réutilisation)
-import LanguageIcon from '@mui/icons-material/Language';
-import ScienceIcon from '@mui/icons-material/Science';
-import CalculateIcon from '@mui/icons-material/Calculate';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import PsychologyIcon from '@mui/icons-material/Psychology';
-import BusinessIcon from '@mui/icons-material/Business';
-import ComputerIcon from '@mui/icons-material/Computer';
-import BrushIcon from '@mui/icons-material/Brush';
-
-// Domain configuration
-const domainConfig = {
-  'languages': { icon: LanguageIcon, color: '#4CAF50', label: 'Langues' },
-  'social_sciences': { icon: AccountBalanceIcon, color: '#2196F3', label: 'Sciences sociales' },
-  'natural_sciences': { icon: ScienceIcon, color: '#FF5722', label: 'Sciences naturelles' },
-  'mathematics': { icon: CalculateIcon, color: '#9C27B0', label: 'Mathématiques' },
-  'economics': { icon: BusinessIcon, color: '#FFC107', label: 'Économie' },
-  'personal_development': { icon: PsychologyIcon, color: '#E91E63', label: 'Développement personnel' },
-  'programming': { icon: ComputerIcon, color: '#607D8B', label: 'Programmation' },
-  'arts': { icon: BrushIcon, color: '#FF9800', label: 'Arts' },
-  'others': { icon: SchoolIcon, color: '#9E9E9E', label: 'Autres' }
-};
-
-// Styled Components
-const HeroSection = styled(Box)(({ theme, color }) => ({
-  background: `linear-gradient(135deg, ${alpha(color, 0.1)} 0%, ${alpha(color, 0.05)} 100%)`,
-  borderRadius: 16,
-  padding: theme.spacing(4),
-  marginBottom: theme.spacing(3)
-}));
-
-const LevelCard = styled(Card)(({ theme, $active }) => ({
-  borderRadius: 12,
-  transition: 'all 0.3s',
-  cursor: 'pointer',
-  border: $active ? `2px solid ${theme.palette.primary.main}` : '1px solid transparent',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: theme.shadows[4]
-  }
-}));
-
-const ChapterItem = styled(ListItem)(({ theme, completed }) => ({
-  borderRadius: 8,
-  marginBottom: theme.spacing(1),
-  background: completed ? alpha(theme.palette.success.main, 0.05) : 'transparent',
-  '&:hover': {
-    background: alpha(theme.palette.primary.main, 0.05)
-  }
-}));
-
-const StatsCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(2),
-  borderRadius: 12,
-  textAlign: 'center',
-  background: alpha(theme.palette.primary.main, 0.03)
-}));
 
 const CapsuleDetail = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [expandedLevels, setExpandedLevels] = useState(new Set());
   const { domain, area, capsuleId } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  // Fetch capsule details
-  const { data: capsule, isLoading, isError } = useQuery({
+  const [expandedGranules, setExpandedGranules] = useState(new Set());
+  const [expandedMolecules, setExpandedMolecules] = useState(new Set());
+  const [atomsByMolecule, setAtomsByMolecule] = useState({});
+  const [infoMessage, setInfoMessage] = useState(null);
+
+  const { data: capsule, isLoading, isError, error, isFetching } = useQuery({
     queryKey: ['capsule', domain, area, capsuleId],
     queryFn: async () => {
       const { data } = await apiClient.get(`/capsules/${domain}/${area}/${capsuleId}`);
       return data;
-    }
+    },
+    refetchInterval: (query) => {
+      const status = query.state.data?.generation_status;
+      return status === 'pending' ? 4000 : false;
+    },
   });
 
-  // Check enrollment status
-  const { data: enrollments } = useQuery({
-    queryKey: ['enrollments'],
-    queryFn: async () => {
-      const { data } = await apiClient.get('/capsules/me');
-      return data;
+  const startSession = (molecule) => {
+    if (molecule.is_locked) {
+      setInfoMessage("Terminez les leçons précédentes pour accéder à celle-ci.");
+      return;
     }
-  });
-
-  const isEnrolled = enrollments?.some(c => c.id === parseInt(capsuleId));
-  const isCreator = capsule?.created_by === user?.id;
-
-  // Enroll/Unenroll mutations
-  const enrollMutation = useMutation({
-    mutationFn: () => apiClient.post(`/capsules/${capsuleId}/enroll`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enrollments'] });
-    }
-  });
-
-  const unenrollMutation = useMutation({
-    mutationFn: () => apiClient.post(`/capsules/${capsuleId}/unenroll`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enrollments'] });
-    }
-  });
-
-  const toggleLevel = (levelIndex) => {
-    const newExpanded = new Set(expandedLevels);
-    if (newExpanded.has(levelIndex)) {
-      newExpanded.delete(levelIndex);
-    } else {
-      newExpanded.add(levelIndex);
-    }
-    setExpandedLevels(newExpanded);
+    navigate(`/session/molecule/${molecule.id}`);
   };
 
- const prepareSessionMutation = useMutation({
-    mutationFn: (levelOrder) => 
-      apiClient.post(`/capsules/${capsuleId}/level/${levelOrder}/session`),
-    onSuccess: (response, levelOrder) => {
-      // Une fois que le backend a tout préparé, on navigue vers la page de la session
-      console.log("Session prête:", response.data);
-      // On peut passer les données via sessionStorage ou refaire un fetch sur la page de session
-      sessionStorage.setItem('currentSessionData', JSON.stringify(response.data));
-      navigate(`/capsule/${capsuleId}/level/${levelOrder}/session`);
+  useEffect(() => {
+    if (!capsule) return;
+    const initial = {};
+    capsule.granules?.forEach((granule) => {
+      granule.molecules?.forEach((molecule) => {
+        initial[molecule.id] = {
+          loading: false,
+          error: null,
+          atoms: molecule.atoms ?? [],
+          generationStatus: molecule.generation_status,
+          progressStatus: molecule.progress_status,
+        };
+      });
+    });
+    setAtomsByMolecule((prev) => {
+      const next = { ...prev };
+      Object.entries(initial).forEach(([id, data]) => {
+        const existing = next[id] || {};
+        const merged = { ...existing, ...data };
+        if (existing.atoms?.length && (!data.atoms || data.atoms.length === 0)) {
+          merged.atoms = existing.atoms;
+        }
+        next[id] = merged;
+      });
+      return next;
+    });
+  }, [capsule]);
+
+  const fetchAtoms = useMutation({
+    mutationFn: async (moleculeId) => {
+      setAtomsByMolecule((prev) => ({
+        ...prev,
+        [moleculeId]: { loading: true, error: null, atoms: [], status: 'pending' },
+      }));
+      const response = await apiClient.get(`/capsules/molecules/${moleculeId}/atoms`, {
+        validateStatus: (status) => [200, 202].includes(status),
+      });
+      if (response.status === 202) {
+        return { moleculeId, atoms: [], generationStatus: 'pending', progressStatus: 'in_progress' };
+      }
+      const atoms = response.data || [];
+      const allCompleted = atoms.every((atom) => atom.progress_status === 'completed');
+      const anyAttempt = atoms.some((atom) => atom.progress_status !== 'not_started');
+      const progressStatus = allCompleted ? 'completed' : anyAttempt ? 'in_progress' : 'not_started';
+      return { moleculeId, atoms, generationStatus: 'completed', progressStatus };
     },
-    onError: (error) => {
-      console.error("Erreur lors de la préparation de la session", error);
-      // Afficher une alerte à l'utilisateur
-    }
+    onSuccess: ({ moleculeId, atoms, generationStatus, progressStatus }) => {
+      setAtomsByMolecule((prev) => ({
+        ...prev,
+        [moleculeId]: { loading: false, error: null, atoms, generationStatus, progressStatus },
+      }));
+    },
+    onError: (err, moleculeId) => {
+      if (err?.response?.status === 403 && err?.response?.data?.detail === 'molecule_locked') {
+        setInfoMessage("Terminez la leçon précédente pour débloquer celle-ci.");
+      }
+      const detail = err?.response?.data?.detail || "Erreur lors du chargement des contenus.";
+      setAtomsByMolecule((prev) => ({
+        ...prev,
+        [moleculeId]: { loading: false, error: detail, atoms: [], generationStatus: 'failed', progressStatus: 'not_started' },
+      }));
+    },
   });
 
-  const handleStartChapter = (levelOrder, chapterIndex) => {
-    // La navigation est maintenant directe vers la page qui va charger le contenu
-    navigate(`/capsule/${capsuleId}/granule/${levelOrder}/molecule/${chapterIndex}`);
-};
-  
-  const startLearning = (levelOrder) => {
-    console.log(`Clic sur "Commencer" le niveau ${levelOrder}`);
-    prepareSessionMutation.mutate(levelOrder);
+  const toggleGranule = (granuleId) => {
+    setExpandedGranules((prev) => {
+      const next = new Set(prev);
+      next.has(granuleId) ? next.delete(granuleId) : next.add(granuleId);
+      return next;
+    });
+  };
+
+  const toggleMolecule = (molecule) => {
+    if (molecule.is_locked) {
+      setInfoMessage("Terminez la leçon précédente pour débloquer celle-ci.");
+      return;
+    }
+    setExpandedMolecules((prev) => {
+      const next = new Set(prev);
+      if (next.has(molecule.id)) {
+        next.delete(molecule.id);
+      } else {
+        next.add(molecule.id);
+        const state = atomsByMolecule[molecule.id];
+        const genStatus = state?.generationStatus ?? molecule.generation_status;
+        if (!state || (state.atoms?.length === 0 && genStatus !== 'pending' && !state.loading)) {
+          fetchAtoms.mutate(molecule.id);
+        }
+      }
+      return next;
+    });
   };
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
-        <CircularProgress size={60} />
+      <Container sx={{ py: 6, textAlign: 'center' }}>
+        <CircularProgress size={64} />
       </Container>
     );
   }
 
-  if (isError || !capsule) {
+  if (isError) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Alert severity="error">
-          Impossible de charger les détails de la capsule.
-        </Alert>
-        <Button 
-          startIcon={<ArrowBackIcon />} 
-          onClick={() => navigate(-1)}
-          sx={{ mt: 2 }}
-        >
-          Retour
-        </Button>
+      <Container sx={{ py: 6 }}>
+        <Alert severity="error">Impossible de charger la capsule : {error?.message}</Alert>
       </Container>
     );
   }
 
-  const config = domainConfig[capsule.domain] || domainConfig.others;
-  const Icon = config.icon;
+  if (!capsule) {
+    return (
+      <Container sx={{ py: 6 }}>
+        <Alert severity="info">Aucune donnée disponible pour cette capsule.</Alert>
+      </Container>
+    );
+  }
+
+  const granules = capsule.granules ?? [];
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 3 }}>
-        <Link 
-          component="button"
-          variant="body2"
-          onClick={() => navigate('/capsules')}
-          underline="hover"
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          component={RouterLink}
+          to="/capsules"
+          variant="text"
         >
-          Capsules
-        </Link>
-        <Typography color="text.primary">{capsule.title}</Typography>
-      </Breadcrumbs>
+          Retour
+        </Button>
+        <Typography variant="h4" fontWeight="bold">
+          {capsule.title}
+        </Typography>
+      </Box>
+      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
+        {capsule.domain} • {capsule.area}
+      </Typography>
 
-      {/* Hero Section */}
-      <HeroSection color={config.color}>
-        <Grid container spacing={3} alignItems="center">
-          <Grid item xs={12} md={8}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <Avatar sx={{ bgcolor: config.color, width: 56, height: 56 }}>
-                <Icon fontSize="large" />
-              </Avatar>
-              <Box>
-                <Typography variant="h4" fontWeight="bold">
-                  {capsule.title}
-                </Typography>
-                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                  <Chip 
-                    label={config.label} 
-                    size="small"
-                    sx={{ 
-                      bgcolor: alpha(config.color, 0.1),
-                      color: config.color,
-                      fontWeight: 600
-                    }}
-                  />
-                  {capsule.area && (
-                    <Chip label={capsule.area} size="small" variant="outlined" />
-                  )}
-                  {capsule.main_skill && (
-                    <Chip label={capsule.main_skill} size="small" variant="outlined" />
-                  )}
-                  <Chip 
-                    icon={capsule.is_public ? <PublicIcon /> : <LockIcon />}
-                    label={capsule.is_public ? 'Public' : 'Privé'} 
-                    size="small"
-                  />
-                </Stack>
-              </Box>
-            </Box>
-            
-            {capsule.description && (
-              <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
-                {capsule.description}
-              </Typography>
-            )}
-          </Grid>
-          
-          <Grid item xs={12} md={4}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {/* Action button */}
-              {!isCreator && (
-                isEnrolled ? (
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    fullWidth
-                    size="large"
-                    startIcon={<PersonRemoveIcon />}
-                    onClick={() => unenrollMutation.mutate()}
-                    disabled={unenrollMutation.isPending}
-                  >
-                    Se désinscrire
-                  </Button>
-                ) : (
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    size="large"
-                    startIcon={<PersonAddIcon />}
-                    onClick={() => enrollMutation.mutate()}
-                    disabled={enrollMutation.isPending}
-                    sx={{
-                      background: `linear-gradient(45deg, ${config.color} 30%, ${alpha(config.color, 0.7)} 90%)`
-                    }}
-                  >
-                    S'inscrire à cette capsule
-                  </Button>
-                )
-              )}
-              
-              {isCreator && (
-                <Chip 
-                  icon={<AutoAwesomeIcon />}
-                  label="Vous êtes le créateur"
-                  color="primary"
-                />
-              )}
-            </Box>
-          </Grid>
-        </Grid>
-      </HeroSection>
+      {capsule.generation_status === 'pending' && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Cette capsule est encore en cours de génération. Tu peux commencer la première leçon
+          pendant que le reste se prépare. La page se mettra à jour automatiquement.
+        </Alert>
+      )}
 
-      {/* Statistics */}
+      {infoMessage && (
+        <Alert severity="warning" sx={{ mb: 3 }} onClose={() => setInfoMessage(null)}>
+          {infoMessage}
+        </Alert>
+      )}
+
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={3}>
-          <StatsCard>
-            <SchoolIcon color="primary" />
-            <Typography variant="h6">
-              {capsule.learning_plan_json?.levels?.length || 0}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Niveaux
-            </Typography>
-          </StatsCard>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <SchoolIcon color="primary" sx={{ fontSize: 40 }} />
+            <Typography variant="h5" fontWeight={700}>{granules.length}</Typography>
+            <Typography variant="body2">Chapitres</Typography>
+          </Paper>
         </Grid>
-        <Grid item xs={6} md={3}>
-          <StatsCard>
-            <TimerIcon color="primary" />
-            <Typography variant="h6">
-              {capsule.learning_plan_json?.levels?.reduce(
-                (acc, level) => acc + (level.chapters?.length || 0), 0
-              ) || 0}
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <TopicIcon color="secondary" sx={{ fontSize: 40 }} />
+            <Typography variant="h5" fontWeight={700}>
+              {granules.reduce((acc, granule) => acc + (granule.molecules?.length || 0), 0)}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Chapitres
-            </Typography>
-          </StatsCard>
-        </Grid>
-        <Grid item xs={6} md={3}>
-          <StatsCard>
-            <TrendingUpIcon color="primary" />
-            <Typography variant="h6">
-              {capsule.difficulty || 'Tous niveaux'}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Difficulté
-            </Typography>
-          </StatsCard>
-        </Grid>
-        <Grid item xs={6} md={3}>
-          <StatsCard>
-            <CheckCircleIcon color="primary" />
-            <Typography variant="h6">
-              0%
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Progression
-            </Typography>
-          </StatsCard>
+            <Typography variant="body2">Leçons</Typography>
+          </Paper>
         </Grid>
       </Grid>
 
-      {/* Learning Plan */}
-      <Paper sx={{ p: 3, borderRadius: 3 }}>
-        <Typography variant="h5" gutterBottom fontWeight="600">
-          📚 Plan d'apprentissage
+      <Paper sx={{ p: { xs: 2, md: 3 } }}>
+        <Typography variant="h5" fontWeight={600} gutterBottom>
+          Plan d'apprentissage
         </Typography>
-        
-        {capsule.learning_plan_json?.levels ? (
-          <Box sx={{ mt: 3 }}>
-            {capsule.learning_plan_json.levels.map((level, levelIndex) => (
-              <LevelCard 
-                key={levelIndex} 
-                sx={{ mb: 2 }}
-                $active={expandedLevels.has(levelIndex)}
-              >
-                <CardContent>
-                  <Box 
-                    sx={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => toggleLevel(levelIndex)}
-                  >
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6">
-                        {level.level_title || `Niveau ${levelIndex + 1}`}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {level.chapters?.length || 0} chapitres
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {isEnrolled && (
-                        <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={<PlayArrowIcon />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startLearning(level.level_order || levelIndex + 1);
-                          }}
-                        >
-                          Commencer
-                        </Button>
-                      )}
-                      <IconButton>
-                        {expandedLevels.has(levelIndex) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                      </IconButton>
-                    </Box>
-                  </Box>
 
-                  <Collapse in={expandedLevels.has(levelIndex)}>
-                    <Divider sx={{ my: 2 }} />
-                    <List>
-                      {level.chapters?.map((chapter, chapterIndex) => (
-                        <ChapterItem 
-                          key={chapterIndex}
-                          completed={false}
-                          onClick={() => handleStartChapter(level.level_order || levelIndex + 1, chapterIndex + 1)}
-                        >
-                            {prepareSessionMutation.isLoading && <CircularProgress size={16} />}
-
-                          <ListItemIcon>
-                            <RadioButtonUncheckedIcon color="action" />
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary={chapter.chapter_title}
-                            secondary={`Chapitre ${chapterIndex + 1}`}
-                          />
-                        </ChapterItem>
-                      ))}
-                    </List>
-                  </Collapse>
-                </CardContent>
-              </LevelCard>
-            ))}
-          </Box>
-        ) : (
-          <Alert severity="info" sx={{ mt: 2 }}>
-            Le plan d'apprentissage est en cours de génération...
+        {granules.length === 0 && (
+          <Alert severity="info">
+            Aucun contenu n'est encore disponible. Revenez un peu plus tard pendant que la capsule se
+            génère.
           </Alert>
         )}
+
+        <List sx={{ mt: 2 }}>
+          {granules.map((granule) => {
+            const isGranuleExpanded = expandedGranules.has(granule.id);
+            return (
+              <Box key={granule.id} sx={{ mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                <ListItem onClick={() => toggleGranule(granule.id)} button>
+                  <ListItemIcon><Chip label={`Chap. ${granule.order}`} color="primary" /></ListItemIcon>
+                  <ListItemText primary={granule.title} />
+                  <Chip
+                    label={granule.progress_status === 'completed' ? 'Terminé' : granule.progress_status === 'in_progress' ? 'En cours' : 'À faire'}
+                    size="small"
+                    color={granule.progress_status === 'completed' ? 'success' : granule.progress_status === 'in_progress' ? 'warning' : 'default'}
+                    sx={{ mr: 1 }}
+                  />
+                  <IconButton edge="end">
+                    {isGranuleExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </IconButton>
+                </ListItem>
+                <Collapse in={isGranuleExpanded} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {granule.molecules?.map((molecule) => {
+                      const moleculeState = atomsByMolecule[molecule.id] || {};
+                      const generationStatus = moleculeState.generationStatus || molecule.generation_status;
+                      const progressStatus = moleculeState.progressStatus || molecule.progress_status;
+                      const hasContent = moleculeState.atoms && moleculeState.atoms.length > 0;
+                      const isMoleculeExpanded = expandedMolecules.has(molecule.id);
+                      const isLoading = moleculeState.loading;
+                      const isLocked = molecule.is_locked;
+                      const progressLabel = progressStatus === 'completed' ? 'Validé' : progressStatus === 'failed' ? 'À rejouer' : progressStatus === 'in_progress' ? 'En cours' : 'À faire';
+                      const progressColor = progressStatus === 'completed' ? 'success' : progressStatus === 'failed' ? 'error' : progressStatus === 'in_progress' ? 'warning' : 'default';
+                      return (
+                        <Box key={molecule.id} sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
+                          <ListItem button onClick={() => toggleMolecule(molecule)} sx={{ pl: 6 }}>
+                            <ListItemIcon><TopicIcon color="action" /></ListItemIcon>
+                            <ListItemText
+                              primary={molecule.title}
+                              secondary={`Leçon ${molecule.order}`}
+                            />
+                            {isLoading && <CircularProgress size={20} sx={{ mr: 1 }} />}
+                            <Chip
+                              label={progressLabel}
+                              size="small"
+                              color={progressColor}
+                              sx={{ mr: 1 }}
+                            />
+                            <IconButton edge="end" onClick={(e) => { e.stopPropagation(); toggleMolecule(molecule); }}>
+                              {isMoleculeExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                            </IconButton>
+                            <Button
+                              size="small"
+                              sx={{ ml: 1 }}
+                              variant="contained"
+                              disabled={isLocked || !hasContent || generationStatus === 'pending' || generationStatus === 'failed' || isLoading}
+                              onClick={(e) => { e.stopPropagation(); startSession(molecule); }}
+                            >
+                              {isLocked ? 'Verrouillé' : generationStatus === 'pending' ? 'En cours...' : 'Étudier'}
+                            </Button>
+                          </ListItem>
+                          <Collapse in={isMoleculeExpanded} timeout="auto" unmountOnExit>
+                            <Box sx={{ pl: 8, pr: 3, py: 2 }}>
+                              {moleculeState.error && <Alert severity="error" sx={{ mb: 2 }}>{moleculeState.error}</Alert>}
+                              {generationStatus === 'pending' && (
+                                <Alert severity="info" sx={{ mb: 2 }}>
+                                  Génération en cours. Tu peux quitter cette page : tu recevras une notification quand la leçon sera prête.
+                                </Alert>
+                              )}
+                              {generationStatus === 'failed' && (
+                                <Alert severity="error" sx={{ mb: 2 }}>
+                                  La génération de cette leçon a échoué. Réessaie plus tard.
+                                </Alert>
+                              )}
+                              {!isLoading && !moleculeState.error && generationStatus !== 'pending' && (!moleculeState.atoms || moleculeState.atoms.length === 0) && (
+                                <Alert severity="info">Les contenus de cette leçon sont encore en train d'être générés.</Alert>
+                              )}
+                              {moleculeState.atoms?.map((atom) => {
+                                const type = (atom.content_type || '').toLowerCase();
+                                return (
+                                  <ListItem key={atom.id} sx={{ pl: 0 }}>
+                                    <ListItemIcon>
+                                      {type === 'lesson' ? <ArticleIcon color="primary" /> : <QuizIcon color="secondary" />}
+                                    </ListItemIcon>
+                                    <ListItemText primary={atom.title} secondary={type === 'lesson' ? 'Leçon' : 'Quiz'} />
+                                  </ListItem>
+                                );
+                              })}
+                            </Box>
+                          </Collapse>
+                        </Box>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              </Box>
+            );
+          })}
+        </List>
       </Paper>
     </Container>
   );

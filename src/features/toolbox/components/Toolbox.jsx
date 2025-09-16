@@ -20,7 +20,9 @@ const glow = keyframes`
   50% { box-shadow: 0 0 30px rgba(25, 118, 210, 0.8); }
 `;
 
-const StyledFab = styled(Fab)(({ theme, isActive }) => ({
+const StyledFab = styled(Fab, {
+  shouldForwardProp: (prop) => prop !== 'isActive',
+})(({ theme, isActive }) => ({
   background: isActive 
     ? `linear-gradient(135deg, ${theme.palette.error.main}, ${theme.palette.error.dark})`
     : `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
@@ -50,7 +52,9 @@ const ToolboxContainer = styled(Paper)(({ theme }) => ({
   boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.15)}`,
 }));
 
-const ToolButton = styled(IconButton)(({ theme, isActive }) => ({
+const ToolButton = styled(IconButton, {
+  shouldForwardProp: (prop) => prop !== 'isActive',
+})(({ theme, isActive }) => ({
   borderRadius: '50%',
   transition: 'all 0.3s ease-in-out',
   color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
@@ -60,20 +64,15 @@ const ToolButton = styled(IconButton)(({ theme, isActive }) => ({
     color: theme.palette.primary.main,
     transform: 'scale(1.1)',
   }
-}));
+}))
 
 const Toolbox = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState(null);
-  const theme = useTheme();
 
   const toggleTool = (toolName) => {
-    if (activeTool === toolName) {
-      setActiveTool(null);
-    } else {
-      setActiveTool(toolName);
-      setIsOpen(false);
-    }
+    setActiveTool(activeTool === toolName ? null : toolName);
+    setIsOpen(false);
   };
 
   const handleFabClick = () => {
@@ -101,38 +100,30 @@ const Toolbox = () => {
       gap: 2
     }}>
       
-      {/* Coach IA Window */}
+      {/* Fenêtres des outils (inchangées) */}
       <Slide direction="up" in={activeTool === 'coach'} mountOnEnter unmountOnExit>
-        <Box>
-          <CoachIA onClose={() => setActiveTool(null)} />
-        </Box>
+         <Box>
+           <CoachIA onClose={() => setActiveTool(null)} />
+         </Box>
       </Slide>
-      
-      {/* Notes Window - Placeholder */}
       <Slide direction="up" in={activeTool === 'notes'} mountOnEnter unmountOnExit>
-        <Box>
-          <Paper elevation={12} sx={{ 
-            width: 320, 
-            height: 400, 
-            borderRadius: 4,
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(20px)',
-            p: 2
-          }}>
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              📝 Notes - Bientôt disponible !
-            </Box>
-          </Paper>
-        </Box>
+         <Box>
+           <Paper elevation={12} sx={{ width: 320, height: 400, borderRadius: 4, background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(20px)', p: 2 }}>
+             <Box sx={{ textAlign: 'center', py: 8 }}>
+               📝 Notes - Bientôt disponible !
+             </Box>
+           </Paper>
+         </Box>
       </Slide>
 
-      {/* Tools Bar */}
+      {/* Barre d'outils */}
       <Stack direction="row" alignItems="center" spacing={1}>
         <Grow in={isOpen} timeout={300}>
           <ToolboxContainer elevation={8}>
             {tools.map((tool, index) => (
               <Grow key={tool.name} in={isOpen} timeout={400 + index * 100}>
                 <Tooltip title={tool.label} placement="left">
+                  {/* --- CORRECTION 3: Revenir à `isActive` --- */}
                   <ToolButton
                     onClick={() => toggleTool(tool.name)}
                     isActive={activeTool === tool.name}
@@ -153,10 +144,11 @@ const Toolbox = () => {
           </ToolboxContainer>
         </Grow>
 
-        {/* Main FAB */}
+        {/* FAB Principal */}
         <StyledFab
           aria-label="toggle toolbox"
           onClick={handleFabClick}
+          // --- CORRECTION 4: Revenir à `isActive` ---
           isActive={Boolean(activeTool)}
           size="large"
         >

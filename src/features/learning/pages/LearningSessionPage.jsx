@@ -54,10 +54,7 @@ const LearningSessionPage = () => {
         Niveau {granuleOrder} - Leçon {moleculeOrder}
       </Typography>
 
-      {/* On boucle sur chaque atome (contenu) à l'intérieur de la molécule */}
-      {atoms?.map((atom) => (
-        <AtomViewer key={atom.id} atom={atom} />
-      ))}
+      <AtomViewer atoms={atoms || []} />
     </Box>
   );
 };

@@ -1,88 +1,214 @@
-// Fichier: src/features/learning/components/AtomViewer.jsx
 import React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../../../api/axiosConfig';
+import { Box, Paper, Chip, Grow, useTheme } from '@mui/material';
+import { 
+  MenuBook as LessonIcon, 
+  Quiz as QuizIcon,
+  Extension as ExtensionIcon 
+} from '@mui/icons-material';
+import LessonAtom from './atoms/LessonAtom';
+import QuizAtom from './atoms/QuizAtom';
 
-import { Paper, Typography, Box, Button, Divider, List, ListItem, ListItemText } from '@mui/material';
-import ReactMarkdown from 'react-markdown';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+const AtomViewer = ({ atoms }) => {
+  const theme = useTheme();
 
-// Composant pour l'atome de type Leçon
-const LessonAtom = ({ content }) => (
-  <Box sx={{ typography: 'body1', '& p': { my: 1.5 } }}>
-    <ReactMarkdown>{content.text}</ReactMarkdown>
-  </Box>
-);
-
-// Composant pour l'atome de type Vocabulaire
-const VocabularyAtom = ({ content }) => (
-  <List dense>
-    {content.items?.map((item, index) => (
-      <React.Fragment key={index}>
-        <ListItem>
-          <ListItemText 
-            primary={<Typography variant="h6" component="span">{item.word} ({item.reading})</Typography>} 
-            secondary={item.meaning} 
-          />
-        </ListItem>
-        {index < content.items.length - 1 && <Divider component="li" />}
-      </React.Fragment>
-    ))}
-  </List>
-);
-
-// Composant principal qui choisit le bon afficheur
-const AtomViewer = ({ atom }) => {
-  const queryClient = useQueryClient();
-
-  // Mutation pour marquer l'atome comme complété
-  const completeAtomMutation = useMutation({
-    mutationFn: (atomId) => apiClient.post(`/capsules/atom/${atomId}/complete`),
-    onSuccess: () => {
-      // On pourrait invalider des requêtes ici si on affiche la progression
-      queryClient.invalidateQueries(['atomProgress', atom.id]);
-      console.log(`Atome ${atom.id} marqué comme complété !`);
-    },
-    onError: (error) => {
-      console.error("Erreur lors de la complétion de l'atome", error);
-    }
-  });
-
-  const renderAtomContent = () => {
-    switch (atom.content_type) {
+  const getAtomConfig = (type) => {
+    switch (type) {
       case 'lesson':
-        return <LessonAtom content={atom.content} />;
-      case 'vocabulary':
-        return <VocabularyAtom content={atom.content} />;
-      // Ajoutez des 'case' ici pour les autres types d'atomes (QUIZ, DIALOGUE, etc.)
+        return {
+          icon: <LessonIcon />,
+          color: '#667eea',
+          bgGradient: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)',
+          label: 'Leçon'
+        };
+      case 'quiz':
+        return {
+          icon: <QuizIcon />,
+          color: '#f59e0b',
+          bgGradient: 'linear-gradient(135deg, #f59e0b15 0%, #ef444415 100%)',
+          label: 'Quiz'
+        };
       default:
-        return <Typography color="error">Type d'atome inconnu: {atom.content_type}</Typography>;
+        return {
+          icon: <ExtensionIcon />,
+          color: '#6b7280',
+          bgGradient: 'linear-gradient(135deg, #6b728015 0%, #37415115 100%)',
+          label: 'Contenu'
+        };
     }
   };
 
   return (
-    <Paper elevation={2} sx={{ mb: 4, overflow: 'hidden' }}>
-      <Box sx={{ p: 3, bgcolor: 'action.hover', borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Typography variant="h5" component="h2">
-          {atom.title}
-        </Typography>
+    <Box sx={{ position: 'relative' }}>
+      {/* Progress indicator */}
+      <Box 
+        sx={{ 
+          position: 'sticky',
+          top: 20,
+          zIndex: 10,
+          mb: 4,
+          p: 2,
+          borderRadius: 3,
+          bgcolor: 'background.paper',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+          display: 'flex',
+          gap: 1,
+          overflowX: 'auto',
+          '&::-webkit-scrollbar': { height: 4 },
+          '&::-webkit-scrollbar-thumb': { 
+            bgcolor: 'primary.main',
+            borderRadius: 2 
+          }
+        }}
+      >
+        {atoms.map((atom, index) => {
+          const config = getAtomConfig(atom.content_type);
+          const status = atom.progress_status || 'not_started';
+          const locked = atom.is_locked;
+          const circleColor = locked
+            ? '#d1d5db'
+            : status === 'completed'
+            ? '#22c55e'
+            : status === 'in_progress'
+            ? '#3b82f6'
+            : status === 'failed'
+            ? '#ef4444'
+            : config.color;
+          return (
+            <Box
+              key={atom.id}
+              sx={{
+                minWidth: 40,
+                height: 40,
+                borderRadius: '50%',
+                bgcolor: circleColor,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: 14,
+                transition: 'all 0.3s',
+                cursor: 'default',
+                opacity: locked ? 0.4 : 1,
+              }}
+            >
+              {index + 1}
+            </Box>
+          );
+        })}
       </Box>
-      <Box sx={{ p: 3 }}>
-        {renderAtomContent()}
-      </Box>
-      <Divider />
-      <Box sx={{ p: 2, textAlign: 'right', bgcolor: 'background.paper' }}>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<CheckCircleIcon />}
-          onClick={() => completeAtomMutation.mutate(atom.id)}
-          disabled={completeAtomMutation.isPending}
-        >
-          J'ai terminé
-        </Button>
-      </Box>
-    </Paper>
+
+      {/* Atoms display */}
+      {atoms.map((atom, index) => {
+        const config = getAtomConfig(atom.content_type);
+        
+        return (
+          <Grow 
+            in 
+            timeout={500 + index * 200} 
+            key={atom.id}
+          >
+            <Paper 
+              sx={{ 
+                mb: 4,
+                borderRadius: 4,
+                overflow: 'hidden',
+                position: 'relative',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                border: '1px solid',
+                borderColor: 'divider',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
+                  borderColor: config.color + '40',
+                },
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 4,
+                  background: config.color,
+                }
+              }} 
+              variant="outlined"
+            >
+              {/* Header */}
+              <Box 
+                sx={{ 
+                  p: 2,
+                  background: config.bgGradient,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box 
+                    sx={{ 
+                      color: config.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      p: 1,
+                      borderRadius: 2,
+                      bgcolor: 'background.paper',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                    }}
+                  >
+                    {config.icon}
+                  </Box>
+                  <Chip 
+                    label={config.label} 
+                    size="small" 
+                    sx={{ 
+                      fontWeight: 600,
+                      bgcolor: config.color + '20',
+                      color: config.color,
+                      border: `1px solid ${config.color}30`
+                    }} 
+                  />
+                </Box>
+                <Chip 
+                  label={`${index + 1}/${atoms.length}`} 
+                  size="small" 
+                  variant="outlined"
+                  sx={{ fontWeight: 500 }}
+                />
+              </Box>
+
+              {/* Content */}
+              <Box sx={{ p: 3 }}>
+                {(() => {
+                  switch (atom.content_type) {
+                    case 'lesson':
+                      return <LessonAtom atom={atom} />;
+                    case 'quiz':
+                      return <QuizAtom atom={atom} />;
+                    default:
+                      return (
+                        <Box 
+                          sx={{ 
+                            p: 3, 
+                            borderRadius: 2,
+                            bgcolor: 'grey.50',
+                            textAlign: 'center',
+                            color: 'text.secondary'
+                          }}
+                        >
+                          Type d'atome non supporté : {atom.content_type}
+                        </Box>
+                      );
+                  }
+                })()}
+              </Box>
+            </Paper>
+          </Grow>
+        );
+      })}
+    </Box>
   );
 };
 

@@ -1,7 +1,7 @@
 // Fichier: src/App.jsx
 import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { Container, Box, CircularProgress, Grid } from '@mui/material';
+import { Container, Box, CircularProgress } from '@mui/material';
 import Footer from './components/Footer';
 import { useAuth } from './hooks/useAuth';
 
@@ -9,26 +9,20 @@ import { useAuth } from './hooks/useAuth';
 import LoginPage from './features/authentication/pages/LoginPage';
 import RegisterPage from './features/authentication/pages/RegisterPage';
 import DashboardPage from './features/dashboard/pages/DashboardPage';
-import CoursePlanPage from './features/courses/pages/CoursePlanPage';
-import LevelViewPage from './features/courses/pages/LevelViewPage';
-import ChapterViewPage from './features/courses/pages/ChapterViewPage';
-import LanguageChapterViewPage from './features/courses/pages/LanguageChapterViewPage';
-import ChapterPageSwitcher from './features/courses/pages/ChapterPageSwitcher';
-import KnowledgeGraphPage from './features/courses/pages/KnowledgeGraphPage'; // <-- NOUVEL IMPORT
-import NodeViewPage from './features/courses/pages/NodeViewPage'; // <-- NOUVEL IMPORT
 import Toolbox from './features/toolbox/components/Toolbox';
-import LibraryPage from './features/courses/pages/LibraryPage';
+import LibraryPage from './features/capsules/pages/LibraryPage';
 import NansheHomepage from './pages/NansheHomepage';
 import CapsuleList from './features/capsules/components/CapsuleList'; // Mettez le bon chemin
 import LearningSessionPage from './features/learning/pages/LearningSessionPage';
 import LessonComponent from './features/learning/components/LessonComponent';
 import CapsuleDetail from './features/capsules/components/CapsuleDetail';
+import MoleculePage from './features/learning/pages/MoleculePage';
+
 
 
 
 
 import StatsPage from './features/dashboard/pages/StatsPage';
-import CoursePageHandler from './features/courses/pages/CoursePageHandler';
 import CapsulePlanPage from './features/capsules/pages/CapsulePlanPage';
 
 // === Layouts ===
@@ -123,9 +117,10 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/library" element={<LibraryPage />} />
-        
+          
           <Route path="/capsules" element={<CapsuleList />} />
           <Route path="/capsule/:domain/:area/:capsuleId"  element={<CapsuleDetail/>} />
+          <Route path="/capsule/:domain/:area/:capsuleId/plan" element={<CapsulePlanPage />} />
           <Route 
             path="/capsule/:capsuleId/granule/:granuleOrder/molecule/:moleculeOrder" 
             element={<LearningSessionPage />} 
@@ -136,15 +131,7 @@ export default function App() {
             element={<LessonComponent />} 
           />
           
-          <Route path="/courses/:courseId" element={<CoursePageHandler />} />
-          <Route path="/levels/:levelId" element={<LevelViewPage />} />
-          {/* <Route path="/chapters/:chapterId" element={<ChapterViewPage />} /> 
-             <Route path="/chapters/:chapterId" element={<LanguageChapterViewPage />} />
-          */}
-          <Route path="/courses/:courseId/graph" element={<KnowledgeGraphPage />} />
-          <Route path="/nodes/:nodeId" element={<NodeViewPage />} />
-          
-          <Route path="/chapters/:chapterId" element={<ChapterPageSwitcher />} />
+          <Route path="/session/molecule/:moleculeId" element={<MoleculePage />} />
           <Route path="/stats" element={<StatsPage />} />
         </Route>
       </Route>

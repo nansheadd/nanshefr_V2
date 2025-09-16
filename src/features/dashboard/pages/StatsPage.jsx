@@ -1,92 +1,119 @@
-// Fichier: src/features/dashboard/pages/StatsPage.jsx (NOUVEAU)
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Container, Paper, Typography, Box, CircularProgress, Alert, LinearProgress, Stack, Chip } from '@mui/material';
 import apiClient from '../../../api/axiosConfig';
-import { Box,Button, Container, Typography, Paper, Accordion, AccordionSummary, AccordionDetails, LinearProgress, Stack, CircularProgress, Alert } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { Link as RouterLink } from 'react-router-dom';
 
-// API: Récupérer la liste des cours de l'utilisateur
-const fetchUserCourses = async () => {
-  const { data } = await apiClient.get('/courses/my-courses');
+const fetchMyCapsules = async () => {
+  const { data } = await apiClient.get('/capsules/me');
   return data;
 };
 
-// API: Récupérer les stats pour un cours spécifique
-const fetchCourseStats = async (courseId) => {
-  if (!courseId) return [];
-  const { data } = await apiClient.get(`/users/me/performance/${courseId}`);
+const fetchCapsuleProgress = async () => {
+  const { data } = await apiClient.get('/users/me/capsule-progress');
   return data;
 };
 
-// Composant pour afficher les stats d'un seul cours
-const CourseStats = ({ course }) => {
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ['courseStats', course.id],
-    queryFn: () => fetchCourseStats(course.id),
-  });
+const CapsuleProgressCard = ({ capsule, progress }) => {
+  const xp = progress?.xp ?? 0;
+  const strength = progress?.strength ?? 0;
 
   return (
-    <Accordion>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography sx={{ fontWeight: 'bold' }}>{course.title}</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        {isLoading && <CircularProgress size={24} />}
-        {stats && stats.length > 0 ? (
-          <Stack spacing={2}>
-            {stats.map((stat) => (
-              <Box key={stat.topic_category}>
-                <Typography variant="body2">{stat.topic_category}</Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={stat.mastery_score * 100}
-                    sx={{ height: 10, borderRadius: 5, flexGrow: 1 }}
-                    color={stat.mastery_score < 0.5 ? 'error' : stat.mastery_score < 0.8 ? 'warning' : 'success'}
-                  />
-                  <Typography variant="caption" color="text.secondary">{Math.round(stat.mastery_score * 100)}%</Typography>
-                </Box>
-              </Box>
-            ))}
-          </Stack>
-        ) : (
-          <Typography variant="body2" color="text.secondary">
-            Aucune statistique disponible. Commencez les exercices de ce cours pour voir votre progression !
-          </Typography>
-        )}
-      </AccordionDetails>
-    </Accordion>
+    <Paper sx={{ p: 2, borderRadius: 3, display: 'flex', flexDirection: 'column', gap: 1 }} elevation={2}>
+      <Typography variant="h6" fontWeight="bold">
+        {capsule.title}
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        Domaine : {capsule.domain} — Aire : {capsule.area}
+      </Typography>
+      <Box sx={{ mt: 1 }}>
+        <Typography variant="body2" gutterBottom>Progression XP</Typography>
+        <LinearProgress
+          variant="determinate"
+          value={Math.min(100, (xp / 60000) * 100)}
+          sx={{ height: 10, borderRadius: 5 }}
+          color="primary"
+        />
+        <Typography variant="caption" color="text.secondary">
+          {xp} XP cumulés
+        </Typography>
+      </Box>
+      <Box>
+        <Typography variant="body2" gutterBottom>Indice de maîtrise</Typography>
+        <LinearProgress
+          variant="determinate"
+          value={Math.min(100, strength * 100)}
+          sx={{ height: 10, borderRadius: 5 }}
+          color={strength > 0.7 ? 'success' : strength > 0.4 ? 'warning' : 'error'}
+        />
+        <Typography variant="caption" color="text.secondary">
+          {Math.round(strength * 100)}%
+        </Typography>
+      </Box>
+    </Paper>
   );
 };
 
-// Composant de la page principale des statistiques
 const StatsPage = () => {
-  const { data: courses, isLoading, isError } = useQuery({
-    queryKey: ['courses', 'my-courses'],
-    queryFn: fetchUserCourses,
+  const { data: capsules, isLoading: capsLoading, isError: capsError } = useQuery({
+    queryKey: ['capsules', 'me'],
+    queryFn: fetchMyCapsules,
   });
 
+  const { data: progressEntries, isLoading: progressLoading, isError: progressError } = useQuery({
+    queryKey: ['capsule-progress'],
+    queryFn: fetchCapsuleProgress,
+  });
+
+  const progressMap = React.useMemo(() => {
+    const map = new Map();
+    progressEntries?.forEach((entry) => {
+      map.set(entry.capsule_id, entry);
+    });
+    return map;
+  }, [progressEntries]);
+
   return (
-    <Container>
-      <Paper sx={{ my: 4, p: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Mes Statistiques
-        </Typography>
-        <Typography color="text.secondary" paragraph>
-          Suivez votre progression et identifiez vos points forts et les sujets à revoir pour chaque cours.
-        </Typography>
-        
-        {isLoading && <CircularProgress />}
-        {isError && <Alert severity="error">Impossible de charger vos cours.</Alert>}
-        
-        <Box sx={{ mt: 3 }}>
-          {courses?.map(course => <CourseStats key={course.id} course={course} />)}
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Paper sx={{ p: 4, borderRadius: 4 }} elevation={3}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box>
+            <Typography variant="h4" fontWeight="bold">
+              Mes statistiques
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Visualisez la progression globale sur vos capsules actives.
+            </Typography>
+          </Box>
+          <Chip label={`${capsules?.length ?? 0} capsules`} color="primary" />
         </Box>
 
-        <Button component={RouterLink} to="/dashboard" sx={{ mt: 3 }}>
-            &larr; Retour au tableau de bord
-        </Button>
+        {(capsLoading || progressLoading) && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {(capsError || progressError) && (
+          <Alert severity="error" sx={{ my: 2 }}>
+            Impossible de charger les statistiques pour le moment.
+          </Alert>
+        )}
+
+        <Stack spacing={2}>
+          {capsules?.length ? (
+            capsules.map((capsule) => (
+              <CapsuleProgressCard
+                key={capsule.id}
+                capsule={capsule}
+                progress={progressMap.get(capsule.id)}
+              />
+            ))
+          ) : (
+            <Alert severity="info">
+              Aucune capsule active. Inscrivez-vous à une capsule pour suivre vos statistiques.
+            </Alert>
+          )}
+        </Stack>
       </Paper>
     </Container>
   );

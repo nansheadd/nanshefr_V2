@@ -105,7 +105,7 @@ const LibraryPage = () => {
                       variant="h6" 
                       gutterBottom
                       component={RouterLink}
-                      to={`/capsule/${capsule.id}`}
+                      to={`/capsule/${capsule.domain}/${capsule.area}/${capsule.id}/plan`}
                       sx={{ 
                         textDecoration: 'none',
                         color: 'text.primary',
@@ -125,8 +125,7 @@ const LibraryPage = () => {
                       variant="contained"
                       startIcon={<PlayArrowIcon />}
                       component={RouterLink}
-                      // On utilise "to" et on retire le "onClick"
-                      to={`/capsule/${capsule.domain}/${capsule.area}/${capsule.id}`}
+                      to={`/capsule/${capsule.domain}/${capsule.area}/${capsule.id}/plan`}
                       sx={{ borderRadius: 2, textTransform: 'none' }}
                     >
                       Continuer

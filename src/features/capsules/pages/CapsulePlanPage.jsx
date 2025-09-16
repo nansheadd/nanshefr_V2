@@ -1,301 +1,332 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { 
-  Box, 
-  Typography, 
-  Button, 
-  Card, 
-  CardContent, 
-  CircularProgress, 
-  Alert, 
-  Grid,
-  LinearProgress,
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import {
+  Alert,
+  Box,
+  Button,
   Chip,
-  IconButton,
+  CircularProgress,
   Collapse,
+  Container,
+  Grid,
+  IconButton,
   List,
   ListItem,
-  ListItemButton,
-  ListItemText
+  ListItemIcon,
+  ListItemText,
+  Paper,
+  Stack,
+  Typography,
 } from '@mui/material';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import SchoolIcon from '@mui/icons-material/School';
+import TopicIcon from '@mui/icons-material/Topic';
+import ArticleIcon from '@mui/icons-material/Article';
+import QuizIcon from '@mui/icons-material/Quiz';
 import apiClient from '../../../api/axiosConfig';
 
-const fetchCapsuleDetails = async (capsuleId) => {
-  const { data } = await apiClient.get(`/capsules/${capsuleId}`);
+const fetchCapsule = async (domain, area, capsuleId) => {
+  const { data } = await apiClient.get(`/capsules/${domain}/${area}/${capsuleId}`);
   return data;
 };
 
 const CapsulePlanPage = () => {
-  const { domain, area, id: capsuleId } = useParams();
+  const { domain, area, capsuleId } = useParams();
   const navigate = useNavigate();
-  
-  const [expandedLevels, setExpandedLevels] = useState(new Set());
-  const [selectedChapter, setSelectedChapter] = useState(null);
 
-  const { data: capsule, isLoading, isError } = useQuery({
+  const [expandedGranules, setExpandedGranules] = useState(new Set());
+  const [expandedMolecules, setExpandedMolecules] = useState(new Set());
+  const [atomsByMolecule, setAtomsByMolecule] = useState({});
+  const [infoMessage, setInfoMessage] = useState(null);
+
+  const { data: capsule, isLoading, isError, error } = useQuery({
     queryKey: ['capsule', domain, area, capsuleId],
-    queryFn: () => fetchCapsuleDetails(domain, area, capsuleId),
+    queryFn: () => fetchCapsule(domain, area, capsuleId),
+    enabled: !!capsuleId,
     refetchInterval: (query) => {
-      const data = query.state.data;
-      return data?.generation_status === 'pending' ? 3000 : false;
+      const status = query.state.data?.generation_status;
+      return status === 'pending' ? 4000 : false;
     },
-    enabled: !!capsuleId, 
   });
 
-  // Mutation pour créer un chapitre
-  const createChapterMutation = useMutation({
-    mutationFn: async ({ levelOrder, chapterIndex }) => {
-      const response = await apiClient.post(`/capsules/${capsuleId}/level/${levelOrder}/molecule/${chapterIndex}`);
-      return response.data;
-    },
-    onSuccess: (data, variables) => {
-      // Rediriger vers la page de la leçon
-      if (data && data.lesson) {
-        // Stocker la leçon dans sessionStorage pour la récupérer sur la nouvelle page
-        sessionStorage.setItem('currentLesson', JSON.stringify(data.lesson));
-        
-        // Naviguer vers la nouvelle route
-        navigate(`/capsule/${capsuleId}/level/${variables.levelOrder}/chapter/${variables.chapterIndex}`);
+  const fetchAtoms = useMutation({
+    mutationFn: async (moleculeId) => {
+      setAtomsByMolecule((prev) => ({
+        ...prev,
+        [moleculeId]: { loading: true, error: null, atoms: [], generationStatus: 'pending', progressStatus: 'in_progress' },
+      }));
+      const response = await apiClient.get(`/capsules/molecules/${moleculeId}/atoms`, {
+        validateStatus: (status) => [200, 202].includes(status),
+      });
+      if (response.status === 202) {
+        return { moleculeId, atoms: [], generationStatus: 'pending', progressStatus: 'in_progress' };
       }
+      const atoms = response.data || [];
+      const allCompleted = atoms.every((atom) => atom.progress_status === 'completed');
+      const anyAttempt = atoms.some((atom) => atom.progress_status !== 'not_started');
+      const progressStatus = allCompleted ? 'completed' : anyAttempt ? 'in_progress' : 'not_started';
+      return { moleculeId, atoms, generationStatus: 'completed', progressStatus };
     },
-    onError: (error) => {
-      console.error('Erreur lors de la création du chapitre:', error);
-    }
+    onSuccess: ({ moleculeId, atoms, generationStatus, progressStatus }) => {
+      setAtomsByMolecule((prev) => ({
+        ...prev,
+        [moleculeId]: { loading: false, error: null, atoms, generationStatus, progressStatus },
+      }));
+    },
+    onError: (err, moleculeId) => {
+      if (err?.response?.status === 403 && err?.response?.data?.detail === 'molecule_locked') {
+        setInfoMessage("Terminez la leçon précédente pour débloquer celle-ci.");
+      }
+      const detail = err?.response?.data?.detail || "Erreur lors du chargement des contenus.";
+      setAtomsByMolecule((prev) => ({
+        ...prev,
+        [moleculeId]: { loading: false, error: detail, atoms: [], generationStatus: 'failed', progressStatus: 'not_started' },
+      }));
+    },
   });
 
-  const handleStartLevel = (levelOrder) => {
-    // Démarrer au premier chapitre du niveau
-    handleChapterClick(levelOrder, 0, capsule?.learning_plan_json?.levels?.[levelOrder-1]?.chapters?.[0]?.chapter_title);
+  useEffect(() => {
+    if (!capsule) return;
+    const initial = {};
+    capsule.granules?.forEach((granule) => {
+      granule.molecules?.forEach((molecule) => {
+        initial[molecule.id] = {
+          loading: false,
+          error: null,
+          atoms: molecule.atoms ?? [],
+          generationStatus: molecule.generation_status,
+          progressStatus: molecule.progress_status,
+        };
+      });
+    });
+    setAtomsByMolecule((prev) => {
+      const next = { ...prev };
+      Object.entries(initial).forEach(([id, data]) => {
+        const existing = next[id] || {};
+        const merged = { ...existing, ...data };
+        if (existing.atoms?.length && (!data.atoms || data.atoms.length === 0)) {
+          merged.atoms = existing.atoms;
+        }
+        next[id] = merged;
+      });
+      return next;
+    });
+  }, [capsule]);
+
+  const toggleGranule = (granuleId) => {
+    setExpandedGranules((prev) => {
+      const next = new Set(prev);
+      next.has(granuleId) ? next.delete(granuleId) : next.add(granuleId);
+      return next;
+    });
   };
 
-  const toggleLevelExpansion = (levelOrder) => {
-    const newExpanded = new Set(expandedLevels);
-    if (newExpanded.has(levelOrder)) {
-      newExpanded.delete(levelOrder);
-    } else {
-      newExpanded.add(levelOrder);
+  const toggleMolecule = (molecule) => {
+    if (molecule.is_locked) {
+      setInfoMessage("Terminez la leçon précédente pour débloquer celle-ci.");
+      return;
     }
-    setExpandedLevels(newExpanded);
+    setExpandedMolecules((prev) => {
+      const next = new Set(prev);
+      if (next.has(molecule.id)) {
+        next.delete(molecule.id);
+      } else {
+        next.add(molecule.id);
+        const state = atomsByMolecule[molecule.id];
+        const genStatus = state?.generationStatus ?? molecule.generation_status;
+        if (!state || (state.atoms?.length === 0 && genStatus !== 'pending' && !state.loading)) {
+          fetchAtoms.mutate(molecule.id);
+        }
+      }
+      return next;
+    });
   };
 
-  const handleChapterClick = (levelOrder, chapterIndex, chapterTitle) => {
-    setSelectedChapter({ levelOrder, chapterIndex, chapterTitle });
-    createChapterMutation.mutate({ levelOrder, chapterIndex });
+  const startSession = (molecule) => {
+    if (molecule.is_locked) {
+      setInfoMessage("Terminez les leçons précédentes pour accéder à celle-ci.");
+      return;
+    }
+    navigate(`/session/molecule/${molecule.id}`);
   };
 
-  if (isLoading) return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <CircularProgress />
-    </Box>
-  );
-  
-  if (isError) return (
-    <Box sx={{ p: 3 }}>
-      <Alert severity="error">Impossible de charger les détails de la capsule.</Alert>
-    </Box>
-  );
-
-  if (!capsule) {
+  if (isLoading) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography>Chargement de la capsule...</Typography>
-      </Box>
+      <Container sx={{ py: 6, textAlign: 'center' }}>
+        <CircularProgress size={56} />
+      </Container>
     );
   }
 
-  const isGenerating = capsule?.generation_status === 'pending';
-  const learningPlan = capsule?.learning_plan_json;
+  if (isError) {
+    return (
+      <Container sx={{ py: 6 }}>
+        <Alert severity="error">Impossible de charger la capsule : {error?.message}</Alert>
+      </Container>
+    );
+  }
+
+  if (!capsule) {
+    return (
+      <Container sx={{ py: 6 }}>
+        <Alert severity="info">Aucune donnée de capsule disponible.</Alert>
+      </Container>
+    );
+  }
+
+  const granules = capsule.granules ?? [];
 
   return (
-    <Box sx={{ p: 3, maxWidth: '900px', mx: 'auto' }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom fontWeight="bold">
-          {capsule.title}
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-          {capsule.domain} • {capsule.area}
-        </Typography>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+        <Button component={RouterLink} to="/capsules" startIcon={<ArrowBackIcon />}>Retour</Button>
+        <Typography variant="h4" fontWeight={700}>{capsule.title}</Typography>
       </Box>
-      
-      {/* Statut de génération */}
-      {isGenerating && (
-        <Box sx={{ mb: 4 }}>
-          <Alert severity="info">
-            <Typography>Génération du plan de cours en cours...</Typography>
-          </Alert>
-          <LinearProgress sx={{ mt: 2 }} />
-        </Box>
+      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
+        {capsule.domain} • {capsule.area}
+      </Typography>
+
+      {capsule.generation_status === 'pending' && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          La génération du plan est en cours. Tu peux commencer les premières leçons pendant que le reste se prépare.
+        </Alert>
       )}
 
-      {/* Plan d'apprentissage */}
-      {learningPlan && (
-        <>
-          {/* Vue d'ensemble */}
-          {learningPlan.overview && (
-            <Card sx={{ mb: 4, bgcolor: 'background.paper', boxShadow: 2 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Vue d'ensemble
-                </Typography>
-                <Typography variant="body2" paragraph>
-                  {learningPlan.overview.description}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 2 }}>
-                  <Chip label={`${learningPlan.levels?.length || 0} niveaux`} size="small" />
-                  <Chip 
-                    label={`${learningPlan.levels?.reduce((acc, level) => acc + (level.chapters?.length || 0), 0)} chapitres`} 
-                    size="small" 
-                  />
-                  <Chip label={learningPlan.overview.duree_estimee} size="small" color="primary" />
-                </Box>
-              </CardContent>
-            </Card>
-          )}
+      {infoMessage && (
+        <Alert severity="warning" sx={{ mb: 3 }} onClose={() => setInfoMessage(null)}>
+          {infoMessage}
+        </Alert>
+      )}
 
-          {/* Bouton principal */}
-          <Button 
-            variant="contained" 
-            color="primary" 
-            size="large"
-            startIcon={<PlayArrowIcon />}
-            onClick={() => handleStartLevel(1)}
-            sx={{ mb: 4, width: '100%', py: 1.5 }}
-          >
-            Commencer l'apprentissage
-          </Button>
-          
-          {/* Liste des niveaux avec chapitres */}
-          <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
-            Programme détaillé
-          </Typography>
-          
-          {learningPlan.levels?.map((level) => {
-            const chapters = level.chapters || [];
-            const isExpanded = expandedLevels.has(level.level_order);
-            
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <SchoolIcon color="primary" sx={{ fontSize: 40 }} />
+            <Typography variant="h5" fontWeight={700}>{granules.length}</Typography>
+            <Typography variant="body2">Chapitres</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <TopicIcon color="secondary" sx={{ fontSize: 40 }} />
+            <Typography variant="h5" fontWeight={700}>
+              {granules.reduce((acc, granule) => acc + (granule.molecules?.length || 0), 0)}
+            </Typography>
+            <Typography variant="body2">Leçons</Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      <Paper sx={{ p: { xs: 2, md: 3 } }}>
+        <Typography variant="h5" fontWeight={600} gutterBottom>
+          Programme détaillé
+        </Typography>
+
+        {granules.length === 0 && (
+          <Alert severity="info">Le contenu est encore en cours de génération. Revenez un peu plus tard.</Alert>
+        )}
+
+        <List sx={{ mt: 2 }}>
+          {granules.map((granule) => {
+            const isExpanded = expandedGranules.has(granule.id);
             return (
-              <Card 
-                key={level.level_order} 
-                sx={{ 
-                  mb: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  '&:hover': {
-                    boxShadow: 3
-                  }
-                }}
-              >
-                <CardContent sx={{ pb: isExpanded ? 0 : 2 }}>
-                  {/* En-tête du niveau */}
-                  <Box 
-                    sx={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => toggleLevelExpansion(level.level_order)}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Chip 
-                        label={`Niveau ${level.level_order}`} 
-                        color="primary" 
-                        variant="outlined"
-                        size="small"
-                      />
-                      <Typography variant="h6">
-                        {level.level_title}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {chapters.length} chapitre{chapters.length > 1 ? 's' : ''}
-                      </Typography>
-                      <IconButton size="small">
-                        {isExpanded ? <KeyboardArrowDownIcon /> : <ChevronRightIcon />}
-                      </IconButton>
-                    </Box>
-                  </Box>
-
-                  {/* Liste des chapitres (collapsible) */}
-                  <Collapse in={isExpanded}>
-                    <List sx={{ mt: 2 }}>
-                      {chapters.map((chapter, chapterIndex) => (
-                        <ListItem 
-                          key={chapterIndex}
-                          disablePadding
-                          sx={{ 
-                            borderLeft: '3px solid transparent',
-                            transition: 'all 0.3s',
-                            '&:hover': {
-                              borderLeftColor: 'primary.main',
-                              bgcolor: 'action.hover'
-                            },
-                            ...(selectedChapter?.levelOrder === level.level_order && 
-                                selectedChapter?.chapterIndex === chapterIndex && {
-                              borderLeftColor: 'primary.main',
-                              bgcolor: 'primary.50'
-                            })
-                          }}
-                        >
-                          <ListItemButton 
-                            onClick={() => handleChapterClick(
-                              level.level_order, 
-                              chapterIndex, 
-                              chapter.chapter_title
-                            )}
-                            disabled={createChapterMutation.isLoading}
-                          >
-                            <ListItemText 
-                              primary={
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Typography variant="body2" color="text.secondary">
-                                    {level.level_order}.{chapterIndex + 1}
-                                  </Typography>
-                                  <Typography variant="body1">
-                                    {chapter.chapter_title}
-                                  </Typography>
-                                  {createChapterMutation.isLoading && 
-                                   selectedChapter?.levelOrder === level.level_order && 
-                                   selectedChapter?.chapterIndex === chapterIndex && (
-                                    <CircularProgress size={16} />
-                                  )}
-                                </Box>
-                              }
+              <Box key={granule.id} sx={{ mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                <ListItem button onClick={() => toggleGranule(granule.id)}>
+                  <ListItemIcon>
+                    <Chip label={`Chap. ${granule.order}`} color="primary" />
+                  </ListItemIcon>
+                  <ListItemText primary={granule.title} />
+                  <Chip
+                    label={granule.progress_status === 'completed' ? 'Terminé' : granule.progress_status === 'in_progress' ? 'En cours' : 'À faire'}
+                    size="small"
+                    color={granule.progress_status === 'completed' ? 'success' : granule.progress_status === 'in_progress' ? 'warning' : 'default'}
+                    sx={{ mr: 1 }}
+                  />
+                  <IconButton edge="end">
+                    {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </IconButton>
+                </ListItem>
+                <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {granule.molecules?.map((molecule) => {
+                      const state = atomsByMolecule[molecule.id] || {};
+                      const generationStatus = state.generationStatus || molecule.generation_status;
+                      const progressStatus = state.progressStatus || molecule.progress_status;
+                      const hasContent = state.atoms && state.atoms.length > 0;
+                      const isMoleculeExpanded = expandedMolecules.has(molecule.id);
+                      const progressLabel = progressStatus === 'completed' ? 'Validé' : progressStatus === 'failed' ? 'À rejouer' : progressStatus === 'in_progress' ? 'En cours' : 'À faire';
+                      const progressColor = progressStatus === 'completed' ? 'success' : progressStatus === 'failed' ? 'error' : progressStatus === 'in_progress' ? 'warning' : 'default';
+                      return (
+                        <Box key={molecule.id} sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
+                          <ListItem button sx={{ pl: 6 }} onClick={() => toggleMolecule(molecule)}>
+                            <ListItemIcon><TopicIcon color="action" /></ListItemIcon>
+                            <ListItemText
+                              primary={molecule.title}
+                              secondary={`Leçon ${molecule.order}`}
                             />
-                          </ListItemButton>
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Collapse>
-                </CardContent>
-
-                {/* Actions du niveau */}
-                {!isExpanded && (
-                  <Box sx={{ px: 2, pb: 2 }}>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartLevel(level.level_order);
-                      }}
-                    >
-                      Démarrer ce niveau
-                    </Button>
-                  </Box>
-                )}
-              </Card>
+                            {state.loading && <CircularProgress size={18} sx={{ mr: 1 }} />}
+                            <Chip
+                              label={progressLabel}
+                              size="small"
+                              color={progressColor}
+                              sx={{ mr: 1 }}
+                            />
+                            <IconButton edge="end" onClick={(e) => { e.stopPropagation(); toggleMolecule(molecule); }}>
+                              {isMoleculeExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                            </IconButton>
+                            <Button
+                              size="small"
+                              sx={{ ml: 1 }}
+                              variant="contained"
+                              disabled={molecule.is_locked || !hasContent || generationStatus === 'pending' || generationStatus === 'failed' || state.loading}
+                              onClick={(e) => { e.stopPropagation(); startSession(molecule); }}
+                            >
+                              {molecule.is_locked ? 'Verrouillé' : generationStatus === 'pending' ? 'En cours…' : 'Étudier'}
+                            </Button>
+                          </ListItem>
+                          <Collapse in={isMoleculeExpanded} timeout="auto" unmountOnExit>
+                            <Box sx={{ pl: 8, pr: 3, py: 2 }}>
+                              {state.error && <Alert severity="error" sx={{ mb: 2 }}>{state.error}</Alert>}
+                              {generationStatus === 'pending' && (
+                                <Alert severity="info" sx={{ mb: 2 }}>
+                                  Génération en cours. Tu peux quitter cette page&nbsp;: une notification t'indiquera quand la leçon sera prête.
+                                </Alert>
+                              )}
+                              {generationStatus === 'failed' && (
+                                <Alert severity="error" sx={{ mb: 2 }}>
+                                  La génération de cette leçon a échoué. Merci de réessayer plus tard.
+                                </Alert>
+                              )}
+                              {!state.loading && !state.error && generationStatus !== 'pending' && (!state.atoms || state.atoms.length === 0) && (
+                                <Alert severity="info">Les contenus de cette leçon sont en cours de génération.</Alert>
+                              )}
+                              {state.atoms?.map((atom) => {
+                                const type = (atom.content_type || '').toLowerCase();
+                                return (
+                                  <ListItem key={atom.id} sx={{ pl: 0 }}>
+                                    <ListItemIcon>
+                                      {type === 'lesson' ? <ArticleIcon color="primary" /> : <QuizIcon color="secondary" />}
+                                    </ListItemIcon>
+                                    <ListItemText primary={atom.title} secondary={type === 'lesson' ? 'Leçon' : 'Quiz'} />
+                                  </ListItem>
+                                );
+                              })}
+                            </Box>
+                          </Collapse>
+                        </Box>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              </Box>
             );
           })}
-        </>
-      )}
-    </Box>
+        </List>
+      </Paper>
+    </Container>
   );
 };
 

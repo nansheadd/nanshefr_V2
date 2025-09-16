@@ -19,7 +19,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PersonIcon from '@mui/icons-material/Person';
-import NotificationsIcon from '@mui/icons-material/Notifications';
+import NotificationBell from '../../notifications/components/NotificationBell';
 
 const HeaderContainer = styled(Box)(({ theme }) => ({
   background: 'rgba(255, 255, 255, 0.9)',
@@ -70,17 +70,7 @@ const DashboardHeader = ({ user }) => {
         </Stack>
 
         <Stack direction="row" spacing={2} alignItems="center">
-          {/* Bouton Notifications */}
-          <IconButton 
-            sx={{ 
-              bgcolor: 'background.paper', 
-              boxShadow: 2,
-              '&:hover': { transform: 'scale(1.05)' }
-            }}
-          >
-            <NotificationsIcon />
-          </IconButton>
-
+          <NotificationBell />
           {/* Bouton Stats */}
           <Button
             variant="outlined"
