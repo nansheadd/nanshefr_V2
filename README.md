@@ -51,10 +51,10 @@ docker build \
   --build-arg VITE_STRIPE_PUBLISHABLE_KEY="pk_live_xxx" \
   .
 
-docker run -p 4173:4173 nanshe-frontend
+docker run -p 8080:8080 nanshe-frontend
 ```
 
-L'application est alors disponible sur `http://localhost:4173`.
+L'application est alors disponible sur `http://localhost:8080`.
 
 ### Déploiement sur Fly.io
 
@@ -72,7 +72,7 @@ L'application est alors disponible sur `http://localhost:4173`.
      VITE_STRIPE_PUBLISHABLE_KEY="pk_live_xxx"
    ```
 
-Fly utilisera le `Dockerfile` pour builder l'image, puis servira automatiquement le site sur le port `4173` (configuré dans le conteneur).
+Fly utilisera le `Dockerfile` pour builder l'image, puis servira automatiquement le site sur le port `8080` (configuré dans le conteneur).
 
 ## ✅ Checklist avant mise en production
 
