@@ -1,0 +1,87 @@
+{
+  "common": {
+    "or": "ou",
+    "with": "avec",
+    "levels": "niveaux",
+    "atoms": "atomes",
+    "close": "Fermer",
+    "continueWith": "ou continuer avec"
+  },
+  "nav": { "login": "Se connecter", "signup": "S'inscrire" },
+  "auth": {
+    "loginTitle": "Se connecter",
+    "signupTitle": "S'inscrire",
+    "email": "Email",
+    "password": "Mot de passe",
+    "username": "Nom d'utilisateur",
+    "loginButton": "Se connecter",
+    "signupButton": "Créez votre première capsule"
+  },
+  "hero": {
+    "title": "Des parcours d'apprentissage sur-mesure, créés par l'IA pour vous.",
+    "subtitle": "Nanshe transforme n'importe quel sujet en une aventure d'apprentissage interactive. Que vous vouliez apprendre le japonais, la philosophie ou le code, nous créons une feuille de route personnalisée pour vous guider de débutant à expert.",
+    "cta1": "Créez votre première capsule",
+    "cta2": "Voir démo interactive"
+  },
+  "howItWorks": {
+    "title": "Comment ça",
+    "titleGradient": "marche",
+    "steps": [
+      {
+        "title": "Choisissez votre Capsule",
+        "desc": "Une capsule, c'est votre univers d'apprentissage pour un sujet donné.",
+        "details": "Que ce soit une langue, une science ou une compétence créative, chaque capsule contient tout ce dont vous avez besoin pour maîtriser le domaine."
+      },
+      {
+        "title": "Suivez votre Roadmap Personnalisée",
+        "desc": "Fini de deviner ce que vous devez apprendre ensuite.",
+        "details": "Pour chaque capsule, nous générons une roadmap claire et gamifiée avec des objectifs précis et des récompenses à débloquer."
+      },
+      {
+        "title": "Apprenez par Atomes Interactifs",
+        "desc": "Chaque leçon est décomposée en petites unités d'apprentissage.",
+        "details": "Au lieu de longs textes, vous apprenez avec des leçons concises, des quiz et des exercices pratiques."
+      }
+    ]
+  },
+  "benefits": {
+    "title": "Pourquoi",
+    "titleGradient": "Nanshe",
+    "items": [
+      {
+        "title": "Ne vous demandez plus jamais \"par où commencer ?\"",
+        "text": "Notre IA analyse votre objectif et construit une roadmap structurée. Vous savez toujours où vous êtes et quelle est la prochaine étape."
+      },
+      {
+        "title": "Un apprentissage actif, pas passif",
+        "text": "Vous n'êtes pas juste un lecteur, vous êtes un acteur : quiz, dialogues, et mise en pratique immédiate."
+      },
+      {
+        "title": "Gamifié pour rester motivé",
+        "text": "Objectifs clairs, XP à gagner et récompenses à débloquer. Ressentez la satisfaction de progresser."
+      }
+    ]
+  },
+  "capsules": {
+    "title": "Explorez nos",
+    "titleGradient": "capsules",
+    "subtitle": "Chaque capsule est un univers complet d'apprentissage",
+    "items": {
+      "japanese": "Japonais",
+      "design": "Design UI/UX",
+      "biology": "Biologie",
+      "python": "Python",
+      "dataScience": "Data Science",
+      "guitar": "Guitare",
+      "yoga": "Yoga",
+      "photo": "Photo"
+    }
+  },
+  "cta": {
+    "ready": "Prêt à transformer votre",
+    "readyGradient": "façon d'apprendre",
+    "subtitle": "Rejoignez des milliers d'apprenants qui progressent chaque jour avec l'IA",
+    "button": "Lancez votre apprentissage sur-mesure"
+  },
+  "footer": { "about": "À propos", "blog": "Blog", "contact": "Contact", "legal": "Mentions légales" }
+}

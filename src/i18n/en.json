@@ -1,0 +1,87 @@
+{
+  "common": {
+    "or": "or",
+    "with": "with",
+    "levels": "levels",
+    "atoms": "atoms",
+    "close": "Close",
+    "continueWith": "or continue with"
+  },
+  "nav": { "login": "Login", "signup": "Sign up" },
+  "auth": {
+    "loginTitle": "Login",
+    "signupTitle": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "username": "Username",
+    "loginButton": "Login",
+    "signupButton": "Create your first capsule"
+  },
+  "hero": {
+    "title": "Personalized learning paths, created by AI for you.",
+    "subtitle": "Nanshe transforms any subject into an interactive learning adventure. Whether you want to learn Japanese, philosophy or coding, we create a personalized roadmap to guide you from beginner to expert.",
+    "cta1": "Create your first capsule",
+    "cta2": "View interactive demo"
+  },
+  "howItWorks": {
+    "title": "How it",
+    "titleGradient": "works",
+    "steps": [
+      {
+        "title": "Choose your Capsule",
+        "desc": "A capsule is your learning universe for a given subject.",
+        "details": "Whether it's a language, science or creative skill, each capsule contains everything you need to master the field."
+      },
+      {
+        "title": "Follow your Personalized Roadmap",
+        "desc": "No more guessing what to learn next.",
+        "details": "For each capsule, we generate a clear and gamified roadmap with specific goals and rewards to unlock."
+      },
+      {
+        "title": "Learn through Interactive Atoms",
+        "desc": "Each lesson is broken down into small learning units.",
+        "details": "Instead of long texts, you learn with concise lessons, quizzes and practical exercises."
+      }
+    ]
+  },
+  "benefits": {
+    "title": "Why",
+    "titleGradient": "Nanshe",
+    "items": [
+      {
+        "title": "Never wonder \"where to start?\" again",
+        "text": "Our AI analyzes your goal and builds a structured roadmap. You always know where you are and what's next."
+      },
+      {
+        "title": "Active learning, not passive",
+        "text": "You're not just a reader, you're an actor: quizzes, dialogues, and immediate practice."
+      },
+      {
+        "title": "Gamified to stay motivated",
+        "text": "Clear objectives, XP to earn and rewards to unlock. Feel the satisfaction of progress."
+      }
+    ]
+  },
+  "capsules": {
+    "title": "Explore our",
+    "titleGradient": "capsules",
+    "subtitle": "Each capsule is a complete learning universe",
+    "items": {
+      "japanese": "Japanese",
+      "design": "UI/UX Design",
+      "biology": "Biology",
+      "python": "Python",
+      "dataScience": "Data Science",
+      "guitar": "Guitar",
+      "yoga": "Yoga",
+      "photo": "Photography"
+    }
+  },
+  "cta": {
+    "ready": "Ready to transform your",
+    "readyGradient": "way of learning",
+    "subtitle": "Join thousands of learners progressing every day with AI",
+    "button": "Start your personalized learning"
+  },
+  "footer": { "about": "About", "blog": "Blog", "contact": "Contact", "legal": "Legal" }
+}
