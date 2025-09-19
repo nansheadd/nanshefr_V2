@@ -20,6 +20,8 @@ const CodeChallengeAtom = ({ atom }) => {
   const [code, setCode] = useState(atom?.content?.starter_code || '');
   const [info, setInfo] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [testsSummary, setTestsSummary] = useState(null);
+  const [testResults, setTestResults] = useState([]);
 
   if (!atom?.content) {
     return <Alert severity="warning">Challenge indisponible.</Alert>;
@@ -29,10 +31,21 @@ const CodeChallengeAtom = ({ atom }) => {
 
   const submitMutation = useMutation({
     mutationFn: (payload) => apiClient.post('/progress/log-answer', payload),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['capsule'], exact: false });
       queryClient.invalidateQueries({ queryKey: ['learningSession'], exact: false });
-      setInfo({ severity: 'success', message: 'Soumission enregistrée !' });
+
+      const samplesCount = variables?.answer?.samples?.length ?? 0;
+      const testsMessage = samplesCount === 0
+        ? "Aucun test d'exemple fourni."
+        : variables?.is_correct
+          ? "Tous les tests d'exemple ont réussi."
+          : "Certains tests d'exemple ont échoué.";
+
+      setInfo({
+        severity: variables?.is_correct ? 'success' : 'warning',
+        message: `${testsMessage} Soumission enregistrée !`,
+      });
     },
     onError: (err) => {
       const message = err?.response?.data?.detail || "Impossible d'enregistrer votre solution.";
@@ -41,17 +54,130 @@ const CodeChallengeAtom = ({ atom }) => {
     onSettled: () => setSubmitting(false),
   });
 
-  const handleSubmit = () => {
+  const normalizeOutput = (value) => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (typeof value === 'string') {
+      return value.replace(/\r\n/g, '\n').trimEnd();
+    }
+    try {
+      return String(value).replace(/\r\n/g, '\n').trimEnd();
+    } catch {
+      return '';
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!language || !language.toLowerCase().includes('python')) {
+      setInfo({
+        severity: 'warning',
+        message: "L'exécution intégrée est disponible uniquement pour Python pour le moment.",
+      });
+      return;
+    }
+
     setSubmitting(true);
-    submitMutation.mutate({
-      atom_id: atom.id,
-      is_correct: true,
-      answer: {
-        language,
-        code,
-        samples: sampleTests,
-      },
-    });
+    setInfo({ severity: 'info', message: "Exécution des tests d'exemple..." });
+    setTestsSummary(null);
+    setTestResults([]);
+
+    let results = [];
+
+    const hasSampleTests = sampleTests.length > 0;
+
+    if (hasSampleTests) {
+      try {
+        results = await Promise.all(
+          sampleTests.map(async (test) => {
+            const rawInput = test?.input ?? '';
+            const stdin =
+              typeof rawInput === 'string'
+                ? rawInput
+                : rawInput === null || rawInput === undefined
+                  ? ''
+                  : JSON.stringify(rawInput);
+            const response = await apiClient
+              .post('/programming/execute', { language, code, stdin })
+              .then((res) => res.data);
+
+            const rawStdout = response?.stdout ?? '';
+            const stdout =
+              typeof rawStdout === 'string'
+                ? rawStdout
+                : rawStdout === null || rawStdout === undefined
+                  ? ''
+                  : String(rawStdout);
+            const rawStderr = response?.stderr ?? '';
+            const stderr =
+              typeof rawStderr === 'string'
+                ? rawStderr
+                : rawStderr === null || rawStderr === undefined
+                  ? ''
+                  : String(rawStderr);
+            const exitCode = response?.exit_code;
+            const timedOut = Boolean(response?.timed_out ?? response?.timeout);
+
+            const rawExpected = test?.output ?? '';
+            const expected =
+              typeof rawExpected === 'string'
+                ? rawExpected
+                : rawExpected === null || rawExpected === undefined
+                  ? ''
+                  : JSON.stringify(rawExpected);
+            const normalizedExpected = normalizeOutput(expected);
+            const normalizedStdout = normalizeOutput(stdout);
+
+            const executionError = Boolean(stderr) || timedOut || (typeof exitCode === 'number' && exitCode !== 0);
+            const passed = !executionError && normalizedStdout === normalizedExpected;
+
+            return {
+              input: stdin,
+              expected,
+              output: stdout,
+              stderr,
+              exitCode,
+              timedOut,
+              passed,
+            };
+          }),
+        );
+      } catch (err) {
+        const message = err?.response?.data?.detail || "Impossible d'exécuter ce code.";
+        setInfo({ severity: 'error', message });
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    setTestResults(results);
+
+    const isCorrect = hasSampleTests ? results.every((res) => res.passed) : true;
+
+    if (hasSampleTests) {
+      setTestsSummary({
+        severity: isCorrect ? 'success' : 'error',
+        message: isCorrect
+          ? "Tous les tests d'exemple ont réussi !"
+          : "Certains tests d'exemple ont échoué. Consultez les résultats ci-dessous.",
+      });
+    } else {
+      setTestsSummary({ severity: 'info', message: "Aucun test d'exemple fourni." });
+    }
+
+    try {
+      await submitMutation.mutateAsync({
+        atom_id: atom.id,
+        is_correct: isCorrect,
+        answer: {
+          language,
+          code,
+          samples: sampleTests,
+        },
+      });
+    } catch {
+      // L'erreur est déjà gérée par la mutation via onError
+    }
   };
 
   return (
@@ -72,6 +198,12 @@ const CodeChallengeAtom = ({ atom }) => {
       {info && (
         <Alert severity={info.severity} sx={{ mb: 2 }} onClose={() => setInfo(null)}>
           {info.message}
+        </Alert>
+      )}
+
+      {testsSummary && (
+        <Alert severity={testsSummary.severity} sx={{ mb: 2 }} onClose={() => setTestsSummary(null)}>
+          {testsSummary.message}
         </Alert>
       )}
 
@@ -113,6 +245,78 @@ const CodeChallengeAtom = ({ atom }) => {
           <Stack spacing={1}>
             {hints.map((hint, index) => (
               <Chip key={index} icon={<CheckCircleIcon />} label={hint} variant="outlined" />
+            ))}
+          </Stack>
+        </Box>
+      )}
+
+      {testResults.length > 0 && (
+        <Box sx={{ mt: 3 }}>
+          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+            Résultats des tests d'exemple
+          </Typography>
+          <Stack spacing={2}>
+            {testResults.map((result, index) => (
+              <Paper
+                key={index}
+                variant="outlined"
+                sx={{
+                  p: 2,
+                  borderColor: result.passed ? 'success.light' : 'error.light',
+                  borderLeftWidth: 4,
+                  borderLeftStyle: 'solid',
+                  borderLeftColor: result.passed ? 'success.main' : 'error.main',
+                }}
+              >
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                  <Chip
+                    label={result.passed ? 'Réussi' : 'Échec'}
+                    color={result.passed ? 'success' : 'error'}
+                    size="small"
+                  />
+                  <Typography variant="body2" fontWeight={600}>
+                    Test #{index + 1}
+                  </Typography>
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  Entrée
+                </Typography>
+                <Box component="pre" sx={{ bgcolor: 'grey.100', p: 1, borderRadius: 1, mb: 1 }}>
+                  {result.input || '—'}
+                </Box>
+                <Typography variant="caption" color="text.secondary">
+                  Sortie attendue
+                </Typography>
+                <Box component="pre" sx={{ bgcolor: 'grey.100', p: 1, borderRadius: 1, mb: 1 }}>
+                  {result.expected || '—'}
+                </Box>
+                <Typography variant="caption" color="text.secondary">
+                  Sortie obtenue
+                </Typography>
+                <Box component="pre" sx={{ bgcolor: 'grey.100', p: 1, borderRadius: 1, mb: 1 }}>
+                  {result.output || '—'}
+                </Box>
+                {result.stderr && (
+                  <>
+                    <Typography variant="caption" color="text.secondary">
+                      Sortie d'erreur
+                    </Typography>
+                    <Box component="pre" sx={{ bgcolor: '#fee2e2', p: 1, borderRadius: 1, color: '#b91c1c', mb: 1 }}>
+                      {result.stderr}
+                    </Box>
+                  </>
+                )}
+                {typeof result.exitCode === 'number' && (
+                  <Typography variant="caption" color="text.secondary">
+                    Code de sortie : {result.exitCode}
+                  </Typography>
+                )}
+                {result.timedOut && (
+                  <Typography variant="caption" color="error.main" sx={{ display: 'block' }}>
+                    Temps limite dépassé
+                  </Typography>
+                )}
+              </Paper>
             ))}
           </Stack>
         </Box>
