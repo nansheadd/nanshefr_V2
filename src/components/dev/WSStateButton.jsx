@@ -1,13 +1,11 @@
 // src/components/dev/WSStateButton.jsx
 import { Button } from '@mui/material';
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:8000';
+import { buildApiUrl } from '../../config/api';
 
 export default function WSStateButton() {
   const check = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v2/ws-test/state`, {
+      const res = await fetch(buildApiUrl('/ws-test/state'), {
         method: 'GET',
         credentials: 'include', // indispensable pour envoyer le cookie access_token
       });
