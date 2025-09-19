@@ -27,8 +27,8 @@ RUN npm install -g serve
 COPY --from=build /app/dist ./dist
 
 ENV NODE_ENV=production
-EXPOSE 4173
+EXPOSE 8080
 
 
-CMD ["sh", "-c", "serve -s dist -l tcp://0.0.0.0:${PORT:-4173}"]
+CMD ["sh", "-c", "serve -s dist -l tcp://0.0.0.0:${PORT:-8080}"]
 
