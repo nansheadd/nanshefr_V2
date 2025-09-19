@@ -1,5 +1,5 @@
 // src/features/authentication/api/emailClient.js
-const BASE = 'http://localhost:8000'; // relatif -> /api/v2 via le proxy dev. Sinon: import.meta.env.VITE_API_BASE_URL
+import { buildApiUrl } from '../../../config/api';
 
 function getAppLang() {
   return localStorage.getItem('language') || 'fr';
@@ -23,14 +23,14 @@ async function postJSON(url, body) {
 }
 
 export function sendConfirmation(email) {
-  return postJSON(`${BASE}/api/v2/auth/send-confirmation`, { email, lang: getAppLang() });
+  return postJSON(buildApiUrl('/auth/send-confirmation'), { email, lang: getAppLang() });
 }
 export function verifyEmail(token) {
-  return postJSON(`${BASE}/api/v2/auth/verify-email`, { token });
+  return postJSON(buildApiUrl('/auth/verify-email'), { token });
 }
 export function forgotPassword(email) {
-  return postJSON(`${BASE}/api/v2/auth/forgot-password`, { email, lang: getAppLang() });
+  return postJSON(buildApiUrl('/auth/forgot-password'), { email, lang: getAppLang() });
 }
 export function resetPassword(token, new_password) {
-  return postJSON(`${BASE}/api/v2/auth/reset-password`, { token, new_password });
+  return postJSON(buildApiUrl('/auth/reset-password'), { token, new_password });
 }

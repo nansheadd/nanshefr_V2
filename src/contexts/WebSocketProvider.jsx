@@ -1,5 +1,6 @@
 // src/contexts/WebSocketProvider.jsx
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { API_WS_URL } from '../config/api';
 
 // 👉 le contexte expose maintenant { lastMessage, connected, reconnect, disconnect }
 const WebSocketContext = createContext({ lastMessage: null, connected: false, reconnect: () => {}, disconnect: () => {} });
@@ -16,8 +17,7 @@ export const WebSocketProvider = ({ children }) => {
     if (socketRef.current && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socketRef.current.readyState)) {
       return;
     }
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const socket = new WebSocket(`${protocol}://localhost:8000/api/v2/ws`);
+    const socket = new WebSocket(API_WS_URL);
     socketRef.current = socket;
 
     socket.onopen = () => {
