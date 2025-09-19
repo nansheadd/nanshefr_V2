@@ -13,7 +13,6 @@ import {
 } from '@mui/material';
 import { styled, alpha, keyframes } from '@mui/material/styles';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import StarIcon from '@mui/icons-material/Star';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloseIcon from '@mui/icons-material/Close';
@@ -51,7 +50,7 @@ const tierStyles = {
   diamond: { p: '#00E5FF', s: '#00ACC1', g: '#E0F7FA' }
 };
 
-// Badge hexagonal
+// Badge hexagonal (pas de props custom → rien ne fuit vers le DOM)
 const HexBadge = styled(Box)(({ theme }) => ({
   width: 180,
   height: 200,
@@ -65,62 +64,71 @@ const HexBadge = styled(Box)(({ theme }) => ({
   }
 }));
 
-// Fond du badge
-const BadgeBg = styled(Box)(({ theme, tier, $earned }) => {
+// Fond du badge (utilise ownerState pour éviter de passer des props DOM)
+const BadgeBg = styled(Box)(({ theme, ownerState }) => {
+  const tier = ownerState?.tier || 'bronze';
+  const earned = Boolean(ownerState?.earned);
   const t = tierStyles[tier] || tierStyles.bronze;
+
   return {
     position: 'absolute',
     inset: 0,
-    background: $earned 
+    background: earned
       ? `linear-gradient(135deg, ${t.p}, ${t.g}, ${t.s})`
       : alpha(theme.palette.grey[700], 0.8),
-    '&::before': $earned ? {
-      content: '""',
-      position: 'absolute',
-      inset: 0,
-      background: `linear-gradient(90deg, transparent, ${alpha('#fff', 0.3)}, transparent)`,
-      backgroundSize: '200% 200%',
-      animation: `${shine} 6s infinite`
-    } : {}
+    '&::before': earned
+      ? {
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          background: `linear-gradient(90deg, transparent, ${alpha('#fff', 0.3)}, transparent)`,
+          backgroundSize: '200% 200%',
+          animation: `${shine} 6s infinite`
+        }
+      : {}
   };
 });
 
 // Bordure néon
-const Border = styled(Box)(({ theme, tier, $earned }) => {
+const Border = styled(Box)(({ theme, ownerState }) => {
+  const tier = ownerState?.tier || 'bronze';
+  const earned = Boolean(ownerState?.earned);
   const t = tierStyles[tier] || tierStyles.bronze;
+
   return {
     position: 'absolute',
     inset: -3,
-    background: $earned ? t.p : alpha(theme.palette.grey[600], 0.5),
+    background: earned ? t.p : alpha(theme.palette.grey[600], 0.5),
     clipPath: 'inherit',
     zIndex: -1,
-    filter: $earned ? 'blur(6px)' : 'none',
-    animation: $earned ? `${pulse} 2s infinite` : 'none'
+    filter: earned ? 'blur(6px)' : 'none',
+    animation: earned ? `${pulse} 2s infinite` : 'none'
   };
 });
 
 // Icône centrale
-const IconCore = styled(Box)(({ theme, $earned }) => ({
-  width: 60,
-  height: 60,
-  borderRadius: '50%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: $earned 
-    ? 'rgba(255,255,255,0.2)' 
-    : alpha(theme.palette.grey[600], 0.3),
-  backdropFilter: 'blur(10px)',
-  border: `2px solid ${alpha('#fff', $earned ? 0.3 : 0.1)}`,
-  boxShadow: $earned ? '0 0 20px rgba(255,255,255,0.3)' : 'none',
-  '& .icon': {
-    fontSize: '1.8rem',
-    color: $earned ? '#fff' : alpha('#fff', 0.3),
-    filter: $earned ? 'drop-shadow(0 0 8px rgba(255,255,255,0.5))' : 'none'
-  }
-}));
+const IconCore = styled(Box)(({ theme, ownerState }) => {
+  const earned = Boolean(ownerState?.earned);
+  return {
+    width: 60,
+    height: 60,
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: earned ? 'rgba(255,255,255,0.2)' : alpha(theme.palette.grey[600], 0.3),
+    backdropFilter: 'blur(10px)',
+    border: `2px solid ${alpha('#fff', earned ? 0.3 : 0.1)}`,
+    boxShadow: earned ? '0 0 20px rgba(255,255,255,0.3)' : 'none',
+    '& .icon': {
+      fontSize: '1.8rem',
+      color: earned ? '#fff' : alpha('#fff', 0.3),
+      filter: earned ? 'drop-shadow(0 0 8px rgba(255,255,255,0.5))' : 'none'
+    }
+  };
+});
 
-// Barre de progression
+// Barre de progression (pas de props custom)
 const ProgressBar = styled(Box)(({ theme }) => ({
   height: 10,
   borderRadius: 10,
@@ -136,13 +144,16 @@ const ProgressBar = styled(Box)(({ theme }) => ({
 }));
 
 // Badge de rareté
-const RarityDot = styled(Box)(({ rarity }) => {
+const RarityDot = styled(Box)(({ ownerState }) => {
+  const rarity = ownerState?.rarity || 'common';
   const colors = {
     legendary: '#FFD700',
-    epic: '#E91E63', 
+    epic: '#E91E63',
     rare: '#00BCD4',
     common: '#8BC34A'
   };
+  const color = colors[rarity] || colors.common;
+
   return {
     position: 'absolute',
     top: -8,
@@ -150,9 +161,9 @@ const RarityDot = styled(Box)(({ rarity }) => {
     width: 32,
     height: 32,
     borderRadius: '50%',
-    background: colors[rarity],
+    background: color,
     border: '2px solid #fff',
-    boxShadow: `0 0 15px ${colors[rarity]}`,
+    boxShadow: `0 0 15px ${color}`,
     animation: `${glow} 2s infinite`,
     display: 'flex',
     alignItems: 'center',
@@ -175,16 +186,16 @@ const GDialog = styled(Dialog)(({ theme }) => ({
 }));
 
 const Badge = ({
-  name = "Badge",
-  description = "Description",
+  name = 'Badge',
+  description = 'Description',
   earned = false,
-  tier = "bronze",
-  category = "Progression",
+  tier = 'bronze',
+  category = 'Progression',
   xpPoints = 50,
   progress = null,
-  icon = "trophy",
+  icon = 'trophy',
   unlockedDate = null,
-  rarity = "common",
+  rarity = 'common',
   onClick = () => {}
 }) => {
   const [open, setOpen] = useState(false);
@@ -195,22 +206,28 @@ const Badge = ({
       trophy: EmojiEventsIcon,
       check: CheckCircleIcon
     };
-    const Icon = earned ? (icons[icon] || EmojiEventsIcon) : LockOutlinedIcon;
-    return <Icon className="icon" />;
+    const IconComp = earned ? (icons[icon] || EmojiEventsIcon) : LockOutlinedIcon;
+    return <IconComp className="icon" />;
   };
 
   const rarityIcons = { legendary: '⚡', epic: '💎', rare: '✨', common: '•' };
-  const progressPercent = progress ? Math.min((progress.current / progress.target) * 100, 100) : 0;
+
+  const progressPercent = (() => {
+    if (!progress || typeof progress.current !== 'number' || typeof progress.target !== 'number' || progress.target <= 0) {
+      return 0;
+    }
+    return Math.min((progress.current / progress.target) * 100, 100);
+  })();
 
   return (
     <>
       <HexBadge onClick={() => { setOpen(true); onClick(); }}>
-        <Border tier={tier} $earned={earned} />
-        <BadgeBg tier={tier} $earned={earned} className="float" />
-        
+        <Border ownerState={{ tier, earned }} />
+        <BadgeBg ownerState={{ tier, earned }} className="float" />
+
         {earned && rarity !== 'common' && (
-          <RarityDot rarity={rarity}>
-            {rarityIcons[rarity]}
+          <RarityDot ownerState={{ rarity }}>
+            {rarityIcons[rarity] || rarityIcons.common}
           </RarityDot>
         )}
 
@@ -220,7 +237,7 @@ const Badge = ({
           justifyContent="center"
           sx={{ height: '100%', p: 2, position: 'relative', zIndex: 1 }}
         >
-          <IconCore $earned={earned}>
+          <IconCore ownerState={{ earned }}>
             {getIcon()}
           </IconCore>
 
@@ -269,7 +286,7 @@ const Badge = ({
                   fontWeight: 700
                 }}
               >
-                {progress.current}/{progress.target}
+                {Math.max(0, progress?.current ?? 0)}/{Math.max(1, progress?.target ?? 1)}
               </Typography>
             </Box>
           )}
@@ -359,8 +376,11 @@ const Badge = ({
                 <ProgressBar>
                   <Box className="bar" sx={{ width: `${progressPercent}%` }} />
                 </ProgressBar>
-                <Typography variant="caption" sx={{ color: '#00E5FF', display: 'block', mt: 1, textAlign: 'center' }}>
-                  {progress.current}/{progress.target} ({Math.round(progressPercent)}%)
+                <Typography
+                  variant="caption"
+                  sx={{ color: '#00E5FF', display: 'block', mt: 1, textAlign: 'center' }}
+                >
+                  {Math.max(0, progress?.current ?? 0)}/{Math.max(1, progress?.target ?? 1)} ({Math.round(progressPercent)}%)
                 </Typography>
               </Box>
             )}

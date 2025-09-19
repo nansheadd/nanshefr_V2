@@ -1,358 +1,228 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Container,
-  Typography,
-  Button,
-  Stack,
-  Grid,
-  Card,
-  Avatar,
-  Chip,
-  AppBar,
-  Toolbar,
-  Fade,
-  useMediaQuery,
-  useTheme
-} from '@mui/material';
-import { styled, alpha, keyframes } from '@mui/material/styles';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
-import PeopleIcon from '@mui/icons-material/People';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import SchoolIcon from '@mui/icons-material/School';
-import LoginIcon from '@mui/icons-material/Login';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import InstagramIcon from '@mui/icons-material/Instagram';
-import TwitterIcon from '@mui/icons-material/Twitter';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
-import Badge from '../components/Badge';
-import Footer from '../components/Footer'; // Import du vrai footer
+import React, { useEffect, useState, useContext } from 'react';
+import clsx from 'clsx';
+import { useTheme } from '@mui/material/styles';
+import { ColorModeContext } from '../theme/ColorModeContext';
+import { useI18n } from '../i18n/I18nContext';
+import styles from './NansheHomepage.module.css';
+import Footer from '../components/Footer';
 
-// Animations simplifiées
-const float = keyframes`
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-`;
+const capsuleIcons = ['🇯🇵', '🎨', '🧬', '💻', '📊', '🎸', '🧘', '📷'];
+const capsuleKeys = ['japanese', 'design', 'biology', 'python', 'dataScience', 'guitar', 'yoga', 'photo'];
 
-const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
-
-// Styles optimisés
-const Section = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(10, 0),
-  [theme.breakpoints.down('md')]: {
-    padding: theme.spacing(6, 0),
-  },
-  animation: `${fadeIn} 0.8s ease-out`
-}));
-
-const Hero = styled(Section)(({ theme }) => ({
-  minHeight: '100vh',
-  display: 'flex',
-  alignItems: 'center',
-  background: `linear-gradient(135deg, 
-    ${alpha(theme.palette.background.default, 0.95)} 0%, 
-    ${alpha(theme.palette.primary.main, 0.03)} 100%)`,
-  position: 'relative',
-  overflow: 'hidden'
-}));
-
-const GText = styled(Typography)({
-  background: 'linear-gradient(135deg, #1976d2, #9c27b0)',
-  WebkitBackgroundClip: 'text',
-  WebkitTextFillColor: 'transparent',
-  fontWeight: 800
-});
-
-const GButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
-  borderRadius: 12,
-  padding: '12px 28px',
-  fontWeight: 600,
-  textTransform: 'none',
-  boxShadow: '0 4px 20px rgba(25, 118, 210, 0.25)',
-  transition: 'all 0.3s',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: '0 8px 30px rgba(25, 118, 210, 0.35)'
-  }
-}));
-
-const FCard = styled(Card)(({ theme }) => ({
-  height: '100%',
-  borderRadius: 16,
-  background: '#fff',
-  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  transition: 'all 0.3s',
-  '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: '0 8px 35px rgba(0,0,0,0.12)'
-  }
-}));
-
-const Nav = styled(AppBar)(({ theme }) => ({
-  background: 'rgba(255, 255, 255, 0.95)',
-  backdropFilter: 'blur(10px)',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`
-}));
-
-const ScrollArrow = styled(Box)(({ theme }) => ({
-  position: 'absolute',
-  bottom: 32,
-  left: '50%',
-  transform: 'translateX(-50%)',
-  cursor: 'pointer',
-  animation: `${float} 2s infinite`,
-  color: theme.palette.primary.main,
-  opacity: 0.7,
-  transition: 'opacity 0.3s',
-  '&:hover': { opacity: 1 }
-}));
-
-const NansheHomepage = () => {
+export default function NansheHomepage() {
   const [typed, setTyped] = useState('');
-  const [showBadge, setShowBadge] = useState(false);
-  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('login');
+  const [showAuth, setShowAuth] = useState(false);
+
+  const { t, language, setLanguage } = useI18n();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-  
-  const text = "L'IA qui s'adapte à votre rythme";
+  const { mode, toggleColorMode } = useContext(ColorModeContext);
+  const isDark = theme.palette.mode === 'dark'; // ou mode === 'dark'
+
+  const heroTitle = t('hero.title');
 
   useEffect(() => {
+    setTyped('');
     let i = 0;
     const timer = setInterval(() => {
-      if (i < text.length) {
-        setTyped(text.slice(0, i + 1));
+      if (i <= heroTitle.length) {
+        setTyped(heroTitle.slice(0, i));
         i++;
-      } else {
-        clearInterval(timer);
-        setTimeout(() => setShowBadge(true), 500);
-      }
-    }, 80);
+      } else clearInterval(timer);
+    }, 30);
     return () => clearInterval(timer);
-  }, []);
+  }, [heroTitle]);
 
-  const features = [
-    { icon: AutoAwesomeIcon, title: "Contenu IA", desc: "Cours personnalisés générés instantanément", color: '#1976d2' },
-    { icon: SmartToyIcon, title: "Coach IA", desc: "Mentor intelligent qui s'adapte à vous", color: '#9c27b0' },
-    { icon: EmojiEventsIcon, title: "Gamification", desc: "Apprenez en jouant avec badges et niveaux", color: '#ed6c02' },
-    { icon: PeopleIcon, title: "Communauté", desc: "Connexions intelligentes entre apprenants", color: '#0288d1' }
-  ];
+  const AuthModal = () => (
+    <div className={styles.modalBackdrop} onClick={() => setShowAuth(false)}>
+      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+        <button className={styles.modalClose} onClick={() => setShowAuth(false)}>✕</button>
 
-  const stats = [
-    { num: "1M+", label: "Cours" },
-    { num: "50K+", label: "Apprenants" },
-    { num: "95%", label: "Réussite" },
-    { num: "24/7", label: "Support IA" }
-  ];
+        <div className={styles.brandRow}>
+          <img src="/logo192.png" alt="Nanshe" className={styles.brandLogo} />
+          <h2 className={clsx(styles.h2, styles.gradientText)}>Nanshe</h2>
+        </div>
 
-  const scrollDown = () => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+        <div className={styles.tabBar}>
+          <button
+            className={clsx(styles.tabBtn, activeTab === 'login' && styles.tabBtnActive)}
+            onClick={() => setActiveTab('login')}
+          >
+            {t('auth.loginTitle')}
+          </button>
+          <button
+            className={clsx(styles.tabBtn, activeTab === 'signup' && styles.tabBtnActive)}
+            onClick={() => setActiveTab('signup')}
+          >
+            {t('auth.signupTitle')}
+          </button>
+        </div>
+
+        {activeTab === 'login' ? (
+          <div className={styles.formCol}>
+            <input type="email" placeholder={t('auth.email')} className={styles.input} />
+            <input type="password" placeholder={t('auth.password')} className={styles.input} />
+            <button className={clsx(styles.button, styles.buttonPrimary)}>{t('auth.loginButton')}</button>
+            <div className={styles.centerMuted}>{t('common.continueWith')}</div>
+            <div className={styles.providerRow}>
+              {['Google', 'GitHub', 'Discord'].map((p) => (
+                <button key={p} className={styles.providerBtn}>{p}</button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className={styles.formCol}>
+            <input type="text" placeholder={t('auth.username')} className={styles.input} />
+            <input type="email" placeholder={t('auth.email')} className={styles.input} />
+            <input type="password" placeholder={t('auth.password')} className={styles.input} />
+            <button className={clsx(styles.button, styles.buttonPrimary)}>{t('auth.signupButton')}</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
-    <Box sx={{ minHeight: '100vh' }}>
-      {/* Navigation */}
-      <Nav position="fixed" elevation={0}>
-        <Toolbar sx={{ px: { xs: 2, md: 4 } }}>
-          <Typography variant="h5" sx={{ flexGrow: 1, fontWeight: 800 }}>
-            <GText component="span">Nanshe</GText>
-          </Typography>
-          <Stack direction="row" spacing={2}>
-            {!isMobile && (
-              <Button component={Link} to="/login" startIcon={<LoginIcon />} sx={{ color: 'text.primary' }}>
-                Connexion
-              </Button>
-            )}
-            <GButton component={Link} to="/register" size={isMobile ? "small" : "medium"}>
-              {isMobile ? "Commencer" : "Commencer Gratuitement"}
-            </GButton>
-          </Stack>
-        </Toolbar>
-      </Nav>
+    <div className={clsx(styles.container, isDark ? styles.dark : styles.light)}>
+      {showAuth && <AuthModal />}
 
-      {/* Hero */}
-      <Hero>
-        <Container maxWidth="lg">
-          <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <Stack spacing={3}>
-                <Typography variant={isMobile ? "h3" : "h2"} sx={{ fontWeight: 800 }}>
-                  Apprenez avec <GText component="span">Nanshe</GText>
-                </Typography>
-                <Typography variant={isMobile ? "h6" : "h5"} color="text.secondary" sx={{ minHeight: '2em' }}>
-                  {typed}
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.7 }}>
-                  Plateforme d'e-learning IA qui génère du contenu personnalisé et gamifie votre parcours.
-                </Typography>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <GButton onClick={() => navigate('/register')} size="large">
-                    Démarrer l'Aventure
-                  </GButton>
-                  <Button variant="outlined" onClick={() => navigate('/login')} size="large" sx={{ borderRadius: 3 }}>
-                    J'ai un compte
-                  </Button>
-                </Stack>
-              </Stack>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ position: 'relative', textAlign: 'center' }}>
-                <Box sx={{ 
-                  width: isMobile ? 150 : 200,
-                  height: isMobile ? 150 : 200,
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mx: 'auto',
-                  boxShadow: '0 20px 40px rgba(25, 118, 210, 0.25)',
-                  animation: `${float} 4s infinite`
-                }}>
-                  <SchoolIcon sx={{ fontSize: isMobile ? 60 : 80, color: '#fff' }} />
-                </Box>
-                {showBadge && !isMobile && (
-                  <Fade in timeout={1000}>
-                    <Box sx={{ position: 'absolute', top: '50%', right: -20, transform: 'translateY(-50%)' }}>
-                      <Badge
-                        name="Premier Pas"
-                        description="Découvrez l'IA !"
-                        earned={true}
-                        tier="gold"
-                        xpPoints={100}
-                        rarity="epic"
-                      />
-                    </Box>
-                  </Fade>
-                )}
-              </Box>
-            </Grid>
-          </Grid>
-        </Container>
-        <ScrollArrow onClick={scrollDown}>
-          <KeyboardArrowDownIcon sx={{ fontSize: 32 }} />
-        </ScrollArrow>
-      </Hero>
+      {/* NAV */}
+      <nav className={styles.nav}>
+        <div className={styles.navInner}>
+          <div className={styles.brandRow}>
+            <img src="/logo192.png" alt="Nanshe" className={styles.navLogo} />
+            <h1 className={clsx(styles.h1, styles.gradientText)}>Nanshe</h1>
+          </div>
+          <div className={styles.navControls}>
+            {/* Langue */}
+            <select
+              className={styles.langSelect}
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+            >
+              <option value="fr">🇫🇷 FR</option>
+              <option value="en">🇬🇧 EN</option>
+              <option value="nl">🇳🇱 NL</option>
+            </select>
 
-      {/* Stats */}
-      <Section sx={{ bgcolor: 'background.paper' }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={3}>
-            {stats.map((s, i) => (
-              <Grid item xs={6} md={3} key={i}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant={isMobile ? "h4" : "h3"} sx={{ fontWeight: 800, mb: 1 }}>
-                    <GText>{s.num}</GText>
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">{s.label}</Typography>
-                </Box>
-              </Grid>
+            {/* Thème */}
+            <button className={styles.iconBtn} onClick={toggleColorMode}>
+              {isDark ? '☀️' : '🌙'}
+            </button>
+
+            {/* Actions */}
+            <button className={styles.ghostBtn} onClick={() => setShowAuth(true)}>
+              {t('nav.login')}
+            </button>
+            <button className={clsx(styles.button, styles.buttonPrimary)} onClick={() => setShowAuth(true)}>
+              {t('nav.signup')}
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* HERO */}
+      <section className={styles.hero}>
+        <div className={styles.heroInner}>
+          <div className={styles.heroTextBlock}>
+            <h2 className={clsx(styles.heroTitle, styles.gradientText)}>
+              {typed}<span className={styles.cursor} />
+            </h2>
+            <p className={styles.heroSubtitle}>{t('hero.subtitle')}</p>
+            <div className={styles.ctaRow}>
+              <button className={clsx(styles.button, styles.buttonPrimary)} onClick={() => setShowAuth(true)}>
+                {t('hero.cta1')} →
+              </button>
+              <button className={styles.buttonOutline}>
+                {t('hero.cta2')}
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.heroVisual}>
+            <div className={styles.blob} />
+            <img src="/logo192.png" alt="Nanshe AI" className={styles.heroLogo} />
+            <div className={clsx(styles.floatingCard, styles.floatingTopRight)}>🏆 +500 XP</div>
+            <div className={clsx(styles.floatingCard, styles.floatingBottomLeft)}>💊 Capsule</div>
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className={styles.section}>
+        <div className={styles.sectionInner}>
+          <h3 className={styles.sectionTitle}>
+            {t('howItWorks.title')} <span className={styles.gradientText}>{t('howItWorks.titleGradient')} ?</span>
+          </h3>
+          <div className={styles.gridCards}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className={clsx(styles.card, styles.hoverCard)}>
+                <div className={styles.badge}>{i + 1}</div>
+                <div className={styles.emojiBig}>{['💊', '🗺️', '⚛️'][i]}</div>
+                <h4 className={clsx(styles.cardTitle, styles.gradientText)}>{t(`howItWorks.steps.${i}.title`)}</h4>
+                <p className={styles.cardSubtitle}>{t(`howItWorks.steps.${i}.desc`)}</p>
+                <p className={styles.cardText}>{t(`howItWorks.steps.${i}.details`)}</p>
+              </div>
             ))}
-          </Grid>
-        </Container>
-      </Section>
+          </div>
+        </div>
+      </section>
 
-      {/* Features */}
-      <Section sx={{ bgcolor: alpha(theme.palette.grey[100], 0.5) }}>
-        <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', mb: 6 }}>
-            <Typography variant={isMobile ? "h4" : "h3"} sx={{ fontWeight: 700, mb: 2 }}>
-              Révolutionnez votre <GText component="span">apprentissage</GText>
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>
-              IA et gamification pour transformer l'éducation
-            </Typography>
-          </Box>
-          <Grid container spacing={3}>
-            {features.map((f, i) => (
-              <Grid item xs={12} sm={6} md={3} key={i}>
-                <FCard>
-                  <Box sx={{ p: 3, textAlign: 'center' }}>
-                    <Avatar sx={{ 
-                      width: 60, 
-                      height: 60, 
-                      bgcolor: alpha(f.color, 0.1), 
-                      mx: 'auto', 
-                      mb: 2 
-                    }}>
-                      <f.icon sx={{ color: f.color, fontSize: 30 }} />
-                    </Avatar>
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>{f.title}</Typography>
-                    <Typography variant="body2" color="text.secondary">{f.desc}</Typography>
-                  </Box>
-                </FCard>
-              </Grid>
+      {/* BENEFITS */}
+      <section className={clsx(styles.section, styles.sectionSoft)}>
+        <div className={styles.sectionInner}>
+          <h3 className={styles.sectionTitle}>
+            {t('benefits.title')} <span className={styles.gradientText}>{t('benefits.titleGradient')} ?</span>
+          </h3>
+          <div className={styles.listCol}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className={styles.benefitRow}>
+                <div className={styles.iconBox}>{['🎯', '🚀', '🏆'][i]}</div>
+                <div>
+                  <h4 className={styles.benefitTitle}>{t(`benefits.items.${i}.title`)}</h4>
+                  <p className={styles.benefitText}>{t(`benefits.items.${i}.text`)}</p>
+                </div>
+              </div>
             ))}
-          </Grid>
-        </Container>
-      </Section>
+          </div>
+        </div>
+      </section>
 
-      {/* Gamification */}
-      <Section>
-        <Container maxWidth="lg">
-          <Grid container spacing={6} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <Chip label="Gamification" sx={{ bgcolor: alpha('#ed6c02', 0.1), color: '#ed6c02', mb: 2 }} />
-              <Typography variant={isMobile ? "h4" : "h3"} sx={{ fontWeight: 700, mb: 3 }}>
-                L'apprentissage devient une <GText>aventure</GText>
-              </Typography>
-              <Stack spacing={2}>
-                {['Badges tutoriels interactifs', 'Progression visible en temps réel', 'Récompenses sociales'].map((item, i) => (
-                  <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }} />
-                    <Typography variant="body1">{item}</Typography>
-                  </Box>
-                ))}
-              </Stack>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ animation: `${float} 4s infinite` }}>
-                <Badge
-                  name="Maître IA"
-                  description="25 cours IA complétés"
-                  earned={false}
-                  progress={{ current: 18, target: 25 }}
-                  tier="diamond"
-                  xpPoints={500}
-                  rarity="legendary"
-                />
-              </Box>
-            </Grid>
-          </Grid>
-        </Container>
-      </Section>
+      {/* CAPSULES */}
+      <section className={styles.section}>
+        <div className={styles.sectionInner}>
+          <h3 className={styles.sectionTitle}>
+            {t('capsules.title')} <span className={styles.gradientText}>{t('capsules.titleGradient')}</span>
+          </h3>
+          <p className={styles.sectionSubtitle}>{t('capsules.subtitle')}</p>
+          <div className={styles.gridCapsules}>
+            {capsuleKeys.map((key, i) => (
+              <div key={key} className={clsx(styles.card, styles.hoverCard, styles.capsuleCard)}>
+                <div className={styles.capsuleEmoji}>{capsuleIcons[i]}</div>
+                <div className={styles.capsuleTitle}>{t(`capsules.items.${key}`)}</div>
+                <div className={styles.capsuleMeta}>12 {t('common.levels')} • 150+ {t('common.atoms')}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* CTA */}
-      <Section sx={{ bgcolor: alpha(theme.palette.primary.main, 0.03), textAlign: 'center' }}>
-        <Container maxWidth="md">
-          <Typography variant={isMobile ? "h4" : "h3"} sx={{ fontWeight: 700, mb: 3 }}>
-            Prêt à révolutionner votre <GText>apprentissage ?</GText>
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            Rejoignez des milliers d'apprenants qui transforment leur façon d'apprendre avec l'IA.
-          </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-            <GButton size="large" onClick={() => navigate('/register')}>
-              Commencer Gratuitement
-            </GButton>
-            <Button variant="outlined" size="large" onClick={() => navigate('/demo')} sx={{ borderRadius: 3 }}>
-              Voir la Démo
-            </Button>
-          </Stack>
-        </Container>
-      </Section>
+      <section className={styles.ctaSection}>
+        <div className={styles.ctaInner}>
+          <img src="/logo192.png" alt="Nanshe" className={styles.ctaLogo} />
+          <h3 className={styles.ctaTitle}>
+            {t('cta.ready')} <span className={styles.gradientText}>{t('cta.readyGradient')}</span> ?
+          </h3>
+          <p className={styles.ctaSubtitle}>{t('cta.subtitle')}</p>
+          <button className={clsx(styles.button, styles.buttonPrimary, styles.buttonBig)} onClick={() => setShowAuth(true)}>
+            {t('cta.button')}
+          </button>
+        </div>
+      </section>
 
-      {/* Footer */}
+      {/* FOOTER */}
       <Footer />
-    </Box>
+    </div>
   );
-};
-
-export default NansheHomepage;
+}

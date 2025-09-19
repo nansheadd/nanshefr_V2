@@ -37,6 +37,12 @@ const LiveCodeExecutorAtom = ({ atom }) => {
   });
 
   const handleRun = () => {
+    if (!language || !language.toLowerCase().includes('python')) {
+      setError("L'exécution intégrée est disponible uniquement pour Python pour le moment.");
+      setResult(null);
+      return;
+    }
+    setError(null);
     executeMutation.mutate({ language, code, stdin });
   };
 

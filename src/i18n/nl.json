@@ -1,0 +1,87 @@
+{
+  "common": {
+    "or": "of",
+    "with": "met",
+    "levels": "niveaus",
+    "atoms": "atomen",
+    "close": "Sluiten",
+    "continueWith": "of ga verder met"
+  },
+  "nav": { "login": "Inloggen", "signup": "Aanmelden" },
+  "auth": {
+    "loginTitle": "Inloggen",
+    "signupTitle": "Aanmelden",
+    "email": "E-mail",
+    "password": "Wachtwoord",
+    "username": "Gebruikersnaam",
+    "loginButton": "Inloggen",
+    "signupButton": "Maak je eerste capsule"
+  },
+  "hero": {
+    "title": "Gepersonaliseerde leerpaden, gemaakt door AI voor jou.",
+    "subtitle": "Nanshe transformeert elk onderwerp in een interactief leeravontuur. Of je nu Japans, filosofie of programmeren wilt leren, wij creëren een gepersonaliseerd stappenplan om je van beginner naar expert te begeleiden.",
+    "cta1": "Maak je eerste capsule",
+    "cta2": "Bekijk interactieve demo"
+  },
+  "howItWorks": {
+    "title": "Hoe het",
+    "titleGradient": "werkt",
+    "steps": [
+      {
+        "title": "Kies je Capsule",
+        "desc": "Een capsule is jouw leeruniversum voor een bepaald onderwerp.",
+        "details": "Of het nu een taal, wetenschap of creatieve vaardigheid is, elke capsule bevat alles wat je nodig hebt om het vakgebied te beheersen."
+      },
+      {
+        "title": "Volg je Gepersonaliseerde Roadmap",
+        "desc": "Geen gissen meer wat je hierna moet leren.",
+        "details": "Voor elke capsule genereren we een duidelijke en spelachtige roadmap met specifieke doelen en beloningen om te ontgrendelen."
+      },
+      {
+        "title": "Leer door Interactieve Atomen",
+        "desc": "Elke les is opgedeeld in kleine leereenheden.",
+        "details": "In plaats van lange teksten, leer je met beknopte lessen, quizzen en praktische oefeningen."
+      }
+    ]
+  },
+  "benefits": {
+    "title": "Waarom",
+    "titleGradient": "Nanshe",
+    "items": [
+      {
+        "title": "Vraag je nooit meer af \"waar te beginnen?\"",
+        "text": "Onze AI analyseert je doel en bouwt een gestructureerde roadmap. Je weet altijd waar je bent en wat de volgende stap is."
+      },
+      {
+        "title": "Actief leren, niet passief",
+        "text": "Je bent niet alleen een lezer, je bent een acteur: quizzen, dialogen en directe toepassing."
+      },
+      {
+        "title": "Gamificatie om gemotiveerd te blijven",
+        "text": "Duidelijke doelen, XP om te verdienen en beloningen om te ontgrendelen. Voel de voldoening van vooruitgang."
+      }
+    ]
+  },
+  "capsules": {
+    "title": "Ontdek onze",
+    "titleGradient": "capsules",
+    "subtitle": "Elke capsule is een compleet leeruniversum",
+    "items": {
+      "japanese": "Japans",
+      "design": "UI/UX Design",
+      "biology": "Biologie",
+      "python": "Python",
+      "dataScience": "Data Science",
+      "guitar": "Gitaar",
+      "yoga": "Yoga",
+      "photo": "Fotografie"
+    }
+  },
+  "cta": {
+    "ready": "Klaar om je manier van",
+    "readyGradient": "leren te transformeren",
+    "subtitle": "Sluit je aan bij duizenden leerlingen die elke dag vooruitgang boeken met AI",
+    "button": "Start je gepersonaliseerd leren"
+  },
+  "footer": { "about": "Over ons", "blog": "Blog", "contact": "Contact", "legal": "Juridisch" }
+}

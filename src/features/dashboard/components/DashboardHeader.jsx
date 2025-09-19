@@ -20,6 +20,9 @@ import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PersonIcon from '@mui/icons-material/Person';
 import NotificationBell from '../../notifications/components/NotificationBell';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import EmitBadgeButton from '../../../components/dev/EmitBadgeButton';
+import WSStateButton from '../../../components/dev/WSStateButton';
 
 const HeaderContainer = styled(Box)(({ theme }) => ({
   background: 'rgba(255, 255, 255, 0.9)',
@@ -60,6 +63,8 @@ const DashboardHeader = ({ user }) => {
   return (
     <HeaderContainer>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <EmitBadgeButton/>
+        <WSStateButton />
         <Stack spacing={1}>
           <WelcomeText variant="h3" component="h1">
             {getGreeting()}, {user?.username || 'Utilisateur'} ! 👋
@@ -85,6 +90,21 @@ const DashboardHeader = ({ user }) => {
             }}
           >
             Mes Stats
+          </Button>
+          {/* Bouton Badges */}
+          <Button
+            variant="outlined"
+            component={RouterLink}
+            to="/badges"
+            startIcon={<EmojiEventsIcon />}
+            sx={{
+              borderRadius: 3,
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { transform: 'translateY(-2px)' }
+            }}
+          >
+            Mes Badges
           </Button>
 
           {/* Menu Profil */}

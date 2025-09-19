@@ -20,10 +20,20 @@ import MoleculePage from './features/learning/pages/MoleculePage';
 
 
 
-
+import LegalNoticePage from './pages/legal/LegalNoticePage';
+import PrivacyPolicyPage from './pages/legal/PrivacyPolicyPage';
+import CookiesPolicyPage from './pages/legal/CookiesPolicyPage';
+import TermsPage from './pages/legal/TermsPage';
+import ReportContentPage from './pages/legal/ReportContentPage';
 
 import StatsPage from './features/dashboard/pages/StatsPage';
 import CapsulePlanPage from './features/capsules/pages/CapsulePlanPage';
+import BadgesPage from './features/badges/pages/BadgesPage';
+import SubscriptionPage from './features/premium/pages/SubscriptionPage';
+import PaymentSuccessPage from './features/premium/pages/PaymentSuccessPage';
+import AchievementToast from './features/notifications/components/AchievementToast';
+
+
 
 // === Layouts ===
 function AppShell() {
@@ -35,6 +45,8 @@ function AppShell() {
       </Container>
       <Footer />
       <Toolbox />
+      {/* Toast global pour les badges débloqués */}
+      <AchievementToast />
     </Box>
   );
 }
@@ -79,6 +91,7 @@ function PrivateRoute() {
 
 function PublicOnlyRoute() {
   const { isAuthenticated } = useAuth();
+  
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Outlet />;
 }
 
@@ -102,43 +115,52 @@ function NotFound() {
 export default function App() {
   return (
     <Routes>
-      {/* Groupe PUBLIC */}
-      <Route element={<PublicOnlyRoute />}>
-        <Route path='/' element={<NansheHomepage />} />
-        <Route element={<AuthShell />}>
+      {/* ==== Pages légales publiques (accès libre) ==== */}
+      <Route path="/legal/notice" element={<LegalNoticePage />} />
+      <Route path="/legal/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/legal/cookies" element={<CookiesPolicyPage />} />
+      <Route path="/legal/terms" element={<TermsPage />} />
+      <Route path="/legal/report" element={<ReportContentPage />} />
 
+      {/* ==== Groupe PUBLIC (homepage + auth) ==== */}
+      <Route element={<PublicOnlyRoute />}>
+        <Route path="/" element={<NansheHomepage />} />
+        <Route element={<AuthShell />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
         </Route>
       </Route>
 
-      {/* Groupe PRIVÉ */}
+      {/* ==== Groupe PRIVÉ ==== */}
       <Route element={<PrivateRoute />}>
         <Route element={<AppShell />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/library" element={<LibraryPage />} />
-          
+
           <Route path="/capsules" element={<CapsuleList />} />
-          <Route path="/capsule/:domain/:area/:capsuleId"  element={<CapsuleDetail/>} />
+          <Route path="/capsule/:domain/:area/:capsuleId" element={<CapsuleDetail />} />
           <Route path="/capsule/:domain/:area/:capsuleId/plan" element={<CapsulePlanPage />} />
-          <Route 
-            path="/capsule/:capsuleId/granule/:granuleOrder/molecule/:moleculeOrder" 
-            element={<LearningSessionPage />} 
+
+          <Route
+            path="/capsule/:capsuleId/granule/:granuleOrder/molecule/:moleculeOrder"
+            element={<LearningSessionPage />}
+          />
+          <Route
+            path="/capsule/:capsuleId/level/:levelOrder/chapter/:chapterIndex"
+            element={<LessonComponent />}
           />
 
-          <Route 
-            path="/capsule/:capsuleId/level/:levelOrder/chapter/:chapterIndex" 
-            element={<LessonComponent />} 
-          />
-          
           <Route path="/session/molecule/:moleculeId" element={<MoleculePage />} />
           <Route path="/stats" element={<StatsPage />} />
+          <Route path="/badges" element={<BadgesPage />} />
+          <Route path="/premium" element={<SubscriptionPage />} />
+          <Route path="/payment-success" element={<PaymentSuccessPage />} />
         </Route>
       </Route>
 
-      {/* Divers */}
+      {/* ==== Divers ==== */}
       <Route path="/404" element={<NotFound />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );
 }
