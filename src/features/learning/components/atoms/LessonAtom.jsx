@@ -1,16 +1,306 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Typography, Box, Divider, Chip, Paper, Button, Alert, Stack } from '@mui/material';
-import { 
+import { Typography, Box, Divider, Chip, Paper, Button, Alert, Stack, TextField } from '@mui/material';
+import {
   FormatQuote as QuoteIcon,
   Code as CodeIcon,
-  FiberManualRecord as BulletIcon 
+  FiberManualRecord as BulletIcon
 } from '@mui/icons-material';
 import apiClient from '../../../../api/axiosConfig';
 
+const InlineCode = ({ children, ...props }) => (
+  <Box
+    component="code"
+    sx={{
+      px: 1,
+      py: 0.5,
+      mx: 0.5,
+      borderRadius: 1,
+      bgcolor: 'grey.100',
+      color: 'secondary.main',
+      fontFamily: 'monospace',
+      fontSize: '0.9em',
+      border: '1px solid',
+      borderColor: 'grey.300'
+    }}
+    {...props}
+  >
+    {children}
+  </Box>
+);
+
+const MarkdownCodeBlock = ({ className = '', children }) => {
+  const language = className?.replace('language-', '') || 'texte';
+  const normalizedLanguage = language.toLowerCase();
+  const isPython = normalizedLanguage.includes('python');
+  const initialCode = useMemo(() => {
+    const raw = React.Children.toArray(children).join('');
+    return raw.replace(/\n$/, '');
+  }, [children]);
+
+  const [code, setCode] = useState(initialCode);
+  const [stdin, setStdin] = useState('');
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setCode(initialCode);
+    setStdin('');
+    setResult(null);
+    setError(null);
+    setCopied(false);
+  }, [initialCode]);
+
+  useEffect(() => {
+    if (!copied) {
+      return;
+    }
+    const timeout = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timeout);
+  }, [copied]);
+
+  const executeMutation = useMutation({
+    mutationFn: (payload) => apiClient.post('/programming/execute', payload).then((res) => res.data),
+    onSuccess: (data) => {
+      setResult({
+        stdout: data?.stdout ?? '',
+        stderr: data?.stderr ?? '',
+        exit_code: data?.exit_code ?? 0,
+        timed_out: Boolean(data?.timed_out ?? data?.timeout)
+      });
+      setError(null);
+    },
+    onError: (err) => {
+      setError(err?.response?.data?.detail || "Impossible d'exécuter ce code.");
+      setResult(null);
+    }
+  });
+
+  const handleRun = () => {
+    if (!isPython) {
+      setError("L'exécution intégrée est disponible uniquement pour Python dans cette leçon.");
+      return;
+    }
+    setError(null);
+    setResult(null);
+    executeMutation.mutate({ language: 'python', code, stdin });
+  };
+
+  const handleReset = () => {
+    setCode(initialCode);
+    setStdin('');
+    setResult(null);
+    setError(null);
+  };
+
+  const handleCopy = async () => {
+    const textToCopy = isPython ? code : initialCode;
+    try {
+      setError(null);
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(textToCopy);
+        setCopied(true);
+      } else {
+        setError("La copie n'est pas supportée dans cet environnement.");
+        setCopied(false);
+      }
+    } catch {
+      setError("Impossible de copier le code.");
+      setCopied(false);
+    }
+  };
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2,
+        my: 2,
+        borderRadius: 2,
+        bgcolor: 'grey.900',
+        color: '#f8f8f2',
+        overflow: 'hidden',
+        position: 'relative'
+      }}
+    >
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <CodeIcon sx={{ fontSize: 20, color: '#f8f8f2' }} />
+          <Typography variant="subtitle2" sx={{ color: '#f8f8f2' }}>
+            {isPython ? 'Atelier de code' : 'Exemple de code'}
+          </Typography>
+          <Chip
+            label={language}
+            size="small"
+            sx={{ bgcolor: 'grey.800', color: '#f8f8f2', fontWeight: 600 }}
+          />
+          {copied && (
+            <Typography variant="caption" sx={{ color: 'success.main' }}>
+              Copié !
+            </Typography>
+          )}
+        </Stack>
+        <Stack direction="row" spacing={1}>
+          <Button
+            size="small"
+            variant="outlined"
+            color="inherit"
+            onClick={handleCopy}
+            sx={{ borderColor: '#4b5563', color: '#f8f8f2', textTransform: 'none' }}
+          >
+            Copier
+          </Button>
+          {isPython && (
+            <Button
+              size="small"
+              variant="outlined"
+              color="inherit"
+              onClick={handleReset}
+              disabled={code === initialCode && stdin === '' && !result && !error}
+              sx={{ borderColor: '#4b5563', color: '#f8f8f2', textTransform: 'none' }}
+            >
+              Réinitialiser
+            </Button>
+          )}
+        </Stack>
+      </Stack>
+
+      {isPython ? (
+        <>
+          <TextField
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            multiline
+            minRows={8}
+            fullWidth
+            variant="outlined"
+            sx={{
+              '& .MuiInputBase-root': {
+                fontFamily: 'Fira Code, monospace',
+                bgcolor: 'grey.950',
+                color: '#f8f8f2'
+              },
+              '& fieldset': {
+                borderColor: '#4b5563'
+              },
+              '&:hover fieldset': {
+                borderColor: '#9ca3af'
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: 'primary.light'
+              }
+            }}
+          />
+          <TextField
+            label="Entrée standard (facultatif)"
+            value={stdin}
+            onChange={(e) => setStdin(e.target.value)}
+            multiline
+            minRows={3}
+            fullWidth
+            variant="outlined"
+            sx={{
+              mt: 2,
+              '& .MuiInputBase-root': {
+                bgcolor: 'grey.950',
+                color: '#f8f8f2'
+              },
+              '& fieldset': {
+                borderColor: '#4b5563'
+              },
+              '&:hover fieldset': {
+                borderColor: '#9ca3af'
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: 'primary.light'
+              }
+            }}
+          />
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
+            <Button
+              variant="contained"
+              onClick={handleRun}
+              disabled={executeMutation.isPending}
+            >
+              {executeMutation.isPending ? 'Exécution...' : 'Exécuter'}
+            </Button>
+            {result?.timed_out && (
+              <Typography variant="caption" sx={{ color: 'warning.light' }}>
+                L'exécution a dépassé la limite de temps.
+              </Typography>
+            )}
+          </Stack>
+        </>
+      ) : (
+        <Box
+          component="pre"
+          sx={{
+            bgcolor: 'grey.950',
+            p: 2,
+            borderRadius: 2,
+            fontFamily: 'Fira Code, monospace',
+            fontSize: '0.95rem',
+            lineHeight: 1.6,
+            color: '#f8f8f2',
+            overflowX: 'auto',
+            whiteSpace: 'pre'
+          }}
+        >
+          {initialCode || '// Exemple non fourni'}
+        </Box>
+      )}
+
+      {error && (
+        <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {result && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="subtitle2" sx={{ color: '#e5e7eb' }}>
+            Résultat (code de sortie {result.exit_code})
+          </Typography>
+          <Box
+            component="pre"
+            sx={{
+              mt: 1,
+              bgcolor: 'grey.950',
+              p: 2,
+              borderRadius: 2,
+              fontFamily: 'Fira Code, monospace',
+              color: '#f8f8f2',
+              whiteSpace: 'pre-wrap'
+            }}
+          >
+            {result.stdout || '<aucune sortie>'}
+          </Box>
+          {result.stderr && (
+            <Box
+              component="pre"
+              sx={{
+                mt: 1,
+                bgcolor: '#fee2e2',
+                p: 2,
+                borderRadius: 2,
+                fontFamily: 'Fira Code, monospace',
+                color: '#b91c1c',
+                whiteSpace: 'pre-wrap'
+              }}
+            >
+              {result.stderr}
+            </Box>
+          )}
+        </Box>
+      )}
+    </Paper>
+  );
+};
+
 const markdownComponents = {
-  h1: ({ node, ...props }) => (
+  h1: (props) => (
     <Typography 
       variant="h4" 
       gutterBottom 
@@ -37,7 +327,7 @@ const markdownComponents = {
     />
   ),
   
-  h2: ({ node, ...props }) => (
+  h2: (props) => (
     <Typography 
       variant="h5" 
       gutterBottom 
@@ -59,7 +349,7 @@ const markdownComponents = {
     />
   ),
   
-  h3: ({ node, ...props }) => (
+  h3: (props) => (
     <Typography 
       variant="h6" 
       gutterBottom 
@@ -73,7 +363,7 @@ const markdownComponents = {
     />
   ),
   
-  p: ({ node, ...props }) => (
+  p: (props) => (
     <Typography 
       variant="body1" 
       paragraph 
@@ -87,7 +377,7 @@ const markdownComponents = {
     />
   ),
   
-  li: ({ node, ...props }) => (
+  li: (props) => (
     <Box 
       component="li" 
       sx={{ 
@@ -115,7 +405,7 @@ const markdownComponents = {
     </Box>
   ),
   
-  ul: ({ node, ...props }) => (
+  ul: (props) => (
     <Box 
       component="ul" 
       sx={{ 
@@ -127,7 +417,7 @@ const markdownComponents = {
     />
   ),
   
-  blockquote: ({ node, ...props }) => (
+  blockquote: (props) => (
     <Paper
       elevation={0}
       sx={{
@@ -158,66 +448,34 @@ const markdownComponents = {
       <Box sx={{ pl: 2 }} {...props} />
     </Paper>
   ),
-  
-  code: ({ node, inline, ...props }) => 
-    inline ? (
-      <Box
-        component="code"
-        sx={{
-          px: 1,
-          py: 0.5,
-          mx: 0.5,
-          borderRadius: 1,
-          bgcolor: 'grey.100',
-          color: 'secondary.main',
-          fontFamily: 'monospace',
-          fontSize: '0.9em',
-          border: '1px solid',
-          borderColor: 'grey.300'
-        }}
-        {...props}
-      />
-    ) : (
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2,
-          my: 2,
-          borderRadius: 2,
-          bgcolor: 'grey.900',
-          overflow: 'auto',
-          position: 'relative',
-          '& code': {
-            color: '#f8f8f2',
-            fontFamily: 'monospace',
-            fontSize: '0.9rem',
-            lineHeight: 1.6
-          }
-        }}
-      >
-        <CodeIcon 
-          sx={{ 
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            fontSize: 20,
-            color: 'grey.600'
-          }} 
-        />
-        <code {...props} />
-      </Paper>
-    ),
-  
+
+  pre: (props) => <>{props.children}</>,
+
+  code: ({ inline, className, children, ...props }) => {
+    const content = React.Children.toArray(children).join('');
+    const isInline = inline ?? !content.includes('\n');
+
+    if (isInline) {
+      return (
+        <InlineCode className={className} {...props}>
+          {children}
+        </InlineCode>
+      );
+    }
+
+    return <MarkdownCodeBlock className={className}>{children}</MarkdownCodeBlock>;
+  },
+
   hr: () => (
-    <Divider 
-      sx={{ 
+    <Divider
+      sx={{
         my: 4,
         background: 'linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent)'
       }} 
     />
   ),
   
-  strong: ({ node, ...props }) => (
+  strong: (props) => (
     <Box
       component="strong"
       sx={{
@@ -229,7 +487,7 @@ const markdownComponents = {
     />
   ),
   
-  em: ({ node, ...props }) => (
+  em: (props) => (
     <Box
       component="em"
       sx={{
