@@ -33,6 +33,9 @@ import SubscriptionPage from './features/premium/pages/SubscriptionPage';
 import PaymentSuccessPage from './features/premium/pages/PaymentSuccessPage';
 import AchievementToast from './features/notifications/components/AchievementToast';
 
+import VerifyEmailPage from './features/authentication/pages/VerifyEmailPage';
+import ForgotPasswordPage from './features/authentication/pages/ForgotPasswordPage';
+import ResetPasswordPage from './features/authentication/pages/ResetPasswordPage';
 
 
 // === Layouts ===
@@ -121,6 +124,12 @@ export default function App() {
       <Route path="/legal/cookies" element={<CookiesPolicyPage />} />
       <Route path="/legal/terms" element={<TermsPage />} />
       <Route path="/legal/report" element={<ReportContentPage />} />
+
+      <Route element={<AuthShell />}>
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+      </Route>
 
       {/* ==== Groupe PUBLIC (homepage + auth) ==== */}
       <Route element={<PublicOnlyRoute />}>

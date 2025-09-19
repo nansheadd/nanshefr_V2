@@ -1,6 +1,6 @@
 // Fichier: src/features/authentication/pages/LoginPage.jsx (FINAL)
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import {
   TextField,
@@ -31,6 +31,7 @@ const LoginPage = () => {
   const { login, isLoading } = useAuth();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const navigate = useNavigate();
 
   const background = isDark
     ? `radial-gradient(1200px 600px at 10% 10%, ${alpha(theme.palette.primary.main,0.13)}, transparent 60%),
@@ -184,6 +185,15 @@ const LoginPage = () => {
               <Link to="/register" style={{ textDecoration: 'none', marginLeft: 6 }}>
                 <Typography variant="body2" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>
                   Inscrivez-vous
+                </Typography>
+              </Link>
+            </Stack>
+
+            <Stack direction="row" alignItems="center" justifyContent="center" sx={{ mt: 2 }}>
+              
+              <Link to="/forgot-password" style={{ textDecoration: 'none', marginLeft: 6 }}>
+                <Typography variant="body2" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>
+                  pswword forgot
                 </Typography>
               </Link>
             </Stack>

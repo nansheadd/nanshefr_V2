@@ -2,9 +2,12 @@ import React, { useEffect, useState, useContext } from 'react';
 import clsx from 'clsx';
 import { useTheme } from '@mui/material/styles';
 import { ColorModeContext } from '../theme/ColorModeContext';
+import AuthDialog from '../features/authentication/components/AuthDialog';
+
 import { useI18n } from '../i18n/I18nContext';
 import styles from './NansheHomepage.module.css';
 import Footer from '../components/Footer';
+
 
 const capsuleIcons = ['🇯🇵', '🎨', '🧬', '💻', '📊', '🎸', '🧘', '📷'];
 const capsuleKeys = ['japanese', 'design', 'biology', 'python', 'dataScience', 'guitar', 'yoga', 'photo'];
@@ -13,6 +16,7 @@ export default function NansheHomepage() {
   const [typed, setTyped] = useState('');
   const [activeTab, setActiveTab] = useState('login');
   const [showAuth, setShowAuth] = useState(false);
+  const [authTab, setAuthTab] = useState('login')
 
   const { t, language, setLanguage } = useI18n();
   const theme = useTheme();
@@ -33,58 +37,13 @@ export default function NansheHomepage() {
     return () => clearInterval(timer);
   }, [heroTitle]);
 
-  const AuthModal = () => (
-    <div className={styles.modalBackdrop} onClick={() => setShowAuth(false)}>
-      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
-        <button className={styles.modalClose} onClick={() => setShowAuth(false)}>✕</button>
 
-        <div className={styles.brandRow}>
-          <img src="/logo192.png" alt="Nanshe" className={styles.brandLogo} />
-          <h2 className={clsx(styles.h2, styles.gradientText)}>Nanshe</h2>
-        </div>
-
-        <div className={styles.tabBar}>
-          <button
-            className={clsx(styles.tabBtn, activeTab === 'login' && styles.tabBtnActive)}
-            onClick={() => setActiveTab('login')}
-          >
-            {t('auth.loginTitle')}
-          </button>
-          <button
-            className={clsx(styles.tabBtn, activeTab === 'signup' && styles.tabBtnActive)}
-            onClick={() => setActiveTab('signup')}
-          >
-            {t('auth.signupTitle')}
-          </button>
-        </div>
-
-        {activeTab === 'login' ? (
-          <div className={styles.formCol}>
-            <input type="email" placeholder={t('auth.email')} className={styles.input} />
-            <input type="password" placeholder={t('auth.password')} className={styles.input} />
-            <button className={clsx(styles.button, styles.buttonPrimary)}>{t('auth.loginButton')}</button>
-            <div className={styles.centerMuted}>{t('common.continueWith')}</div>
-            <div className={styles.providerRow}>
-              {['Google', 'GitHub', 'Discord'].map((p) => (
-                <button key={p} className={styles.providerBtn}>{p}</button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className={styles.formCol}>
-            <input type="text" placeholder={t('auth.username')} className={styles.input} />
-            <input type="email" placeholder={t('auth.email')} className={styles.input} />
-            <input type="password" placeholder={t('auth.password')} className={styles.input} />
-            <button className={clsx(styles.button, styles.buttonPrimary)}>{t('auth.signupButton')}</button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   return (
     <div className={clsx(styles.container, isDark ? styles.dark : styles.light)}>
-      {showAuth && <AuthModal />}
+      <AuthDialog open={showAuth} defaultTab={authTab} onClose={() => setShowAuth(false)} />
+
+      
 
       {/* NAV */}
       <nav className={styles.nav}>

@@ -1,0 +1,25 @@
+.modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:2000}
+.modalCard{position:relative;width:min(92vw,460px);background:rgba(255,255,255,.95);color:#111;border:1px solid rgba(139,92,246,.15);border-radius:20px;padding:28px}
+@media (prefers-color-scheme: dark){
+  .modalCard{background:rgba(17,17,27,.9);color:#f0e6ff;border-color:rgba(139,92,246,.2)}
+}
+.modalClose{position:absolute;top:12px;right:12px;background:none;border:0;font-size:22px;opacity:.7;cursor:pointer}
+.brandRow{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.brandLogo{width:44px;height:44px}
+.h2{font-size:1.6rem;font-weight:800;margin:0}
+.gradientText{background:linear-gradient(135deg,#8b5cf6,#ec4899,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tabBar{display:flex;gap:8px;background:rgba(139,92,246,.08);border-radius:999px;padding:6px;margin-bottom:16px}
+.tabBtn{flex:1;padding:10px 12px;border:0;border-radius:999px;background:transparent;color:#8b5cf6;cursor:pointer;font-weight:700}
+.tabBtnActive{background:linear-gradient(135deg,#8b5cf6,#ec4899);color:#fff}
+.formCol{display:flex;flex-direction:column;gap:10px}
+.input{padding:12px 14px;border-radius:12px;border:1px solid rgba(139,92,246,.2);background:rgba(139,92,246,.06);color:inherit}
+.button{padding:12px 16px;border-radius:999px;border:0;cursor:pointer;font-weight:800}
+.buttonPrimary{background:linear-gradient(135deg,#8b5cf6,#ec4899);color:#fff;box-shadow:0 10px 30px rgba(139,92,246,.25)}
+.centerMuted{text-align:center;opacity:.7;margin:8px 0}
+.providerRow{display:flex;gap:10px}
+.providerBtn{flex:1;padding:10px;border-radius:12px;border:1px solid rgba(139,92,246,.2);background:transparent;color:inherit;cursor:not-allowed;display:flex;align-items:center;justify-content:center;gap:8px}
+.providerDisabled{opacity:.7}
+.badgeSoon{font-size:.75rem;padding:.1rem .4rem;border-radius:999px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3)}
+.linkRow{text-align:right}
+.linkInline{font-size:.9rem;color:#8b5cf6;text-decoration:none}
+.alertError{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:10px;padding:10px;margin-bottom:10px}
