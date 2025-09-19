@@ -29,4 +29,6 @@ COPY --from=build /app/dist ./dist
 ENV NODE_ENV=production
 EXPOSE 4173
 
+
 CMD ["sh", "-c", "serve -s dist -l tcp://0.0.0.0:${PORT:-4173}"]
+
