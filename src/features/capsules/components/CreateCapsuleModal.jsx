@@ -86,7 +86,6 @@ const CreateCapsuleModal = ({ open, onClose, onCreated, onStatus }) => {
 
   useEffect(() => {
     if (!open) {
-      setTopic('');
       setClassification(null);
       setErrorMessage('');
       classifyMutation.reset();
@@ -106,11 +105,15 @@ const CreateCapsuleModal = ({ open, onClose, onCreated, onStatus }) => {
   };
 
   const handleCreate = () => {
-    if (!classification) return;
+    const trimmedTopic = topic.trim();
+    if (!classification || !trimmedTopic) {
+      return;
+    }
     createMutation.mutate({
       main_skill: classification.main_skill,
       domain: classification.domain,
       area: classification.area,
+      topic: trimmedTopic,
     });
   };
 
