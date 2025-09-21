@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import apiClient from '../../../api/axiosConfig';
 import { useAuth } from '../../../hooks/useAuth';
 import { 
@@ -201,11 +201,19 @@ const CapsuleList = () => {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedDomains, setExpandedDomains] = useState(new Set());
   const [bookmarkedCapsules, setBookmarkedCapsules] = useState(new Set());
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [creationStatus, setCreationStatus] = useState({ phase: 'idle' });
+
+  useEffect(() => {
+    if (location.state?.openCreate) {
+      setCreateModalOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   // Fetch public capsules
   const { data: capsules, isLoading, isError } = useQuery({

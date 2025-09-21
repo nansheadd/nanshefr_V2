@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Typography, Box, Divider, Chip, Paper, Button, Alert, Stack, TextField } from '@mui/material';
@@ -499,14 +499,16 @@ const markdownComponents = {
   ),
 };
 
-const LessonAtom = ({ atom }) => {
+const LessonAtom = ({ atom, onReward }) => {
   const { content = {}, is_locked: isLocked, progress_status: progressStatus } = atom || {};
   const queryClient = useQueryClient();
   const [info, setInfo] = useState(null);
   const [localStatus, setLocalStatus] = useState(progressStatus);
+  const rewardRef = useRef(progressStatus === 'completed');
 
   useEffect(() => {
     setLocalStatus(progressStatus);
+    rewardRef.current = progressStatus === 'completed';
   }, [progressStatus]);
 
   const completeMutation = useMutation({
@@ -516,6 +518,10 @@ const LessonAtom = ({ atom }) => {
       queryClient.invalidateQueries({ queryKey: ['learningSession'], exact: false });
       setLocalStatus('completed');
       setInfo({ severity: 'success', message: 'Leçon validée !' });
+      if (!rewardRef.current) {
+        onReward?.({});
+      }
+      rewardRef.current = true;
     },
     onError: (err) => {
       setInfo({ severity: 'error', message: err?.response?.data?.detail || "Impossible de valider la leçon." });
@@ -529,6 +535,7 @@ const LessonAtom = ({ atom }) => {
       queryClient.invalidateQueries({ queryKey: ['learningSession'], exact: false });
       setLocalStatus('not_started');
       setInfo({ severity: 'info', message: 'Leçon réinitialisée. Vous pouvez recommencer.' });
+      rewardRef.current = false;
     },
     onError: (err) => {
       setInfo({ severity: 'error', message: err?.response?.data?.detail || "Impossible de réinitialiser la leçon." });

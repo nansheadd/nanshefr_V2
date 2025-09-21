@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
@@ -15,23 +15,29 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import apiClient from '../../../../api/axiosConfig';
 
-const CodeChallengeAtom = ({ atom }) => {
+const CodeChallengeAtom = ({ atom, onReward }) => {
   const queryClient = useQueryClient();
-  const [code, setCode] = useState(atom?.content?.starter_code || '');
+  const safeAtom = atom ?? {};
+  const [code, setCode] = useState(safeAtom?.content?.starter_code || '');
   const [info, setInfo] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [testsSummary, setTestsSummary] = useState(null);
   const [testResults, setTestResults] = useState([]);
 
-  if (!atom?.content) {
-    return <Alert severity="warning">Challenge indisponible.</Alert>;
-  }
+  const progressStatus = safeAtom?.progress_status || 'not_started';
+  const rewardRef = useRef(progressStatus === 'completed');
 
-  const { title, description, sample_tests: sampleTests = [], language, hints = [] } = atom.content;
+  useEffect(() => {
+    rewardRef.current = progressStatus === 'completed';
+  }, [progressStatus]);
+
+  const content = safeAtom.content ?? {};
+  const { title, description, sample_tests: sampleTests = [], language, hints = [] } = content;
+  const hasContent = Boolean(atom?.content);
 
   const submitMutation = useMutation({
-    mutationFn: (payload) => apiClient.post('/progress/log-answer', payload),
-    onSuccess: (_, variables) => {
+    mutationFn: (payload) => apiClient.post('/progress/log-answer', payload).then((res) => res.data),
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['capsule'], exact: false });
       queryClient.invalidateQueries({ queryKey: ['learningSession'], exact: false });
 
@@ -46,6 +52,13 @@ const CodeChallengeAtom = ({ atom }) => {
         severity: variables?.is_correct ? 'success' : 'warning',
         message: `${testsMessage} Soumission enregistrée !`,
       });
+
+      if (variables?.is_correct) {
+        if (!rewardRef.current) {
+          onReward?.({ xp: data?.xp_awarded });
+        }
+        rewardRef.current = true;
+      }
     },
     onError: (err) => {
       const message = err?.response?.data?.detail || "Impossible d'enregistrer votre solution.";
@@ -167,7 +180,7 @@ const CodeChallengeAtom = ({ atom }) => {
 
     try {
       await submitMutation.mutateAsync({
-        atom_id: atom.id,
+        atom_id: safeAtom.id,
         is_correct: isCorrect,
         answer: {
           language,
@@ -179,6 +192,10 @@ const CodeChallengeAtom = ({ atom }) => {
       // L'erreur est déjà gérée par la mutation via onError
     }
   };
+
+  if (!hasContent) {
+    return <Alert severity="warning">Challenge indisponible.</Alert>;
+  }
 
   return (
     <Paper sx={{ p: 3, borderRadius: 3 }} elevation={0}>

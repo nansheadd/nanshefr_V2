@@ -1,12 +1,25 @@
 // src/features/toolbox/components/Toolbox.jsx
-import React, { useState } from 'react';
-import { Box, Fab, Stack, IconButton, Grow, Paper, Tooltip, Slide, Badge } from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Box,
+  Fab,
+  Stack,
+  IconButton,
+  Grow,
+  Paper,
+  Tooltip,
+  Slide,
+  Badge,
+  Dialog,
+} from '@mui/material';
 import { styled, useTheme, alpha, keyframes } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import ChatIcon from '@mui/icons-material/Chat';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import CloseIcon from '@mui/icons-material/Close';
 import CoachIA from './CoachIA';
+import NotesPad from './NotesPad';
 
 // Animation pour le FAB principal
 const pulse = keyframes`
@@ -69,9 +82,33 @@ const ToolButton = styled(IconButton, {
 const Toolbox = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState(null);
+  const [expandedTool, setExpandedTool] = useState(null);
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
+
+  useEffect(() => {
+    const handler = (event) => {
+      const detail = event.detail || {};
+      if (!detail.tool) return;
+      setActiveTool(detail.tool);
+      setIsOpen(false);
+      if (typeof detail.expand === 'boolean') {
+        setExpandedTool(detail.expand ? detail.tool : null);
+      }
+    };
+
+    window.addEventListener('nanshe:toolbox-open', handler);
+    return () => window.removeEventListener('nanshe:toolbox-open', handler);
+  }, []);
 
   const toggleTool = (toolName) => {
-    setActiveTool(activeTool === toolName ? null : toolName);
+    if (activeTool === toolName) {
+      setActiveTool(null);
+      setExpandedTool(null);
+    } else {
+      setActiveTool(toolName);
+      setExpandedTool(null);
+    }
     setIsOpen(false);
   };
 
@@ -83,10 +120,37 @@ const Toolbox = () => {
     }
   };
 
-  const tools = [
-    { name: 'coach', icon: SmartToyIcon, label: '🤖 Coach IA', color: 'secondary' },
-    { name: 'notes', icon: EditNoteIcon, label: '📝 Prise de Notes', color: 'info' },
-  ];
+  const tools = useMemo(
+    () => [
+      { name: 'coach', icon: SmartToyIcon, label: '🤖 Coach IA', color: 'secondary' },
+      { name: 'notes', icon: EditNoteIcon, label: '📝 Prise de Notes', color: 'info' },
+    ],
+    []
+  );
+
+  const renderToolComponent = (toolName, layout, { onClose } = {}) => {
+    const showExpand = layout !== 'modal';
+    switch (toolName) {
+      case 'coach':
+        return (
+          <CoachIA
+            onClose={onClose}
+            onExpand={showExpand ? () => setExpandedTool('coach') : undefined}
+            layout={layout}
+          />
+        );
+      case 'notes':
+        return (
+          <NotesPad
+            onClose={onClose}
+            onExpand={showExpand ? () => setExpandedTool('notes') : undefined}
+            layout={layout}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <Box sx={{ 
@@ -101,18 +165,14 @@ const Toolbox = () => {
     }}>
       
       {/* Fenêtres des outils (inchangées) */}
-      <Slide direction="up" in={activeTool === 'coach'} mountOnEnter unmountOnExit>
+      <Slide direction="up" in={activeTool === 'coach' && expandedTool !== 'coach'} mountOnEnter unmountOnExit>
          <Box>
-           <CoachIA onClose={() => setActiveTool(null)} />
+           {renderToolComponent('coach', 'dock', { onClose: () => setActiveTool(null) })}
          </Box>
       </Slide>
-      <Slide direction="up" in={activeTool === 'notes'} mountOnEnter unmountOnExit>
+      <Slide direction="up" in={activeTool === 'notes' && expandedTool !== 'notes'} mountOnEnter unmountOnExit>
          <Box>
-           <Paper elevation={12} sx={{ width: 320, height: 400, borderRadius: 4, background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(20px)', p: 2 }}>
-             <Box sx={{ textAlign: 'center', py: 8 }}>
-               📝 Notes - Bientôt disponible !
-             </Box>
-           </Paper>
+           {renderToolComponent('notes', 'dock', { onClose: () => setActiveTool(null) })}
          </Box>
       </Slide>
 
@@ -155,6 +215,28 @@ const Toolbox = () => {
           {isOpen || activeTool ? <CloseIcon /> : <ChatIcon />}
         </StyledFab>
       </Stack>
+
+      <Dialog
+        open={Boolean(expandedTool)}
+        onClose={() => setExpandedTool(null)}
+        fullScreen={fullScreen}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{ sx: { p: fullScreen ? 0 : 3, background: 'transparent', boxShadow: 'none' } }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            py: fullScreen ? 0 : 2,
+          }}
+        >
+          {expandedTool && renderToolComponent(expandedTool, 'modal', { onClose: () => setExpandedTool(null) })}
+        </Box>
+      </Dialog>
     </Box>
   );
 };

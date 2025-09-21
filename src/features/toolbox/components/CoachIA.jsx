@@ -16,6 +16,7 @@ import {
   Chip,
   Divider,
   Alert,
+  Tooltip,
 } from '@mui/material';
 import { styled, alpha, keyframes } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
@@ -23,6 +24,7 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import CloseIcon from '@mui/icons-material/Close';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
+import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 
 const logoSrc = '/logo192.png';
 
@@ -31,18 +33,43 @@ const slideIn = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-const ChatWindow = styled(Paper)(({ theme }) => ({
-  width: 380,
-  height: 560,
-  display: 'flex',
-  flexDirection: 'column',
-  borderRadius: 20,
-  background: `rgba(255, 255, 255, 0.95)`,
-  backdropFilter: 'blur(20px)',
-  border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-  boxShadow: `0 16px 48px ${alpha(theme.palette.common.black, 0.15)}`,
-  overflow: 'hidden',
-}));
+const ChatWindow = styled(Paper, {
+  shouldForwardProp: (prop) => prop !== 'layout',
+})(({ theme, layout = 'dock' }) => {
+  const base = {
+    display: 'flex',
+    flexDirection: 'column',
+    borderRadius: 20,
+    background: `rgba(255, 255, 255, 0.95)`,
+    backdropFilter: 'blur(20px)',
+    border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+    boxShadow: `0 16px 48px ${alpha(theme.palette.common.black, 0.15)}`,
+    overflow: 'hidden',
+  };
+
+  if (layout === 'modal') {
+    return {
+      ...base,
+      width: 'min(920px, 92vw)',
+      height: 'min(85vh, 760px)',
+    };
+  }
+
+  if (layout === 'page') {
+    return {
+      ...base,
+      width: '100%',
+      height: '100%',
+      minHeight: 560,
+    };
+  }
+
+  return {
+    ...base,
+    width: 380,
+    height: 560,
+  };
+});
 
 const ChatHeader = styled(Box)(({ theme }) => ({
   padding: theme.spacing(2.5),
@@ -166,7 +193,7 @@ const quickActions = [
   { label: '🕵️ Mode agent', message: '', type: 'agent_mode' },
 ];
 
-const CoachIA = ({ onClose }) => {
+const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const [messages, setMessages] = useState([
     {
       author: 'ia',
@@ -293,7 +320,7 @@ const CoachIA = ({ onClose }) => {
   };
 
   return (
-    <ChatWindow elevation={12} ref={chatWindowRef}>
+    <ChatWindow elevation={12} ref={chatWindowRef} layout={layout}>
       <ChatHeader>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
           <Stack direction="row" alignItems="center" spacing={1.5}>
@@ -327,6 +354,17 @@ const CoachIA = ({ onClose }) => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
+            {onExpand && layout !== 'modal' && (
+              <Tooltip title="Ouvrir en modal">
+                <IconButton
+                  onClick={onExpand}
+                  size="small"
+                  sx={{ bgcolor: alpha('#000', 0.05), '&:hover': { bgcolor: alpha('#000', 0.1) } }}
+                >
+                  <OpenInFullIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
             <Chip
               icon={<CenterFocusStrongIcon />}
               label={isAgentMode ? 'Agent actif' : 'Mode agent'}

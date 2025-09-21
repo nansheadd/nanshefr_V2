@@ -17,6 +17,7 @@ import LearningSessionPage from './features/learning/pages/LearningSessionPage';
 import LessonComponent from './features/learning/components/LessonComponent';
 import CapsuleDetail from './features/capsules/components/CapsuleDetail';
 import MoleculePage from './features/learning/pages/MoleculePage';
+import ToolboxHubPage from './features/toolbox/pages/ToolboxHubPage';
 
 
 
@@ -164,6 +165,7 @@ export default function App() {
           <Route path="/badges" element={<BadgesPage />} />
           <Route path="/premium" element={<SubscriptionPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
+          <Route path="/toolbox" element={<ToolboxHubPage />} />
         </Route>
       </Route>
 

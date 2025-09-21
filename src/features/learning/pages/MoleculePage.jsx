@@ -15,6 +15,7 @@ import AtomViewer from '../components/AtomViewer';
 
 const MoleculePage = () => {
   const { moleculeId } = useParams();
+  const activityLogRef = React.useRef(null);
 
   const { data: atoms, isLoading, isError, error } = useQuery({
     queryKey: ['atoms', moleculeId],
@@ -23,6 +24,65 @@ const MoleculePage = () => {
       return data;
     },
   });
+
+  const sendEndActivity = React.useCallback((logId) => {
+    if (!logId) return;
+    const baseURL = apiClient.defaults.baseURL || '';
+    const buildUrl = (path) => (baseURL.startsWith('http') ? `${baseURL}${path}` : `${window.location.origin}${baseURL}${path}`);
+    const endpoint = buildUrl('/progress/activity/end');
+    const payload = JSON.stringify({ log_id: logId });
+    if (navigator.sendBeacon) {
+      const blob = new Blob([payload], { type: 'application/json' });
+      navigator.sendBeacon(endpoint, blob);
+    } else {
+      apiClient.post('/progress/activity/end', { log_id: logId }).catch(() => {});
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!atoms || atoms.length === 0) {
+      return () => {};
+    }
+
+    const targetAtom = atoms.find((atom) => atom?.capsule_id);
+    if (!targetAtom) {
+      return () => {};
+    }
+
+    let cancelled = false;
+
+    const startActivity = async () => {
+      try {
+        const { data } = await apiClient.post('/progress/activity/start', {
+          capsule_id: targetAtom.capsule_id,
+          atom_id: targetAtom.id,
+        });
+        if (!cancelled && data?.log_id) {
+          activityLogRef.current = data.log_id;
+        }
+      } catch (err) {
+        console.warn('Impossible de démarrer le suivi de session', err);
+      }
+    };
+
+    startActivity();
+
+    const beforeUnloadHandler = () => {
+      if (activityLogRef.current) {
+        sendEndActivity(activityLogRef.current);
+      }
+    };
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
+      if (activityLogRef.current) {
+        sendEndActivity(activityLogRef.current);
+        activityLogRef.current = null;
+      }
+    };
+  }, [atoms, sendEndActivity]);
 
   // Loading state amélioré
   if (isLoading) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
@@ -27,13 +27,71 @@ import {
 } from '@mui/icons-material';
 import apiClient from '../../../../api/axiosConfig';
 
-const QuizAtom = ({ atom }) => {
+const QuizAtom = ({ atom, onReward }) => {
   const queryClient = useQueryClient();
   const [selectedValue, setSelectedValue] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(null);
   const [hoveredOption, setHoveredOption] = useState(null);
   const [info, setInfo] = useState(null);
+
+  const safeAtom = atom ?? {};
+
+  const { content, difficulty } = safeAtom;
+  const isLocked = safeAtom.is_locked;
+  const progressStatus = safeAtom.progress_status || 'not_started';
+  const completed = progressStatus === 'completed';
+  const hasFailed = progressStatus === 'failed';
+  const rewardRef = useRef(completed);
+
+  useEffect(() => {
+    rewardRef.current = progressStatus === 'completed';
+  }, [progressStatus]);
+
+  const options = Array.isArray(content?.options) ? content.options : [];
+  const question = content?.question;
+  const explanation = content?.explanation;
+  const isContentValid = Boolean(question && options.length > 0);
+
+  const invalidateCaches = () => {
+    queryClient.invalidateQueries({ queryKey: ['capsule'], exact: false });
+    queryClient.invalidateQueries({ queryKey: ['learningSession'], exact: false });
+    queryClient.invalidateQueries({ queryKey: ['atoms'], exact: false });
+  };
+
+  const atomId = safeAtom.id;
+
+  const logAnswerMutation = useMutation({
+    mutationFn: (answerData) => apiClient.post('/progress/log-answer', answerData).then((res) => res.data),
+    onSuccess: (data) => {
+      invalidateCaches();
+      if (data?.is_correct) {
+        setInfo({ severity: 'success', message: 'Bonne réponse !' });
+        if (!rewardRef.current) {
+          onReward?.({ xp: data?.xp_awarded });
+        }
+        rewardRef.current = true;
+      }
+    },
+    onError: (err) => {
+      setInfo({ severity: 'error', message: err?.response?.data?.detail || "Erreur lors de l'enregistrement de la réponse." });
+    },
+  });
+
+  const resetMutation = useMutation({
+    mutationFn: () => apiClient.post(`/progress/atom/${atomId}/reset`).then((res) => res.data),
+    onSuccess: () => {
+      invalidateCaches();
+      setSelectedValue('');
+      setIsSubmitted(false);
+      setIsCorrect(null);
+      setInfo({ severity: 'info', message: 'Quiz réinitialisé. Vous pouvez réessayer.' });
+      rewardRef.current = false;
+    },
+    onError: (err) => {
+      setInfo({ severity: 'error', message: err?.response?.data?.detail || "Impossible de réinitialiser le quiz." });
+    },
+  });
 
   if (!atom) {
     return (
@@ -49,13 +107,7 @@ const QuizAtom = ({ atom }) => {
     );
   }
 
-  const { content, difficulty } = atom;
-  const isLocked = atom.is_locked;
-  const progressStatus = atom.progress_status || 'not_started';
-  const completed = progressStatus === 'completed';
-  const hasFailed = progressStatus === 'failed';
-
-  if (!content || !content.question || !content.options) {
+  if (!isContentValid) {
     return (
       <Alert
         severity="warning"
@@ -69,40 +121,6 @@ const QuizAtom = ({ atom }) => {
     );
   }
 
-  const invalidateCaches = () => {
-    queryClient.invalidateQueries({ queryKey: ['capsule'], exact: false });
-    queryClient.invalidateQueries({ queryKey: ['learningSession'], exact: false });
-    queryClient.invalidateQueries({ queryKey: ['atoms'], exact: false });
-  };
-
-  const logAnswerMutation = useMutation({
-    mutationFn: (answerData) => apiClient.post('/progress/log-answer', answerData).then((res) => res.data),
-    onSuccess: (data) => {
-      invalidateCaches();
-      if (data?.is_correct) {
-        setInfo({ severity: 'success', message: 'Bonne réponse !' });
-      }
-    },
-    onError: (err) => {
-      setInfo({ severity: 'error', message: err?.response?.data?.detail || "Erreur lors de l'enregistrement de la réponse." });
-    },
-  });
-
-  const resetMutation = useMutation({
-    mutationFn: () => apiClient.post(`/progress/atom/${atom.id}/reset`).then((res) => res.data),
-    onSuccess: () => {
-      invalidateCaches();
-      setSelectedValue('');
-      setIsSubmitted(false);
-      setIsCorrect(null);
-      setInfo({ severity: 'info', message: 'Quiz réinitialisé. Vous pouvez réessayer.' });
-    },
-    onError: (err) => {
-      setInfo({ severity: 'error', message: err?.response?.data?.detail || "Impossible de réinitialiser le quiz." });
-    },
-  });
-
-  const { question, options, explanation } = content;
   const correctAnswer = options.find((opt) => opt.is_correct)?.text;
 
   const handleSubmit = () => {
@@ -114,7 +132,7 @@ const QuizAtom = ({ atom }) => {
     setIsCorrect(correct);
 
     logAnswerMutation.mutate({
-      atom_id: atom.id,
+      atom_id: atomId,
       is_correct: correct,
       answer: { selected: selectedValue },
     });

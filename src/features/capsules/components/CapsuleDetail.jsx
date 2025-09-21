@@ -28,6 +28,8 @@ import ArticleIcon from '@mui/icons-material/Article';
 import QuizIcon from '@mui/icons-material/Quiz';
 import TopicIcon from '@mui/icons-material/Topic';
 import SchoolIcon from '@mui/icons-material/School';
+import CapsuleProgressBar from './CapsuleProgressBar';
+import FeedbackButtons from '../../learning/components/FeedbackButtons';
 
 const CapsuleDetail = () => {
   const { domain, area, capsuleId } = useParams();
@@ -228,6 +230,15 @@ const CapsuleDetail = () => {
             <Typography variant="body2">Leçons</Typography>
           </Paper>
         </Grid>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <CapsuleProgressBar
+              current={capsule.user_xp ?? 0}
+              target={capsule.xp_target ?? 60000}
+              label="Progression globale"
+            />
+          </Paper>
+        </Grid>
       </Grid>
 
       <Paper sx={{ p: { xs: 2, md: 3 } }}>
@@ -251,6 +262,12 @@ const CapsuleDetail = () => {
                   <ListItemIcon><Chip label={`Chap. ${granule.order}`} color="primary" /></ListItemIcon>
                   <ListItemText primary={granule.title} />
                   <Chip
+                    label={`${Math.round((granule.xp_percent ?? 0) * 100)}% XP`}
+                    size="small"
+                    color="info"
+                    sx={{ mr: 1 }}
+                  />
+                  <Chip
                     label={granule.progress_status === 'completed' ? 'Terminé' : granule.progress_status === 'in_progress' ? 'En cours' : 'À faire'}
                     size="small"
                     color={granule.progress_status === 'completed' ? 'success' : granule.progress_status === 'in_progress' ? 'warning' : 'default'}
@@ -272,15 +289,22 @@ const CapsuleDetail = () => {
                       const isLocked = molecule.is_locked;
                       const progressLabel = progressStatus === 'completed' ? 'Validé' : progressStatus === 'failed' ? 'À rejouer' : progressStatus === 'in_progress' ? 'En cours' : 'À faire';
                       const progressColor = progressStatus === 'completed' ? 'success' : progressStatus === 'failed' ? 'error' : progressStatus === 'in_progress' ? 'warning' : 'default';
+                      const moleculeXpPercent = Math.round((molecule.xp_percent ?? 0) * 100);
                       return (
                         <Box key={molecule.id} sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
-                          <ListItem button onClick={() => toggleMolecule(molecule)} sx={{ pl: 6 }}>
+                         <ListItem button onClick={() => toggleMolecule(molecule)} sx={{ pl: 6 }}>
                             <ListItemIcon><TopicIcon color="action" /></ListItemIcon>
                             <ListItemText
                               primary={molecule.title}
                               secondary={`Leçon ${molecule.order}`}
                             />
                             {isLoading && <CircularProgress size={20} sx={{ mr: 1 }} />}
+                            <Chip
+                              label={`${moleculeXpPercent}% XP`}
+                              size="small"
+                              color="info"
+                              sx={{ mr: 1 }}
+                            />
                             <Chip
                               label={progressLabel}
                               size="small"
@@ -290,6 +314,16 @@ const CapsuleDetail = () => {
                             <IconButton edge="end" onClick={(e) => { e.stopPropagation(); toggleMolecule(molecule); }}>
                               {isMoleculeExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                             </IconButton>
+                            <FeedbackButtons
+                              contentType="molecule"
+                              contentId={molecule.id}
+                              initialRating={molecule.user_feedback_rating}
+                              initialReason={molecule.user_feedback_reason}
+                              initialComment={molecule.user_feedback_comment}
+                              onSuccess={() => {
+                                queryClient.invalidateQueries({ queryKey: ['capsule', domain, area, capsuleId] });
+                              }}
+                            />
                             <Button
                               size="small"
                               sx={{ ml: 1 }}
@@ -300,8 +334,14 @@ const CapsuleDetail = () => {
                               {isLocked ? 'Verrouillé' : generationStatus === 'pending' ? 'En cours...' : 'Étudier'}
                             </Button>
                           </ListItem>
-                          <Collapse in={isMoleculeExpanded} timeout="auto" unmountOnExit>
-                            <Box sx={{ pl: 8, pr: 3, py: 2 }}>
+                         <Collapse in={isMoleculeExpanded} timeout="auto" unmountOnExit>
+                           <Box sx={{ pl: 8, pr: 3, py: 2 }}>
+                              <CapsuleProgressBar
+                                current={molecule.xp_earned ?? 0}
+                                target={molecule.xp_total ?? 0}
+                                label="XP de cette leçon"
+                                dense
+                              />
                               {moleculeState.error && <Alert severity="error" sx={{ mb: 2 }}>{moleculeState.error}</Alert>}
                               {generationStatus === 'pending' && (
                                 <Alert severity="info" sx={{ mb: 2 }}>
@@ -319,11 +359,21 @@ const CapsuleDetail = () => {
                               {moleculeState.atoms?.map((atom) => {
                                 const type = (atom.content_type || '').toLowerCase();
                                 return (
-                                  <ListItem key={atom.id} sx={{ pl: 0 }}>
+                                  <ListItem key={atom.id} sx={{ pl: 0, alignItems: 'center' }}>
                                     <ListItemIcon>
                                       {type === 'lesson' ? <ArticleIcon color="primary" /> : <QuizIcon color="secondary" />}
                                     </ListItemIcon>
                                     <ListItemText primary={atom.title} secondary={type === 'lesson' ? 'Leçon' : 'Quiz'} />
+                                    <FeedbackButtons
+                                      contentType="atom"
+                                      contentId={atom.id}
+                                      initialRating={atom.user_feedback_rating}
+                                      initialReason={atom.user_feedback_reason}
+                                      initialComment={atom.user_feedback_comment}
+                                      onSuccess={() => {
+                                        queryClient.invalidateQueries({ queryKey: ['capsule', domain, area, capsuleId] });
+                                      }}
+                                    />
                                   </ListItem>
                                 );
                               })}

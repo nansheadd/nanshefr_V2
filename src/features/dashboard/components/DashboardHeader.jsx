@@ -19,6 +19,8 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PersonIcon from '@mui/icons-material/Person';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 import NotificationBell from '../../notifications/components/NotificationBell';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import EmitBadgeButton from '../../../components/dev/EmitBadgeButton';
@@ -63,8 +65,6 @@ const DashboardHeader = ({ user }) => {
   return (
     <HeaderContainer>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <EmitBadgeButton/>
-        <WSStateButton />
         <Stack spacing={1}>
           <WelcomeText variant="h3" component="h1">
             {getGreeting()}, {user?.username || 'Utilisateur'} ! 👋
@@ -76,6 +76,38 @@ const DashboardHeader = ({ user }) => {
 
         <Stack direction="row" spacing={2} alignItems="center">
           <NotificationBell />
+          <Button
+            variant="contained"
+            color="secondary"
+            component={RouterLink}
+            to="/premium"
+            startIcon={<WorkspacePremiumIcon />}
+            sx={{
+              borderRadius: 3,
+              textTransform: 'none',
+              fontWeight: 700,
+              boxShadow: '0 8px 24px rgba(121, 80, 255, 0.25)',
+              '&:hover': { transform: 'translateY(-2px)' }
+            }}
+          >
+            Devenir Premium
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            component={RouterLink}
+            to="/capsules"
+            state={{ openCreate: true }}
+            startIcon={<AddCircleIcon />}
+            sx={{
+              borderRadius: 3,
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { transform: 'translateY(-2px)' }
+            }}
+          >
+            Créer une capsule
+          </Button>
           {/* Bouton Stats */}
           <Button
             variant="outlined"
