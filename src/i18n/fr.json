@@ -77,6 +77,29 @@
       "guitar": "Guitare",
       "yoga": "Yoga",
       "photo": "Photo"
+    },
+    "card": {
+      "progressLabel": "Progression",
+      "lessons": "{{count}} leçons",
+      "durationHours": "{{count}} h",
+      "xpValue": "{{current}} / {{target}} XP",
+      "categories": {
+        "language": "Langues & Culture",
+        "design": "Design & Créativité",
+        "science": "Sciences",
+        "programming": "Programmation",
+        "data": "Data & IA",
+        "creative": "Arts & Créativité",
+        "wellness": "Bien-être"
+      },
+      "cta": {
+        "continue": "Continuer",
+        "resume": "Reprendre",
+        "review": "Réviser",
+        "start": "Commencer",
+        "details": "Détails",
+        "locked": "Verrouillée"
+      }
     }
   },
   "cta": {
