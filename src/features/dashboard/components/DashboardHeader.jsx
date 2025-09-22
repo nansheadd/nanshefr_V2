@@ -1,16 +1,18 @@
 
 // src/features/dashboard/components/DashboardHeader.jsx
 import React from 'react';
-import { 
-  Box, 
-  Typography, 
-  Button, 
-  Stack, 
-  Avatar, 
+import {
+  Box,
+  Typography,
+  Button,
+  Stack,
+  Avatar,
   IconButton,
   Menu,
   MenuItem,
-  Divider
+  Divider,
+  Chip,
+  Skeleton
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useAuth } from '../../../hooks/useAuth';
@@ -23,8 +25,8 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import NotificationBell from '../../notifications/components/NotificationBell';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import EmitBadgeButton from '../../../components/dev/EmitBadgeButton';
-import WSStateButton from '../../../components/dev/WSStateButton';
+import StarsIcon from '@mui/icons-material/Stars';
+import frameStyles from '../../profile/constants/frameStyles';
 
 const HeaderContainer = styled(Box)(({ theme }) => ({
   background: 'rgba(255, 255, 255, 0.9)',
@@ -43,11 +45,12 @@ const WelcomeText = styled(Typography)(({ theme }) => ({
   fontWeight: 700,
 }));
 
-const DashboardHeader = ({ user }) => {
-  const { logout } = useAuth();
+const DashboardHeader = () => {
+  const { user, isLoading, logout } = useAuth();
   const [anchorEl, setAnchorEl] = React.useState(null);
 
   const handleProfileClick = (event) => {
+    if (isLoading) return;
     setAnchorEl(event.currentTarget);
   };
 
@@ -62,19 +65,110 @@ const DashboardHeader = ({ user }) => {
     return 'Bonsoir';
   };
 
+  const hasUser = Boolean(user);
+  const displayName = user?.display_name || user?.username || 'Utilisateur';
+  const avatarUrl = user?.avatar_url || user?.profile_picture_url || user?.avatar || null;
+  const avatarInitial = hasUser ? displayName?.charAt(0)?.toUpperCase() : null;
+  const frameKey = hasUser && user?.avatar_frame && frameStyles[user.avatar_frame]
+    ? user.avatar_frame
+    : 'default';
+  const currentFrame = frameStyles[frameKey];
+
   return (
     <HeaderContainer>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Stack spacing={1}>
-          <WelcomeText variant="h3" component="h1">
-            {getGreeting()}, {user?.username || 'Utilisateur'} ! 👋
-          </WelcomeText>
-          <Typography variant="body1" color="text.secondary">
-            Prêt pour une nouvelle session d'apprentissage ?
-          </Typography>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={3}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+      >
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1 }}>
+          {isLoading ? (
+            <Skeleton variant="circular" width={72} height={72} />
+          ) : (
+            <Avatar
+              src={avatarUrl || undefined}
+              alt={displayName}
+              sx={{
+                width: 72,
+                height: 72,
+                fontSize: 28,
+                bgcolor: 'primary.main',
+                borderRadius: '28%',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                ...currentFrame,
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                },
+              }}
+            >
+              {avatarUrl
+                ? null
+                : avatarInitial || <PersonIcon fontSize="medium" />}
+            </Avatar>
+          )}
+
+          <Stack spacing={0.75} sx={{ minWidth: 0 }}>
+            {isLoading ? (
+              <>
+                <Skeleton variant="text" width={200} sx={{ fontSize: '2rem' }} />
+                <Skeleton variant="text" width={240} />
+              </>
+            ) : (
+              <>
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={1}
+                  alignItems={{ xs: 'flex-start', sm: 'center' }}
+                  sx={{ minWidth: 0 }}
+                >
+                  <WelcomeText variant="h4" component="h1">
+                    {`${getGreeting()}, ${displayName} ! 👋`}
+                  </WelcomeText>
+                  {user?.title && (
+                    <Chip
+                      label={user.title}
+                      size="small"
+                      icon={<StarsIcon fontSize="small" />}
+                      sx={{
+                        px: 1,
+                        fontWeight: 600,
+                        borderRadius: 2,
+                        background: (theme) =>
+                          theme.palette.mode === 'dark'
+                            ? 'rgba(121, 80, 255, 0.25)'
+                            : 'rgba(121, 80, 255, 0.15)',
+                        color: (theme) =>
+                          theme.palette.mode === 'dark'
+                            ? theme.palette.secondary.light
+                            : theme.palette.secondary.dark,
+                        '& .MuiChip-icon': {
+                          color: 'inherit',
+                        },
+                      }}
+                    />
+                  )}
+                </Stack>
+                <Typography variant="body2" color="text.secondary">
+                  Prêt pour une nouvelle session d'apprentissage ?
+                </Typography>
+              </>
+            )}
+          </Stack>
         </Stack>
 
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          justifyContent="flex-end"
+          sx={{
+            flexWrap: 'wrap',
+            rowGap: 1.5,
+            columnGap: 1.5,
+            mt: { xs: 2, md: 0 },
+          }}
+        >
           <NotificationBell />
           <Button
             variant="contained"
@@ -140,19 +234,26 @@ const DashboardHeader = ({ user }) => {
           </Button>
 
           {/* Menu Profil */}
-          <IconButton onClick={handleProfileClick}>
-            <Avatar 
-              sx={{ 
-                bgcolor: 'primary.main',
-                width: 48,
-                height: 48,
-                border: '3px solid white',
-                boxShadow: 3
-              }}
-            >
-              {user?.username?.charAt(0)?.toUpperCase() || <PersonIcon />}
-            </Avatar>
-          </IconButton>
+          {isLoading ? (
+            <Skeleton variant="circular" width={48} height={48} />
+          ) : (
+            <IconButton onClick={handleProfileClick} disabled={!hasUser} sx={{ p: 0 }}>
+              <Avatar
+                src={avatarUrl || undefined}
+                alt={displayName}
+                sx={{
+                  width: 48,
+                  height: 48,
+                  fontSize: 20,
+                  bgcolor: 'primary.main',
+                  borderRadius: '30%',
+                  ...currentFrame,
+                }}
+              >
+                {avatarUrl ? null : avatarInitial || <PersonIcon />}
+              </Avatar>
+            </IconButton>
+          )}
 
           <Menu
             anchorEl={anchorEl}
@@ -169,6 +270,19 @@ const DashboardHeader = ({ user }) => {
               }
             }}
           >
+            {hasUser && (
+              <Box sx={{ px: 2, py: 1.5 }}>
+                <Typography variant="subtitle2" fontWeight={600} noWrap>
+                  {displayName}
+                </Typography>
+                {user?.email && (
+                  <Typography variant="caption" color="text.secondary" noWrap>
+                    {user.email}
+                  </Typography>
+                )}
+              </Box>
+            )}
+            {hasUser && <Divider sx={{ my: 0.5 }} />}
             <MenuItem
               component={RouterLink}
               to="/profile"
