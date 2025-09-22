@@ -5,7 +5,9 @@
     "levels": "niveaus",
     "atoms": "atomen",
     "close": "Sluiten",
-    "continueWith": "of ga verder met"
+    "continueWith": "of ga verder met",
+    "soon": "Binnenkort",
+    "cancel": "Annuleren"
   },
   "nav": { "login": "Inloggen", "signup": "Aanmelden" },
   "auth": {
@@ -83,5 +85,277 @@
     "subtitle": "Sluit je aan bij duizenden leerlingen die elke dag vooruitgang boeken met AI",
     "button": "Start je gepersonaliseerd leren"
   },
-  "footer": { "about": "Over ons", "blog": "Blog", "contact": "Contact", "legal": "Juridisch" }
+  "footer": {
+    "about": "Over ons",
+    "blog": "Blog",
+    "contact": "Contact",
+    "legal": "Juridische vermeldingen",
+    "privacy": "Privacybeleid",
+    "cookies": "Cookiebeleid",
+    "terms": "Algemene voorwaarden",
+    "report": "Ongepaste inhoud melden",
+    "preferences": "Cookievoorkeuren",
+    "controls": {
+      "language": "Taal",
+      "theme": "Thema",
+      "themeLight": "Lichte modus",
+      "themeDark": "Donkere modus"
+    }
+  },
+  "errors": {
+    "badCredentials": "Onjuiste inloggegevens.",
+    "signupFailed": "Aanmelden is mislukt.",
+    "generic": "Er is iets misgegaan. Probeer het opnieuw."
+  },
+  "capsulePlan": {
+    "back": "Terug",
+    "stats": {
+      "chapters": "Hoofdstukken",
+      "lessons": "Lessen",
+      "globalProgress": "Totale voortgang",
+      "lessonXp": "XP van deze les",
+      "bonusXp": "Bonus: {{earned}} / {{total}} XP"
+    },
+    "labels": {
+      "chapterShort": "Hfd.",
+      "lesson": "Les",
+      "quiz": "Quiz",
+      "bonus": "Bonus",
+      "xpSuffix": "XP",
+      "availableWithPremium": "Beschikbaar met Premium",
+      "premiumFeature": "Premium-functie — genereert exclusieve bonuscontent.",
+      "study": "Start les",
+      "locked": "Vergrendeld",
+      "loading": "Bezig…",
+      "lessonXp": "XP van deze les",
+      "program": "Gedetailleerd programma"
+    },
+    "status": {
+      "completed": "Voltooid",
+      "in_progress": "Bezig",
+      "not_started": "Nog te doen",
+      "failed": "Opnieuw",
+      "validated": "Behaald"
+    },
+    "messages": {
+      "unlock": "Voltooi de vorige les om deze te ontgrendelen.",
+      "unlockMultiple": "Rond de vorige lessen af om toegang te krijgen tot deze.",
+      "bonusPremium": "Bonussen zijn voorbehouden aan Premium-leden.",
+      "planPending": "Het plan wordt nog gegenereerd. Je kunt alvast aan de eerste lessen beginnen terwijl de rest wordt klaargemaakt.",
+      "lessonGenerating": "De inhoud van deze les wordt momenteel gegenereerd.",
+      "generationRunning": "Generatie bezig. Je kunt deze pagina verlaten: je krijgt een melding wanneer de les klaar is.",
+      "generationFailed": "Het genereren van deze les is mislukt. Probeer het later opnieuw."
+    },
+    "buttons": {
+      "bonusExercise": "+ Bonusoefening",
+      "bonusTheory": "+ Bonustheorie"
+    },
+    "alerts": {
+      "loadError": "Kan de capsule niet laden:",
+      "noData": "Geen capsulegegevens beschikbaar.",
+      "contentPending": "De inhoud wordt nog gegenereerd. Kom later terug."
+    },
+    "errors": {
+      "loadAtoms": "Fout bij het laden van de inhoud.",
+      "bonus": "Bonus genereren is mislukt."
+    }
+  },
+  "capsuleList": {
+    "title": "Ontdek onze Capsules",
+    "subtitle": "Blader door zorgvuldig samengestelde cursussen per categorie",
+    "createButton": "Maak een capsule",
+    "searchPlaceholder": "Zoek een domein, capsule of vaardigheid...",
+    "stats": {
+      "domains": "Domeinen",
+      "capsules": "Capsules",
+      "expanded": "Geopend"
+    },
+    "statusMessages": {
+      "classifying": "Onderwerp wordt geclassificeerd...",
+      "creating": "Capsule wordt gegenereerd... je krijgt een melding zodra hij klaar is.",
+      "created": "Capsule aangemaakt! De inhoud wordt op de achtergrond ingevuld."
+    },
+    "noResults": {
+      "title": "Geen capsules gevonden",
+      "search": "Pas je zoekopdracht aan",
+      "empty": "Momenteel geen openbare capsules beschikbaar",
+      "reset": "Zoekopdracht resetten"
+    },
+    "actions": {
+      "enroll": "Inschrijven"
+    },
+    "domains": {
+      "languages": { "label": "Talen", "description": "Leer nieuwe talen en culturen" },
+      "social_sciences": { "label": "Sociale wetenschappen", "description": "Geschiedenis, geografie en maatschappij" },
+      "natural_sciences": { "label": "Natuurwetenschappen", "description": "Fysica, chemie en biologie" },
+      "mathematics": { "label": "Wiskunde", "description": "Algebra, meetkunde en analyse" },
+      "economics": { "label": "Economie", "description": "Financiën en management" },
+      "personal_development": { "label": "Persoonlijke ontwikkeling", "description": "Groei en welzijn" },
+      "programming": { "label": "Programmeren", "description": "Code en technologie" },
+      "arts": { "label": "Kunst", "description": "Creativiteit en expressie" },
+      "music": { "label": "Muziek", "description": "Theorie en praktijk" },
+      "gaming": { "label": "Gaming", "description": "Videogames en e-sport" },
+      "others": { "label": "Overig", "description": "Diverse onderwerpen" }
+    }
+  },
+  "createCapsule": {
+    "dialog": {
+      "title": "Genereer een nieuwe capsule",
+      "description": "Geef een onderwerp of vaardigheid op die je wilt leren. (De Premium PDF-modus komt binnenkort.) De AI classificeert de capsule automatisch en bouwt een persoonlijk leerpad."
+    },
+    "modes": {
+      "topic": "Slim onderwerp",
+      "pdf": "Premium PDF",
+      "pdfLocked": "PDF-generatie is voorbehouden aan Premium-leden.",
+      "pdfComingSoon": "Capsules genereren vanuit PDF is binnenkort beschikbaar voor Premium-leden."
+    },
+    "placeholders": {
+      "topic": "Bijv. Japans leren voor op reis, React beheersen, basis van stoïcisme...",
+      "title": "Bijv. Japans leren voor reizen",
+      "domain": "Bijv. formal_sciences",
+      "area": "Bijv. mathematics_algebra"
+    },
+    "file": {
+      "choose": "Kies een PDF",
+      "replace": "Vervang PDF",
+      "remove": "Bestand verwijderen",
+      "info": "De PDF wordt alleen gebruikt om de capsule te genereren. Er wordt niets opgeslagen.",
+      "size": "{{size}} MB"
+    },
+    "chips": {
+      "skill": "Vaardigheid",
+      "domain": "Domein",
+      "area": "Subdomein",
+      "confidence": "Vertrouwen"
+    },
+    "classification": {
+      "suggested": "Voorgestelde classificatie",
+      "adjustmentHint": "Pas zo nodig aan voordat je de capsule maakt. Elke correctie verbetert ons model.",
+      "warning": "Correctie in behandeling: de nieuwe classificatie wordt opgeslagen voor training.",
+      "validated": "Classificatie bevestigd: wordt opgeslagen als referentievoorbeeld.",
+      "feedbackHint": "Je kunt de capsule nadien altijd aanpassen."
+    },
+    "errors": {
+      "topicRequired": "Beschrijf kort het onderwerp van je capsule.",
+      "classification": "We kunnen dit onderwerp nu niet classificeren.",
+      "classificationRequired": "Classificeer je onderwerp voordat je de capsule aanmaakt.",
+      "feedback": "Feedback op de classificatie kon niet worden opgeslagen.",
+      "creation": "Het aanmaken van de capsule is mislukt.",
+      "pdfMissing": "Voeg een PDF-bestand toe voordat je de generatie start.",
+      "invalidPdf": "Alleen PDF-bestanden worden ondersteund.",
+      "pdfTooBig": "De PDF mag niet groter zijn dan 10 MB."
+    },
+    "labels": {
+      "topic": "Onderwerp of vaardigheid",
+      "documentTopic": "Onderwerp van het document of context",
+      "title": "Titel van de capsule",
+      "domain": "Domein",
+      "area": "Subdomein",
+      "mainSkill": "Belangrijkste vaardigheid"
+    },
+    "buttons": {
+      "classify": "Onderwerp classificeren",
+      "create": "Capsule aanmaken"
+    },
+    "defaults": {
+      "autoTitle": "Aangepaste capsule"
+    }
+  },
+  "dashboard": {
+    "welcomeTitle": "Welkom bij Nanshe",
+    "welcomeDescription": "Hier vind je snel een overzicht van je voortgang en lopende capsules.",
+    "stats": {
+      "totalStudy": "Totale studietijd",
+      "minutes": "min",
+      "currentStreak": "Huidige streak",
+      "daySingular": "dag",
+      "dayPlural": "dagen",
+      "catalogTitle": "Toe aan een nieuwe capsule?",
+      "catalogButton": "Bekijk de catalogus"
+    },
+    "toolbox": {
+      "title": "AI-toolbox",
+      "viewAll": "Alle tools bekijken",
+      "openModal": "Openen in modal",
+      "openPopup": "Openen als pop-up",
+      "tiles": {
+        "coach": {
+          "title": "AI-coach",
+          "description": "Praat met je virtuele mentor en krijg persoonlijke tips."
+        },
+        "notes": {
+          "title": "Notitieblok",
+          "description": "Leg je ideeën per molecuul vast en volg je vooruitgang."
+        }
+      }
+    },
+    "capsules": {
+      "title": "Mijn capsules",
+      "viewLibrary": "Bibliotheek bekijken",
+      "domainLabel": "Domein",
+      "areaLabel": "Gebied",
+      "continue": "Doorgaan",
+      "empty": "Nog geen actieve capsule.",
+      "cta": "Ontdek capsules"
+    }
+  },
+  "badgesPage": {
+    "title": "🎖️ Badge-overzicht",
+    "subtitle": "Ontgrendel onderscheidingen door het platform te verkennen, capsules te maken en je lessen te beheersen.",
+    "error": "Badges kunnen momenteel niet worden geladen.",
+    "unlockedOn": "Ontgrendeld op {{date}}"
+  },
+  "notifications": {
+    "title": "Meldingen",
+    "markAll": "Alles als gelezen markeren",
+    "empty": "Nog geen meldingen.",
+    "toast": {
+      "unlocked": "Prestatie ontgrendeld"
+    }
+  },
+  "premium": {
+    "hero": {
+      "title": "Ontgrendel de volledige Nanshe-ervaring met Premium",
+      "subtitle": "Blijf gratis openbare capsules verkennen of ga een niveau hoger: on-demand bonussen, onbeperkte capsules en persoonlijke AI-coaching.",
+      "ctaFree": "Bekijk gratis capsules",
+      "ctaCreate": "Maak mijn capsule"
+    },
+    "pricing": {
+      "free": {
+        "title": "Gratis plan",
+        "price": "0€",
+        "description": "Ideaal om het platform te ontdekken, openbare capsules te volgen en in je eigen tempo vooruitgang te boeken.",
+        "button": "Gratis modus behouden"
+      },
+      "premium": {
+        "title": "Premium plan",
+        "price": "10€",
+        "perMonth": "/ maand",
+        "description": "Genereer ongelimiteerd bonuscontent, bouw je eigen trajecten en profiteer van prioritaire ondersteuning.",
+        "note": "Op elk moment opzegbaar met één klik."
+      }
+    },
+    "actions": {
+      "goPremium": "Word Premium",
+      "loading": "Laden..."
+    },
+    "comingSoon": {
+      "pdf": "Capsules genereren vanuit PDF (binnenkort beschikbaar)"
+    },
+    "table": {
+      "headerFeatures": "Belangrijkste functies",
+      "freeColumn": "Gratis",
+      "premiumColumn": "Premium"
+    },
+    "features": [
+      { "label": "Toegang tot openbare capsules en gamified progressie", "free": true, "premium": true },
+      { "label": "Bonuscontent genereren (oefeningen, theorie)", "free": false, "premium": true },
+      { "label": "Onbeperkt slimme capsules aanmaken", "free": false, "premium": true },
+      { "label": "Prioritaire ondersteuning en realtime meldingen", "free": false, "premium": true },
+      { "label": "Exclusieve badges en 50 XP bonus per bron", "free": false, "premium": true },
+      { "label": "Persoonlijke roadmaps", "free": true, "premium": true },
+      { "label": "Geavanceerde modus (AI & begeleide projecten)", "free": false, "premium": true },
+      { "label": "Capsules genereren vanuit PDF (binnenkort)", "free": false, "premium": false, "comingSoon": true }
+    ]
+  }
 }

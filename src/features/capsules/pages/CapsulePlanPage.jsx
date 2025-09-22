@@ -31,6 +31,7 @@ import apiClient from '../../../api/axiosConfig';
 import FeedbackButtons from '../../learning/components/FeedbackButtons';
 import CapsuleProgressBar from '../components/CapsuleProgressBar';
 import { useAuth } from '../../../hooks/useAuth';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const fetchCapsule = async (domain, area, capsuleId) => {
   const { data } = await apiClient.get(`/capsules/${domain}/${area}/${capsuleId}`);
@@ -47,6 +48,7 @@ const CapsulePlanPage = () => {
   const [infoMessage, setInfoMessage] = useState(null);
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { t } = useI18n();
   const rawStatus = (user?.subscription_status ?? '').toString().toLowerCase();
   const normalizedStatus = rawStatus.includes('.') ? rawStatus.split('.').pop() : rawStatus;
   const isPremium = normalizedStatus === 'premium';
@@ -88,9 +90,9 @@ const CapsulePlanPage = () => {
     },
     onError: (err, moleculeId) => {
       if (err?.response?.status === 403 && err?.response?.data?.detail === 'molecule_locked') {
-        setInfoMessage("Terminez la leçon précédente pour débloquer celle-ci.");
+        setInfoMessage(t('capsulePlan.messages.unlock'));
       }
-      const detail = err?.response?.data?.detail || "Erreur lors du chargement des contenus.";
+      const detail = err?.response?.data?.detail || t('capsulePlan.errors.loadAtoms');
       setAtomsByMolecule((prev) => ({
         ...prev,
         [moleculeId]: { loading: false, error: detail, atoms: [], generationStatus: 'failed', progressStatus: 'not_started' },
@@ -131,10 +133,10 @@ const CapsulePlanPage = () => {
     },
     onError: (err) => {
       if (err?.response?.status === 403 && err?.response?.data?.detail === 'premium_required') {
-        setInfoMessage("Les bonus sont réservés aux membres Premium.");
+        setInfoMessage(t('capsulePlan.messages.bonusPremium'));
         return;
       }
-      const detail = err?.response?.data?.detail || "Impossible de générer le bonus.";
+      const detail = err?.response?.data?.detail || t('capsulePlan.errors.bonus');
       setInfoMessage(detail);
       const moleculeId = generateBonus.variables?.moleculeId;
       if (moleculeId) {
@@ -187,7 +189,7 @@ const CapsulePlanPage = () => {
 
   const toggleMolecule = (molecule) => {
     if (molecule.is_locked) {
-      setInfoMessage("Terminez la leçon précédente pour débloquer celle-ci.");
+      setInfoMessage(t('capsulePlan.messages.unlock'));
       return;
     }
     setExpandedMolecules((prev) => {
@@ -208,7 +210,7 @@ const CapsulePlanPage = () => {
 
   const startSession = (molecule) => {
     if (molecule.is_locked) {
-      setInfoMessage("Terminez les leçons précédentes pour accéder à celle-ci.");
+      setInfoMessage(t('capsulePlan.messages.unlockMultiple'));
       return;
     }
     navigate(`/session/molecule/${molecule.id}`);
@@ -216,7 +218,7 @@ const CapsulePlanPage = () => {
 
   const handleGenerateBonus = (molecule, kind) => {
     if (!canGenerateBonus) {
-      setInfoMessage("Les bonus sont réservés aux membres Premium.");
+      setInfoMessage(t('capsulePlan.messages.bonusPremium'));
       return;
     }
     generateBonus.mutate({ moleculeId: molecule.id, kind });
@@ -233,7 +235,7 @@ const CapsulePlanPage = () => {
   if (isError) {
     return (
       <Container sx={{ py: 6 }}>
-        <Alert severity="error">Impossible de charger la capsule : {error?.message}</Alert>
+        <Alert severity="error">{t('capsulePlan.alerts.loadError')} {error?.message}</Alert>
       </Container>
     );
   }
@@ -241,7 +243,7 @@ const CapsulePlanPage = () => {
   if (!capsule) {
     return (
       <Container sx={{ py: 6 }}>
-        <Alert severity="info">Aucune donnée de capsule disponible.</Alert>
+        <Alert severity="info">{t('capsulePlan.alerts.noData')}</Alert>
       </Container>
     );
   }
@@ -251,7 +253,7 @@ const CapsulePlanPage = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-        <Button component={RouterLink} to="/capsules" startIcon={<ArrowBackIcon />}>Retour</Button>
+        <Button component={RouterLink} to="/capsules" startIcon={<ArrowBackIcon />}>{t('capsulePlan.back')}</Button>
         <Typography variant="h4" fontWeight={700}>{capsule.title}</Typography>
       </Box>
       <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
@@ -260,7 +262,7 @@ const CapsulePlanPage = () => {
 
       {capsule.generation_status === 'pending' && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          La génération du plan est en cours. Tu peux commencer les premières leçons pendant que le reste se prépare.
+          {t('capsulePlan.messages.planPending')}
         </Alert>
       )}
 
@@ -275,7 +277,7 @@ const CapsulePlanPage = () => {
           <Paper sx={{ p: 2, textAlign: 'center' }}>
             <SchoolIcon color="primary" sx={{ fontSize: 40 }} />
             <Typography variant="h5" fontWeight={700}>{granules.length}</Typography>
-            <Typography variant="body2">Chapitres</Typography>
+            <Typography variant="body2">{t('capsulePlan.stats.chapters')}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={4}>
@@ -284,7 +286,7 @@ const CapsulePlanPage = () => {
             <Typography variant="h5" fontWeight={700}>
               {granules.reduce((acc, granule) => acc + (granule.molecules?.length || 0), 0)}
             </Typography>
-            <Typography variant="body2">Leçons</Typography>
+            <Typography variant="body2">{t('capsulePlan.stats.lessons')}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={4}>
@@ -292,7 +294,7 @@ const CapsulePlanPage = () => {
             <CapsuleProgressBar
               current={capsule.user_xp ?? 0}
               target={capsule.xp_target ?? 60000}
-              label="Progression globale"
+              label={t('capsulePlan.stats.globalProgress')}
             />
           </Paper>
         </Grid>
@@ -300,11 +302,11 @@ const CapsulePlanPage = () => {
 
       <Paper sx={{ p: { xs: 2, md: 3 } }}>
         <Typography variant="h5" fontWeight={600} gutterBottom>
-          Programme détaillé
+          {t('capsulePlan.labels.program')}
         </Typography>
 
         {granules.length === 0 && (
-          <Alert severity="info">Le contenu est encore en cours de génération. Revenez un peu plus tard.</Alert>
+          <Alert severity="info">{t('capsulePlan.alerts.contentPending')}</Alert>
         )}
 
         <List sx={{ mt: 2 }}>
@@ -314,17 +316,17 @@ const CapsulePlanPage = () => {
               <Box key={granule.id} sx={{ mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                 <ListItem button onClick={() => toggleGranule(granule.id)}>
                   <ListItemIcon>
-                    <Chip label={`Chap. ${granule.order}`} color="primary" />
+                    <Chip label={`${t('capsulePlan.labels.chapterShort')} ${granule.order}`} color="primary" />
                   </ListItemIcon>
                   <ListItemText primary={granule.title} />
                   <Chip
-                    label={`${Math.round((granule.xp_percent ?? 0) * 100)}% XP`}
+                    label={`${Math.round((granule.xp_percent ?? 0) * 100)}% ${t('capsulePlan.labels.xpSuffix')}`}
                     size="small"
                     color="info"
                     sx={{ mr: 1 }}
                   />
                   <Chip
-                    label={granule.progress_status === 'completed' ? 'Terminé' : granule.progress_status === 'in_progress' ? 'En cours' : 'À faire'}
+                    label={t(`capsulePlan.status.${granule.progress_status}`)}
                     size="small"
                     color={granule.progress_status === 'completed' ? 'success' : granule.progress_status === 'in_progress' ? 'warning' : 'default'}
                     sx={{ mr: 1 }}
@@ -355,22 +357,26 @@ const CapsulePlanPage = () => {
                       const progressStatus = state.progressStatus || molecule.progress_status;
                       const hasContent = state.atoms && state.atoms.length > 0;
                       const isMoleculeExpanded = expandedMolecules.has(molecule.id);
-                      const progressLabel = progressStatus === 'completed' ? 'Validé' : progressStatus === 'failed' ? 'À rejouer' : progressStatus === 'in_progress' ? 'En cours' : 'À faire';
+                      const progressLabel = progressStatus === 'completed'
+                        ? t('capsulePlan.status.validated')
+                        : progressStatus === 'failed'
+                          ? t('capsulePlan.status.failed')
+                          : t(`capsulePlan.status.${progressStatus}`);
                       const progressColor = progressStatus === 'completed' ? 'success' : progressStatus === 'failed' ? 'error' : progressStatus === 'in_progress' ? 'warning' : 'default';
                       const moleculeXpPercent = Math.round((molecule.xp_percent ?? 0) * 100);
                       const isBonusGenerating = generateBonus.isPending && generateBonus.variables?.moleculeId === molecule.id;
-                      const premiumHint = canGenerateBonus ? '' : 'Disponible avec Premium';
+                      const premiumHint = canGenerateBonus ? '' : t('capsulePlan.labels.availableWithPremium');
                       return (
                         <Box key={molecule.id} sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
                           <ListItem button sx={{ pl: 6 }} onClick={() => toggleMolecule(molecule)}>
                             <ListItemIcon><TopicIcon color="action" /></ListItemIcon>
                             <ListItemText
                               primary={molecule.title}
-                              secondary={`Leçon ${molecule.order}`}
+                              secondary={`${t('capsulePlan.labels.lesson')} ${molecule.order}`}
                             />
                             {state.loading && <CircularProgress size={18} sx={{ mr: 1 }} />}
                             <Chip
-                              label={`${moleculeXpPercent}% XP`}
+                              label={`${moleculeXpPercent}% ${t('capsulePlan.labels.xpSuffix')}`}
                               size="small"
                               color="info"
                               sx={{ mr: 1 }}
@@ -416,7 +422,11 @@ const CapsulePlanPage = () => {
                               disabled={molecule.is_locked || !hasContent || generationStatus === 'pending' || generationStatus === 'failed' || state.loading}
                               onClick={(e) => { e.stopPropagation(); startSession(molecule); }}
                             >
-                              {molecule.is_locked ? 'Verrouillé' : generationStatus === 'pending' ? 'En cours…' : 'Étudier'}
+                              {molecule.is_locked
+                                ? t('capsulePlan.labels.locked')
+                                : generationStatus === 'pending'
+                                  ? t('capsulePlan.labels.loading')
+                                  : t('capsulePlan.labels.study')}
                             </Button>
                           </ListItem>
                           <Collapse in={isMoleculeExpanded} timeout="auto" unmountOnExit>
@@ -424,18 +434,21 @@ const CapsulePlanPage = () => {
                               <CapsuleProgressBar
                                 current={molecule.xp_earned ?? 0}
                                 target={molecule.xp_total ?? 0}
-                                label="XP de cette leçon"
+                                label={t('capsulePlan.stats.lessonXp')}
                                 dense
                               />
                               {!!molecule.bonus_xp_total && (
                                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                  Bonus&nbsp;: {molecule.bonus_xp_earned ?? 0} / {molecule.bonus_xp_total ?? 0} XP
+                                  {t('capsulePlan.stats.bonusXp', {
+                                    earned: molecule.bonus_xp_earned ?? 0,
+                                    total: molecule.bonus_xp_total ?? 0,
+                                  })}
                                 </Typography>
                               )}
                               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ my: 2 }}>
                                 {!canGenerateBonus && (
                                   <Typography variant="caption" color="warning.main" sx={{ mb: 0.5 }}>
-                                    Fonctionnalité Premium — génère du contenu bonus exclusif.
+                                    {t('capsulePlan.labels.premiumFeature')}
                                   </Typography>
                                 )}
                                 <Tooltip title={premiumHint} placement="top" disableHoverListener={canGenerateBonus} arrow>
@@ -451,7 +464,7 @@ const CapsulePlanPage = () => {
                                         cursor: canGenerateBonus ? 'pointer' : 'not-allowed',
                                       }}
                                     >
-                                      {isBonusGenerating ? 'Génération…' : '+ Exercice bonus'}
+                                      {isBonusGenerating ? t('capsulePlan.labels.loading') : t('capsulePlan.buttons.bonusExercise')}
                                     </Button>
                                   </span>
                                 </Tooltip>
@@ -468,24 +481,20 @@ const CapsulePlanPage = () => {
                                         cursor: canGenerateBonus ? 'pointer' : 'not-allowed',
                                       }}
                                     >
-                                      {isBonusGenerating ? 'Génération…' : '+ Théorie bonus'}
+                                      {isBonusGenerating ? t('capsulePlan.labels.loading') : t('capsulePlan.buttons.bonusTheory')}
                                     </Button>
                                   </span>
                                 </Tooltip>
                               </Stack>
                               {state.error && <Alert severity="error" sx={{ mb: 2 }}>{state.error}</Alert>}
                               {generationStatus === 'pending' && (
-                                <Alert severity="info" sx={{ mb: 2 }}>
-                                  Génération en cours. Tu peux quitter cette page&nbsp;: une notification t'indiquera quand la leçon sera prête.
-                                </Alert>
+                                <Alert severity="info" sx={{ mb: 2 }}>{t('capsulePlan.messages.generationRunning')}</Alert>
                               )}
                               {generationStatus === 'failed' && (
-                                <Alert severity="error" sx={{ mb: 2 }}>
-                                  La génération de cette leçon a échoué. Merci de réessayer plus tard.
-                                </Alert>
+                                <Alert severity="error" sx={{ mb: 2 }}>{t('capsulePlan.messages.generationFailed')}</Alert>
                               )}
                               {!state.loading && !state.error && generationStatus !== 'pending' && (!state.atoms || state.atoms.length === 0) && (
-                                <Alert severity="info">Les contenus de cette leçon sont en cours de génération.</Alert>
+                                <Alert severity="info">{t('capsulePlan.messages.lessonGenerating')}</Alert>
                               )}
                               {state.atoms?.map((atom) => {
                                 const type = (atom.content_type || '').toLowerCase();
@@ -495,10 +504,10 @@ const CapsulePlanPage = () => {
                                     <ListItemIcon>
                                       {type === 'lesson' ? <ArticleIcon color="primary" /> : <QuizIcon color="secondary" />}
                                     </ListItemIcon>
-                                    <ListItemText primary={atom.title} secondary={type === 'lesson' ? 'Leçon' : 'Quiz'} />
+                                    <ListItemText primary={atom.title} secondary={type === 'lesson' ? t('capsulePlan.labels.lesson') : t('capsulePlan.labels.quiz')} />
                                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mr: 2 }}>
-                                      {atom.is_bonus && <Chip label="Bonus" color="warning" size="small" />}
-                                      <Chip label={`+${xpValue} XP`} size="small" color={atom.is_bonus ? 'warning' : 'success'} variant={atom.is_bonus ? 'outlined' : 'filled'} />
+                                      {atom.is_bonus && <Chip label={t('capsulePlan.labels.bonus')} color="warning" size="small" />}
+                                      <Chip label={`+${xpValue} ${t('capsulePlan.labels.xpSuffix')}`} size="small" color={atom.is_bonus ? 'warning' : 'success'} variant={atom.is_bonus ? 'outlined' : 'filled'} />
                                     </Stack>
                                     <FeedbackButtons
                                       contentType="atom"

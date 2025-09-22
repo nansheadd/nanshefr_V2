@@ -35,86 +35,86 @@ import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 
 import CreateCapsuleModal from './CreateCapsuleModal';
+import { useI18n } from '../../../i18n/I18nContext';
 
-// Enhanced domain configuration with gradients
-const domainConfig = {
-  'languages': { 
-    icon: LanguageIcon, 
+const DOMAIN_CONFIG = {
+  languages: {
+    icon: LanguageIcon,
     color: '#4CAF50',
     gradient: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
-    label: 'Langues',
-    description: 'Apprenez de nouvelles langues et cultures'
+    labelKey: 'capsuleList.domains.languages.label',
+    descriptionKey: 'capsuleList.domains.languages.description',
   },
-  'social_sciences': { 
-    icon: AccountBalanceIcon, 
+  social_sciences: {
+    icon: AccountBalanceIcon,
     color: '#2196F3',
     gradient: 'linear-gradient(135deg, #2196F3 0%, #1976d2 100%)',
-    label: 'Sciences sociales',
-    description: 'Histoire, géographie et société'
+    labelKey: 'capsuleList.domains.social_sciences.label',
+    descriptionKey: 'capsuleList.domains.social_sciences.description',
   },
-  'natural_sciences': { 
-    icon: ScienceIcon, 
+  natural_sciences: {
+    icon: ScienceIcon,
     color: '#FF5722',
     gradient: 'linear-gradient(135deg, #FF5722 0%, #e64a19 100%)',
-    label: 'Sciences naturelles',
-    description: 'Physique, chimie et biologie'
+    labelKey: 'capsuleList.domains.natural_sciences.label',
+    descriptionKey: 'capsuleList.domains.natural_sciences.description',
   },
-  'mathematics': { 
-    icon: CalculateIcon, 
+  mathematics: {
+    icon: CalculateIcon,
     color: '#9C27B0',
     gradient: 'linear-gradient(135deg, #9C27B0 0%, #7b1fa2 100%)',
-    label: 'Mathématiques',
-    description: 'Algèbre, géométrie et analyse'
+    labelKey: 'capsuleList.domains.mathematics.label',
+    descriptionKey: 'capsuleList.domains.mathematics.description',
   },
-  'economics': { 
-    icon: BusinessIcon, 
+  economics: {
+    icon: BusinessIcon,
     color: '#FFC107',
     gradient: 'linear-gradient(135deg, #FFC107 0%, #ffa000 100%)',
-    label: 'Économie',
-    description: 'Finance et gestion'
+    labelKey: 'capsuleList.domains.economics.label',
+    descriptionKey: 'capsuleList.domains.economics.description',
   },
-  'personal_development': { 
-    icon: PsychologyIcon, 
+  personal_development: {
+    icon: PsychologyIcon,
     color: '#E91E63',
     gradient: 'linear-gradient(135deg, #E91E63 0%, #c2185b 100%)',
-    label: 'Développement personnel',
-    description: 'Croissance et bien-être'
+    labelKey: 'capsuleList.domains.personal_development.label',
+    descriptionKey: 'capsuleList.domains.personal_development.description',
   },
-  'programming': { 
-    icon: ComputerIcon, 
+  programming: {
+    icon: ComputerIcon,
     color: '#607D8B',
     gradient: 'linear-gradient(135deg, #607D8B 0%, #455a64 100%)',
-    label: 'Programmation',
-    description: 'Code et technologies'
+    labelKey: 'capsuleList.domains.programming.label',
+    descriptionKey: 'capsuleList.domains.programming.description',
   },
-  'arts': { 
-    icon: BrushIcon, 
+  arts: {
+    icon: BrushIcon,
     color: '#FF9800',
     gradient: 'linear-gradient(135deg, #FF9800 0%, #f57c00 100%)',
-    label: 'Arts',
-    description: 'Créativité et expression'
+    labelKey: 'capsuleList.domains.arts.label',
+    descriptionKey: 'capsuleList.domains.arts.description',
   },
-  'music': { 
-    icon: MusicNoteIcon, 
+  music: {
+    icon: MusicNoteIcon,
     color: '#3F51B5',
     gradient: 'linear-gradient(135deg, #3F51B5 0%, #303f9f 100%)',
-    label: 'Musique',
-    description: 'Théorie et pratique musicale'
+    labelKey: 'capsuleList.domains.music.label',
+    descriptionKey: 'capsuleList.domains.music.description',
   },
-  'gaming': { 
-    icon: SportsEsportsIcon, 
+  gaming: {
+    icon: SportsEsportsIcon,
     color: '#00BCD4',
     gradient: 'linear-gradient(135deg, #00BCD4 0%, #0097a7 100%)',
-    label: 'Gaming',
-    description: 'Jeux vidéo et e-sport'
+    labelKey: 'capsuleList.domains.gaming.label',
+    descriptionKey: 'capsuleList.domains.gaming.description',
   },
-  'others': { 
-    icon: SchoolIcon, 
+  others: {
+    icon: SchoolIcon,
     color: '#9E9E9E',
     gradient: 'linear-gradient(135deg, #9E9E9E 0%, #757575 100%)',
-    label: 'Autres',
-    description: 'Sujets divers'
-  }
+    labelKey: 'capsuleList.domains.others.label',
+    descriptionKey: 'capsuleList.domains.others.description',
+  },
 };
 
 // Animations
@@ -198,7 +198,8 @@ const DomainBadge = styled(Badge)(({ theme }) => ({
 }));
 
 const CapsuleList = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -252,21 +253,20 @@ const CapsuleList = () => {
   // Filter domains based on search
   const filteredDomains = useMemo(() => {
     if (!searchQuery) return Object.keys(capsulesByDomain);
-    
+
     const query = searchQuery.toLowerCase();
-    return Object.keys(capsulesByDomain).filter(domain => {
-      // Check if domain name matches
-      if (domain.toLowerCase().includes(query) || 
-          domainConfig[domain]?.label.toLowerCase().includes(query)) {
+    return Object.keys(capsulesByDomain).filter((domain) => {
+      const config = DOMAIN_CONFIG[domain] || DOMAIN_CONFIG.others;
+      const label = t(config.labelKey).toLowerCase();
+      if (domain.toLowerCase().includes(query) || label.includes(query)) {
         return true;
       }
-      // Check if any capsule in this domain matches
-      return capsulesByDomain[domain].some(capsule =>
+      return capsulesByDomain[domain].some((capsule) =>
         capsule.title.toLowerCase().includes(query) ||
         capsule.area?.toLowerCase().includes(query)
       );
     });
-  }, [capsulesByDomain, searchQuery]);
+  }, [capsulesByDomain, searchQuery, t]);
 
   // Filter capsules within a domain based on search
   const getFilteredCapsules = (domain) => {
@@ -307,7 +307,7 @@ const CapsuleList = () => {
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         <Alert severity="error">
-          Impossible de charger les capsules. Veuillez réessayer.
+          {t('errors.generic')}
         </Alert>
       </Container>
     );
@@ -317,8 +317,8 @@ const CapsuleList = () => {
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
       <Box sx={{ mb: 5, textAlign: 'center' }}>
-        <Typography 
-          variant="h3" 
+        <Typography
+          variant="h3"
           gutterBottom 
           fontWeight="bold"
           sx={{ 
@@ -329,10 +329,10 @@ const CapsuleList = () => {
           }}
         >
           <AutoAwesomeIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#2196F3' }} />
-          Explorez nos Capsules
+          {t('capsuleList.title')}
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
-          Découvrez des cours organisés par catégorie
+          {t('capsuleList.subtitle')}
         </Typography>
 
         <Button
@@ -341,14 +341,14 @@ const CapsuleList = () => {
           onClick={() => setCreateModalOpen(true)}
           sx={{ mb: 4 }}
         >
-          Créer une capsule
+          {t('capsuleList.createButton')}
         </Button>
 
         {/* Search Bar */}
         <Box sx={{ maxWidth: 600, mx: 'auto', mb: 4 }}>
           <SearchBar
             fullWidth
-            placeholder="Rechercher un domaine, une capsule ou une compétence..."
+            placeholder={t('capsuleList.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             InputProps={{
@@ -370,18 +370,18 @@ const CapsuleList = () => {
 
         {/* Quick Stats */}
         <Stack direction="row" spacing={2} justifyContent="center">
-          <StatsChip 
-            label={`${Object.keys(capsulesByDomain).length} Domaines`}
+          <StatsChip
+            label={`${Object.keys(capsulesByDomain).length} ${t('capsuleList.stats.domains')}`}
             color="primary"
             variant="outlined"
           />
-          <StatsChip 
-            label={`${capsules?.length || 0} Capsules`}
+          <StatsChip
+            label={`${capsules?.length || 0} ${t('capsuleList.stats.capsules')}`}
             color="secondary"
             variant="outlined"
           />
-          <StatsChip 
-            label={`${expandedDomains.size} Ouverts`}
+          <StatsChip
+            label={`${expandedDomains.size} ${t('capsuleList.stats.expanded')}`}
             variant="outlined"
           />
         </Stack>
@@ -389,17 +389,17 @@ const CapsuleList = () => {
 
       {creationStatus.phase === 'classifying' && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          Classification du sujet en cours...
+          {t('capsuleList.statusMessages.classifying')}
         </Alert>
       )}
       {creationStatus.phase === 'creating' && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          Génération de la capsule en cours... tu seras notifié dès qu'elle sera prête.
+          {t('capsuleList.statusMessages.creating')}
         </Alert>
       )}
       {creationStatus.phase === 'created' && (
         <Alert severity="success" sx={{ mb: 3 }} onClose={() => setCreationStatus({ phase: 'idle' })}>
-          Capsule créée ! Les contenus se remplissent en arrière-plan.
+          {t('capsuleList.statusMessages.created')}
         </Alert>
       )}
       {creationStatus.phase === 'error' && creationStatus.message && (
@@ -419,10 +419,12 @@ const CapsuleList = () => {
           ))
         ) : filteredDomains.length > 0 ? (
           filteredDomains.map((domain, index) => {
-            const config = domainConfig[domain] || domainConfig.others;
+            const config = DOMAIN_CONFIG[domain] || DOMAIN_CONFIG.others;
             const Icon = config.icon;
             const domainCapsules = getFilteredCapsules(domain);
             const isExpanded = expandedDomains.has(domain);
+            const label = t(config.labelKey);
+            const description = t(config.descriptionKey);
 
             return (
               <Grid item xs={12} key={domain}>
@@ -458,10 +460,10 @@ const CapsuleList = () => {
                             </Grid>
                             <Grid item xs>
                               <Typography variant="h5" fontWeight="bold">
-                                {config.label}
+                                {label}
                               </Typography>
                               <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                {config.description}
+                                {description}
                               </Typography>
                             </Grid>
                             <Grid item>
@@ -579,7 +581,7 @@ const CapsuleList = () => {
                                         }
                                       }}
                                     >
-                                      S'inscrire
+                                      {t('capsuleList.actions.enroll')}
                                     </Button>
                                   </CardActions>
                                 </CapsuleCard>
@@ -599,12 +601,10 @@ const CapsuleList = () => {
             <Paper sx={{ p: 6, textAlign: 'center' }}>
               <SchoolIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
               <Typography variant="h6" gutterBottom>
-                Aucune capsule trouvée
+                {t('capsuleList.noResults.title')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {searchQuery 
-                  ? 'Essayez de modifier votre recherche'
-                  : 'Aucune capsule publique disponible pour le moment'}
+                {searchQuery ? t('capsuleList.noResults.search') : t('capsuleList.noResults.empty')}
               </Typography>
               {searchQuery && (
                 <Button 
@@ -613,7 +613,7 @@ const CapsuleList = () => {
                   onClick={() => setSearchQuery('')}
                   startIcon={<ClearIcon />}
                 >
-                  Réinitialiser la recherche
+                  {t('capsuleList.noResults.reset')}
                 </Button>
               )}
             </Paper>
@@ -630,6 +630,7 @@ const CapsuleList = () => {
           setCreationStatus({ phase: 'created' });
           navigate(`/capsule/${capsule.domain}/${capsule.area}/${capsule.id}/plan`);
         }}
+        currentUser={user}
       />
     </Container>
   );

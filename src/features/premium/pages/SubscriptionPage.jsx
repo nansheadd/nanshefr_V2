@@ -12,6 +12,7 @@ import {
   Paper,
   Stack,
   Typography,
+  Chip,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
@@ -21,6 +22,7 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import { Link as RouterLink } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import apiClient from '../../../api/axiosConfig'; // Assurez-vous que le chemin est correct
+import { useI18n } from '../../../i18n/I18nContext';
 
 // Chargez Stripe avec votre clé PUBLIABLE (à mettre dans un fichier .env.local)
 // VITE_STRIPE_PUBLISHABLE_KEY=pk_test_votre_cle
@@ -29,6 +31,7 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 // Le bouton de paiement est un sous-composant
 const GoPremiumButton = () => {
   const [isLoading, setIsLoading] = React.useState(false);
+  const { t } = useI18n();
 
   const handleCheckout = async () => {
     setIsLoading(true);
@@ -60,38 +63,35 @@ const GoPremiumButton = () => {
       disabled={isLoading}
       sx={{ mt: 2, py: 1.5, textTransform: 'none', fontSize: '1.1rem' }}
     >
-      {isLoading ? 'Chargement...' : 'Je m\'abonne'}
+      {isLoading ? t('premium.actions.loading') : t('premium.actions.goPremium')}
     </Button>
   );
 };
 
 // La page principale
 const SubscriptionPage = () => {
-  const featureMatrix = [
-    { label: "Accès aux capsules publiques et progression gamifiée", free: true, premium: true },
-    { label: "Générer du contenu bonus (exercices, théorie)", free: false, premium: true },
-    { label: "Création illimitée de capsules intelligentes", free: false, premium: true },
-    { label: "Support prioritaire et notifications temps réel", free: false, premium: true },
-    { label: "Badges exclusifs et 50 XP bonus par ressource", free: false, premium: true },
-    { label: "Feuilles de route personnalisées", free: true, premium: true },
-    { label: "Mode avancé (IA & projets guidés)", free: false, premium: true },
-  ];
+  const { t } = useI18n();
+  const translatedFeatures = t('premium.features');
+  const featureMatrix = Array.isArray(translatedFeatures) ? translatedFeatures : [];
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
       <Box sx={{ textAlign: 'center', mb: 6 }}>
         <Typography variant="h3" component="h1" fontWeight={800} gutterBottom>
-          Débloque tout Nanshe avec Premium
+          {t('premium.hero.title')}
         </Typography>
         <Typography variant="h6" color="text.secondary" maxWidth="720px" mx="auto">
-          Continue gratuitement pour explorer les capsules publiques ou passe au niveau supérieur : bonus générés à la demande, capsules illimitées et coaching personnalisé par l'IA.
+          {t('premium.hero.subtitle')}
+        </Typography>
+        <Typography variant="body2" color="primary.main" sx={{ mt: 2 }}>
+          {`${t('premium.comingSoon.pdf')} (${t('common.soon')})`}
         </Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" sx={{ mt: 4 }}>
           <Button component={RouterLink} to="/capsules" variant="outlined" size="large" startIcon={<BoltIcon />}>
-            Explorer les capsules gratuites
+            {t('premium.hero.ctaFree')}
           </Button>
           <Button component={RouterLink} to="/capsules" variant="contained" color="primary" size="large" startIcon={<StarIcon />} sx={{ textTransform: 'none' }}>
-            Créer ma capsule
+            {t('premium.hero.ctaCreate')}
           </Button>
         </Stack>
       </Box>
@@ -99,10 +99,10 @@ const SubscriptionPage = () => {
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <Paper elevation={2} sx={{ p: 4, height: '100%', borderRadius: 4 }}>
-            <Typography variant="overline" color="text.secondary">Plan Gratuit</Typography>
-            <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>0€</Typography>
+            <Typography variant="overline" color="text.secondary">{t('premium.pricing.free.title')}</Typography>
+            <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>{t('premium.pricing.free.price')}</Typography>
             <Typography color="text.secondary" sx={{ mb: 3 }}>
-              Idéal pour découvrir la plateforme, suivre les capsules publiques et progresser à ton rythme.
+              {t('premium.pricing.free.description')}
             </Typography>
             <List dense sx={{ textAlign: 'left' }}>
               {featureMatrix.filter((f) => f.free).map((feature) => (
@@ -121,7 +121,7 @@ const SubscriptionPage = () => {
               variant="outlined"
               sx={{ mt: 3, textTransform: 'none' }}
             >
-              Continuer en mode gratuit
+              {t('premium.pricing.free.button')}
             </Button>
           </Paper>
         </Grid>
@@ -139,11 +139,13 @@ const SubscriptionPage = () => {
           >
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
               <WorkspacePremiumIcon color="primary" />
-              <Typography variant="overline" color="primary">Plan Premium</Typography>
+              <Typography variant="overline" color="primary">{t('premium.pricing.premium.title')}</Typography>
             </Stack>
-            <Typography variant="h4" fontWeight={800}>10€ <Typography component="span" variant="h6">/ mois</Typography></Typography>
+            <Typography variant="h4" fontWeight={800}>
+              {t('premium.pricing.premium.price')} <Typography component="span" variant="h6">{t('premium.pricing.premium.perMonth')}</Typography>
+            </Typography>
             <Typography color="text.secondary" sx={{ mb: 3 }}>
-              Génère du contenu bonus à volonté, crée tes propres parcours et progresse avec un accompagnement prioritaire.
+              {t('premium.pricing.premium.description')}
             </Typography>
             <List dense sx={{ textAlign: 'left' }}>
               {featureMatrix.filter((f) => f.premium).map((feature) => (
@@ -155,9 +157,12 @@ const SubscriptionPage = () => {
                 </ListItem>
               ))}
             </List>
+            <Typography variant="body2" color="primary.main" sx={{ mt: 1.5 }}>
+              {`${t('premium.comingSoon.pdf')} (${t('common.soon')})`}
+            </Typography>
             <GoPremiumButton />
             <Typography variant="caption" display="block" sx={{ mt: 2, color: 'text.secondary' }}>
-              Annulation en un clic, sans engagement.
+              {t('premium.pricing.premium.note')}
             </Typography>
           </Paper>
         </Grid>
@@ -166,13 +171,13 @@ const SubscriptionPage = () => {
       <Paper elevation={0} sx={{ mt: 6, borderRadius: 4, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
         <Box sx={{ display: 'flex', bgcolor: 'background.paper', p: 2 }}>
           <Typography variant="subtitle1" fontWeight={600} sx={{ flex: 1 }}>
-            Fonctionnalités clés
+            {t('premium.table.headerFeatures')}
           </Typography>
           <Typography variant="subtitle1" fontWeight={600} textAlign="center" sx={{ flex: 1 }}>
-            Gratuit
+            {t('premium.table.freeColumn')}
           </Typography>
           <Typography variant="subtitle1" fontWeight={600} textAlign="center" sx={{ flex: 1 }}>
-            Premium
+            {t('premium.table.premiumColumn')}
           </Typography>
         </Box>
         <Divider />
@@ -183,7 +188,13 @@ const SubscriptionPage = () => {
               {feature.free ? <CheckCircleIcon color="success" fontSize="small" /> : <RemoveCircleOutlineIcon color="disabled" fontSize="small" />}
             </Box>
             <Box sx={{ flex: 1, textAlign: 'center' }}>
-              {feature.premium ? <CheckCircleIcon color="primary" fontSize="small" /> : <RemoveCircleOutlineIcon color="disabled" fontSize="small" />}
+              {feature.comingSoon ? (
+                <Chip label={t('common.soon')} size="small" color="warning" variant="outlined" />
+              ) : feature.premium ? (
+                <CheckCircleIcon color="primary" fontSize="small" />
+              ) : (
+                <RemoveCircleOutlineIcon color="disabled" fontSize="small" />
+              )}
             </Box>
           </Box>
         ))}

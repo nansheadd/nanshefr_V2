@@ -5,7 +5,9 @@
     "levels": "niveaux",
     "atoms": "atomes",
     "close": "Fermer",
-    "continueWith": "ou continuer avec"
+    "continueWith": "ou continuer avec",
+    "soon": "Bientôt",
+    "cancel": "Annuler"
   },
   "nav": { "login": "Se connecter", "signup": "S'inscrire" },
   "auth": {
@@ -83,5 +85,277 @@
     "subtitle": "Rejoignez des milliers d'apprenants qui progressent chaque jour avec l'IA",
     "button": "Lancez votre apprentissage sur-mesure"
   },
-  "footer": { "about": "À propos", "blog": "Blog", "contact": "Contact", "legal": "Mentions légales" }
+  "footer": {
+    "about": "À propos",
+    "blog": "Blog",
+    "contact": "Contact",
+    "legal": "Mentions légales",
+    "privacy": "Politique de confidentialité",
+    "cookies": "Politique cookies",
+    "terms": "CGU/CGV",
+    "report": "Signaler un contenu",
+    "preferences": "Préférences cookies",
+    "controls": {
+      "language": "Langue",
+      "theme": "Thème",
+      "themeLight": "Mode clair",
+      "themeDark": "Mode sombre"
+    }
+  },
+  "errors": {
+    "badCredentials": "Identifiants incorrects.",
+    "signupFailed": "Inscription impossible.",
+    "generic": "Une erreur est survenue. Merci de réessayer."
+  },
+  "capsulePlan": {
+    "back": "Retour",
+    "stats": {
+      "chapters": "Chapitres",
+      "lessons": "Leçons",
+      "globalProgress": "Progression globale",
+      "lessonXp": "XP de cette leçon",
+      "bonusXp": "Bonus : {{earned}} / {{total}} XP"
+    },
+    "labels": {
+      "chapterShort": "Chap.",
+      "lesson": "Leçon",
+      "quiz": "Quiz",
+      "bonus": "Bonus",
+      "xpSuffix": "XP",
+      "availableWithPremium": "Disponible avec Premium",
+      "premiumFeature": "Fonctionnalité Premium — génère du contenu bonus exclusif.",
+      "study": "Étudier",
+      "locked": "Verrouillé",
+      "loading": "En cours…",
+      "lessonXp": "XP de cette leçon",
+      "program": "Programme détaillé"
+    },
+    "status": {
+      "completed": "Terminé",
+      "in_progress": "En cours",
+      "not_started": "À faire",
+      "failed": "À rejouer",
+      "validated": "Validé"
+    },
+    "messages": {
+      "unlock": "Terminez la leçon précédente pour débloquer celle-ci.",
+      "unlockMultiple": "Terminez les leçons précédentes pour accéder à celle-ci.",
+      "bonusPremium": "Les bonus sont réservés aux membres Premium.",
+      "planPending": "La génération du plan est en cours. Tu peux commencer les premières leçons pendant que le reste se prépare.",
+      "lessonGenerating": "Les contenus de cette leçon sont en cours de génération.",
+      "generationRunning": "Génération en cours. Tu peux quitter cette page : une notification t'indiquera quand la leçon sera prête.",
+      "generationFailed": "La génération de cette leçon a échoué. Merci de réessayer plus tard."
+    },
+    "buttons": {
+      "bonusExercise": "+ Exercice bonus",
+      "bonusTheory": "+ Théorie bonus"
+    },
+    "alerts": {
+      "loadError": "Impossible de charger la capsule :",
+      "noData": "Aucune donnée de capsule disponible.",
+      "contentPending": "Le contenu est encore en cours de génération. Revenez un peu plus tard."
+    },
+    "errors": {
+      "loadAtoms": "Erreur lors du chargement des contenus.",
+      "bonus": "Impossible de générer le bonus."
+    }
+  },
+  "capsuleList": {
+    "title": "Explorez nos Capsules",
+    "subtitle": "Découvrez des cours organisés par catégorie",
+    "createButton": "Créer une capsule",
+    "searchPlaceholder": "Rechercher un domaine, une capsule ou une compétence...",
+    "stats": {
+      "domains": "Domaines",
+      "capsules": "Capsules",
+      "expanded": "Ouverts"
+    },
+    "statusMessages": {
+      "classifying": "Classification du sujet en cours...",
+      "creating": "Génération de la capsule en cours... tu seras notifié dès qu'elle sera prête.",
+      "created": "Capsule créée ! Les contenus se remplissent en arrière-plan."
+    },
+    "noResults": {
+      "title": "Aucune capsule trouvée",
+      "search": "Essayez de modifier votre recherche",
+      "empty": "Aucune capsule publique disponible pour le moment",
+      "reset": "Réinitialiser la recherche"
+    },
+    "actions": {
+      "enroll": "S'inscrire"
+    },
+    "domains": {
+      "languages": { "label": "Langues", "description": "Apprenez de nouvelles langues et cultures" },
+      "social_sciences": { "label": "Sciences sociales", "description": "Histoire, géographie et société" },
+      "natural_sciences": { "label": "Sciences naturelles", "description": "Physique, chimie et biologie" },
+      "mathematics": { "label": "Mathématiques", "description": "Algèbre, géométrie et analyse" },
+      "economics": { "label": "Économie", "description": "Finance et gestion" },
+      "personal_development": { "label": "Développement personnel", "description": "Croissance et bien-être" },
+      "programming": { "label": "Programmation", "description": "Code et technologies" },
+      "arts": { "label": "Arts", "description": "Créativité et expression" },
+      "music": { "label": "Musique", "description": "Théorie et pratique musicale" },
+      "gaming": { "label": "Gaming", "description": "Jeux vidéo et e-sport" },
+      "others": { "label": "Autres", "description": "Sujets divers" }
+    }
+  },
+  "createCapsule": {
+    "dialog": {
+      "title": "Générer une nouvelle capsule",
+      "description": "Donnez un sujet ou une compétence que vous souhaitez apprendre. (Le mode PDF Premium sera disponible prochainement.) L'IA va classifier automatiquement la capsule et générer un plan d'apprentissage personnalisé."
+    },
+    "modes": {
+      "topic": "Sujet intelligent",
+      "pdf": "PDF Premium",
+      "pdfLocked": "La génération depuis un PDF est réservée aux membres Premium.",
+      "pdfComingSoon": "La génération depuis un PDF arrive bientôt pour les membres Premium."
+    },
+    "placeholders": {
+      "topic": "Ex: apprendre le japonais en voyage, maîtriser React, notions de stoïcisme...",
+      "title": "Ex: Apprendre le japonais pour voyager",
+      "domain": "Ex: sciences_formelles",
+      "area": "Ex: mathematiques_algebre"
+    },
+    "file": {
+      "choose": "Choisir un PDF",
+      "replace": "Remplacer le PDF",
+      "remove": "Retirer le fichier",
+      "info": "Le PDF est utilisé uniquement pour générer la capsule. Aucun stockage n'est conservé.",
+      "size": "{{size}} Mo"
+    },
+    "chips": {
+      "skill": "Compétence",
+      "domain": "Domaine",
+      "area": "Aire",
+      "confidence": "Confiance"
+    },
+    "classification": {
+      "suggested": "Classification suggérée",
+      "adjustmentHint": "Ajustez si nécessaire avant de créer la capsule. Toute correction affine notre modèle.",
+      "warning": "Correction en attente : la nouvelle classification sera enregistrée et enseignée au modèle.",
+      "validated": "Classification validée : elle sera enregistrée comme exemple de référence.",
+      "feedbackHint": "Vous pourrez toujours adapter la capsule après sa création."
+    },
+    "errors": {
+      "topicRequired": "Décrivez rapidement le sujet de votre capsule.",
+      "classification": "Impossible de classifier ce sujet pour le moment.",
+      "classificationRequired": "Veuillez classifier votre sujet avant de créer la capsule.",
+      "feedback": "Impossible d'enregistrer le feedback de classification.",
+      "creation": "La création de la capsule a échoué.",
+      "pdfMissing": "Ajoutez un fichier PDF avant de lancer la génération.",
+      "invalidPdf": "Seuls les fichiers PDF sont acceptés.",
+      "pdfTooBig": "Le PDF ne doit pas dépasser 10 Mo."
+    },
+    "labels": {
+      "topic": "Sujet ou compétence",
+      "documentTopic": "Sujet du document ou contexte",
+      "title": "Titre de la capsule",
+      "domain": "Domaine",
+      "area": "Sous-domaine",
+      "mainSkill": "Compétence principale"
+    },
+    "buttons": {
+      "classify": "Classifier le sujet",
+      "create": "Créer la capsule"
+    },
+    "defaults": {
+      "autoTitle": "Capsule personnalisée"
+    }
+  },
+  "dashboard": {
+    "welcomeTitle": "Bienvenue dans Nanshe",
+    "welcomeDescription": "Retrouve ici un aperçu rapide de ta progression et de tes capsules en cours.",
+    "stats": {
+      "totalStudy": "Temps d'étude total",
+      "minutes": "min",
+      "currentStreak": "Streak actuel",
+      "daySingular": "jour",
+      "dayPlural": "jours",
+      "catalogTitle": "Besoin d'une nouvelle capsule ?",
+      "catalogButton": "Explorer le catalogue"
+    },
+    "toolbox": {
+      "title": "Boîte à outils IA",
+      "viewAll": "Voir tous les outils",
+      "openModal": "Ouvrir en modal",
+      "openPopup": "Ouvrir en pop-up",
+      "tiles": {
+        "coach": {
+          "title": "Coach IA",
+          "description": "Discute avec ton mentor virtuel et débloque des conseils personnalisés."
+        },
+        "notes": {
+          "title": "Bloc-notes",
+          "description": "Capture tes idées par molécule et garde une trace de ta progression."
+        }
+      }
+    },
+    "capsules": {
+      "title": "Mes capsules",
+      "viewLibrary": "Voir la bibliothèque",
+      "domainLabel": "Domaine",
+      "areaLabel": "Aire",
+      "continue": "Continuer",
+      "empty": "Aucune capsule active pour le moment.",
+      "cta": "Découvrir les capsules"
+    }
+  },
+  "badgesPage": {
+    "title": "🎖️ Tableau des badges",
+    "subtitle": "Débloquez des distinctions en explorant la plateforme, en créant des capsules et en maîtrisant vos leçons.",
+    "error": "Impossible de charger les badges pour le moment.",
+    "unlockedOn": "Débloqué le {{date}}"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAll": "Tout marquer lu",
+    "empty": "Pas de notifications pour le moment.",
+    "toast": {
+      "unlocked": "Haut fait déverrouillé"
+    }
+  },
+  "premium": {
+    "hero": {
+      "title": "Débloque tout Nanshe avec Premium",
+      "subtitle": "Continue gratuitement pour explorer les capsules publiques ou passe au niveau supérieur : bonus générés à la demande, capsules illimitées et coaching personnalisé par l'IA.",
+      "ctaFree": "Explorer les capsules gratuites",
+      "ctaCreate": "Créer ma capsule"
+    },
+    "pricing": {
+      "free": {
+        "title": "Plan Gratuit",
+        "price": "0€",
+        "description": "Idéal pour découvrir la plateforme, suivre les capsules publiques et progresser à ton rythme.",
+        "button": "Continuer en mode gratuit"
+      },
+      "premium": {
+        "title": "Plan Premium",
+        "price": "10€",
+        "perMonth": "/ mois",
+        "description": "Génère du contenu bonus à volonté, crée tes propres parcours et progresse avec un accompagnement prioritaire.",
+        "note": "Annulation en un clic, sans engagement."
+      }
+    },
+    "actions": {
+      "goPremium": "Je m'abonne",
+      "loading": "Chargement..."
+    },
+    "comingSoon": {
+      "pdf": "Génération de capsules depuis un PDF (Bientôt disponible)"
+    },
+    "table": {
+      "headerFeatures": "Fonctionnalités clés",
+      "freeColumn": "Gratuit",
+      "premiumColumn": "Premium"
+    },
+    "features": [
+      { "label": "Accès aux capsules publiques et progression gamifiée", "free": true, "premium": true },
+      { "label": "Générer du contenu bonus (exercices, théorie)", "free": false, "premium": true },
+      { "label": "Création illimitée de capsules intelligentes", "free": false, "premium": true },
+      { "label": "Support prioritaire et notifications temps réel", "free": false, "premium": true },
+      { "label": "Badges exclusifs et 50 XP bonus par ressource", "free": false, "premium": true },
+      { "label": "Feuilles de route personnalisées", "free": true, "premium": true },
+      { "label": "Mode avancé (IA & projets guidés)", "free": false, "premium": true },
+      { "label": "Génération de capsules depuis un PDF (Bientôt)", "free": false, "premium": false, "comingSoon": true }
+    ]
+  }
 }

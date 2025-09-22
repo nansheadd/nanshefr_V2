@@ -7,6 +7,7 @@ import DashboardHeader from '../components/DashboardHeader';
 import CapsuleProgressBar from '../../capsules/components/CapsuleProgressBar';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import EditNoteIcon from '@mui/icons-material/EditNote';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const fetchStats = async () => {
   const { data } = await apiClient.get('/progress/stats');
@@ -35,6 +36,7 @@ const StatCard = ({ title, value, suffix }) => (
 );
 
 const CapsuleCard = ({ capsule }) => {
+  const { t } = useI18n();
   const xpTarget = capsule.xp_target ?? 60000;
   const xpCurrent = capsule.user_xp ?? 0;
 
@@ -47,7 +49,7 @@ const CapsuleCard = ({ capsule }) => {
         {capsule.title}
       </Typography>
       <Typography variant="body2" color="text.secondary">
-        Domaine : {capsule.domain} — Aire : {capsule.area}
+        {t('dashboard.capsules.domainLabel')}: {capsule.domain} — {t('dashboard.capsules.areaLabel')}: {capsule.area}
       </Typography>
       <Chip label={capsule.main_skill} color="primary" size="small" sx={{ alignSelf: 'flex-start' }} />
 
@@ -59,7 +61,7 @@ const CapsuleCard = ({ capsule }) => {
         to={`/capsule/${capsule.domain}/${capsule.area}/${capsule.id}/plan`}
         sx={{ alignSelf: 'flex-start', mt: 1 }}
       >
-        Continuer
+        {t('dashboard.capsules.continue')}
       </Button>
     </Paper>
   );
@@ -76,22 +78,27 @@ const DashboardPage = () => {
     queryFn: fetchMyCapsules,
   });
 
-  const toolboxTiles = [
-    {
-      title: 'Coach IA',
-      description: "Discute avec ton mentor virtuel et débloque des conseils personnalisés.",
-      icon: SmartToyIcon,
-      tool: 'coach',
-      color: 'secondary',
-    },
-    {
-      title: 'Bloc-notes',
-      description: 'Capture tes idées par molécule et garde une trace de ta progression.',
-      icon: EditNoteIcon,
-      tool: 'notes',
-      color: 'info',
-    },
-  ];
+  const { t } = useI18n();
+
+  const toolboxTiles = React.useMemo(
+    () => [
+      {
+        title: t('dashboard.toolbox.tiles.coach.title'),
+        description: t('dashboard.toolbox.tiles.coach.description'),
+        icon: SmartToyIcon,
+        tool: 'coach',
+        color: 'secondary',
+      },
+      {
+        title: t('dashboard.toolbox.tiles.notes.title'),
+        description: t('dashboard.toolbox.tiles.notes.description'),
+        icon: EditNoteIcon,
+        tool: 'notes',
+        color: 'info',
+      },
+    ],
+    [t]
+  );
 
   const openTool = (tool, expand = false) => {
     if (typeof window === 'undefined') return;
@@ -106,11 +113,11 @@ const DashboardPage = () => {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
-          Bienvenue dans Nanshe
+          {t('dashboard.welcomeTitle')}
         </Typography>
         <DashboardHeader />
         <Typography variant="body1" color="text.secondary">
-          Retrouve ici un aperçu rapide de ta progression et de tes capsules en cours.
+          {t('dashboard.welcomeDescription')}
         </Typography>
       </Box>
 
@@ -120,22 +127,26 @@ const DashboardPage = () => {
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} md={4}>
             <StatCard
-              title="Temps d'étude total"
+              title={t('dashboard.stats.totalStudy')}
               value={Math.round((stats?.total_study_time_seconds ?? 0) / 60)}
-              suffix="min"
+              suffix={t('dashboard.stats.minutes')}
             />
           </Grid>
           <Grid item xs={12} md={4}>
             <StatCard
-              title="Streak actuel"
+              title={t('dashboard.stats.currentStreak')}
               value={stats?.current_streak_days ?? 0}
-              suffix={stats?.current_streak_days > 1 ? 'jours' : 'jour'}
+              suffix={
+                (stats?.current_streak_days ?? 0) > 1
+                  ? t('dashboard.stats.dayPlural')
+                  : t('dashboard.stats.daySingular')
+              }
             />
           </Grid>
           <Grid item xs={12} md={4}>
             <Paper elevation={3} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
               <Typography variant="subtitle2" color="text.secondary">
-                Besoin d'une nouvelle capsule ?
+                {t('dashboard.stats.catalogTitle')}
               </Typography>
               <Button
                 fullWidth
@@ -144,7 +155,7 @@ const DashboardPage = () => {
                 to="/capsules"
                 sx={{ mt: 2 }}
               >
-                Explorer le catalogue
+                {t('dashboard.stats.catalogButton')}
               </Button>
             </Paper>
           </Grid>
@@ -153,10 +164,10 @@ const DashboardPage = () => {
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, mt: 2 }}>
         <Typography variant="h5" fontWeight="bold">
-          Boîte à outils IA
+          {t('dashboard.toolbox.title')}
         </Typography>
         <Button component={RouterLink} to="/toolbox" size="small">
-          Voir tous les outils
+          {t('dashboard.toolbox.viewAll')}
         </Button>
       </Box>
 
@@ -204,14 +215,14 @@ const DashboardPage = () => {
                   color={tile.color}
                   onClick={() => openTool(tile.tool, true)}
                 >
-                  Ouvrir en modal
+                  {t('dashboard.toolbox.openModal')}
                 </Button>
                 <Button
                   variant="outlined"
                   color={tile.color}
                   onClick={() => openTool(tile.tool, false)}
                 >
-                  Ouvrir en pop-up
+                  {t('dashboard.toolbox.openPopup')}
                 </Button>
               </Stack>
             </Paper>
@@ -221,10 +232,10 @@ const DashboardPage = () => {
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h5" fontWeight="bold">
-          Mes capsules
+          {t('dashboard.capsules.title')}
         </Typography>
         <Button component={RouterLink} to="/library" size="small">
-          Voir la bibliothèque
+          {t('dashboard.capsules.viewLibrary')}
         </Button>
       </Box>
 
@@ -241,10 +252,10 @@ const DashboardPage = () => {
       ) : (
         <Paper sx={{ p: 3, borderRadius: 3 }} variant="outlined">
           <Typography variant="body1" gutterBottom>
-            Aucune capsule active pour le moment.
+            {t('dashboard.capsules.empty')}
           </Typography>
           <Button variant="contained" component={RouterLink} to="/capsules">
-            Découvrir les capsules
+            {t('dashboard.capsules.cta')}
           </Button>
         </Paper>
       )}

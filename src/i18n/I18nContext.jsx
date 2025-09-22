@@ -20,11 +20,31 @@ export function I18nProvider({ children, defaultLang = 'fr' }) {
   }, [language]);
 
   const t = useMemo(
-    () => (path, fallback) => {
+    () => (path, arg, fallback) => {
+      let replacements = null;
+      let fallbackValue = fallback;
+
+      if (arg && typeof arg === 'object' && !Array.isArray(arg)) {
+        replacements = arg;
+      } else if (typeof arg === 'string') {
+        fallbackValue = arg;
+      }
+
       const keys = path.split('.');
       let value = dictionaries[language];
       for (const key of keys) value = value?.[key];
-      return value ?? fallback ?? path;
+
+      if (value == null) {
+        value = fallbackValue ?? path;
+      }
+
+      if (replacements && typeof value === 'string') {
+        Object.entries(replacements).forEach(([token, replacement]) => {
+          value = value.replace(new RegExp(`{{\\s*${token}\\s*}}`, 'g'), String(replacement));
+        });
+      }
+
+      return value;
     },
     [language]
   );

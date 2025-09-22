@@ -7,6 +7,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import apiClient from '../../../api/axiosConfig';
 import { useWebSocket } from '../../../contexts/WebSocketProvider'; // On importe le hook du contexte
+import { useI18n } from '../../../i18n/I18nContext';
 
 const fetchUnreadCount = async () => {
   const { data } = await apiClient.get('/notifications/unread-count');
@@ -24,6 +25,7 @@ const NotificationBell = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const { lastMessage } = useWebSocket(); // On utilise le message du contexte
+  const { t } = useI18n();
 
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['notifications', 'unread-count'],
@@ -103,9 +105,9 @@ const NotificationBell = () => {
         sx={{ '& .MuiPaper-root': { width: 360, maxHeight: 460, borderRadius: 2, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' } }}
       >
         <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="subtitle1" fontWeight={600}>Notifications</Typography>
+          <Typography variant="subtitle1" fontWeight={600}>{t('notifications.title')}</Typography>
           <Button size="small" startIcon={<CheckIcon />} onClick={() => markAllMutation.mutate()} disabled={markAllMutation.isLoading || unreadCount === 0}>
-            Tout marquer lu
+            {t('notifications.markAll')}
           </Button>
         </Box>
         <Divider />
@@ -114,7 +116,7 @@ const NotificationBell = () => {
         ) : notifications.length === 0 ? (
           <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
             <HourglassEmptyIcon sx={{ fontSize: 32, mb: 1 }} />
-            <Typography component="span" variant="body2">Pas de notifications pour le moment.</Typography>
+            <Typography component="span" variant="body2">{t('notifications.empty')}</Typography>
           </Box>
         ) : (
           <List dense sx={{ maxHeight: 360, overflowY: 'auto' }}>

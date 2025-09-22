@@ -12,14 +12,18 @@ import {
 } from '@mui/material';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import apiClient from '../../../api/axiosConfig';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const fetchBadges = async () => {
   const { data } = await apiClient.get('/badges');
   return data;
 };
 
-const BadgeCard = ({ badge, isUnlocked, awardedAt }) => (
-  <Paper
+const BadgeCard = ({ badge, isUnlocked, awardedAt }) => {
+  const { t } = useI18n();
+
+  return (
+    <Paper
     elevation={isUnlocked ? 6 : 1}
     sx={{
       p: 3,
@@ -55,15 +59,23 @@ const BadgeCard = ({ badge, isUnlocked, awardedAt }) => (
           <Chip label={badge.category} size="small" color={isUnlocked ? 'success' : 'default'} />
           <Chip label={`${badge.points} pts`} size="small" variant="outlined" />
           {isUnlocked && awardedAt && (
-            <Chip label={`Débloqué le ${new Date(awardedAt).toLocaleDateString()}`} size="small" variant="outlined" />
+            <Chip
+              label={t('badgesPage.unlockedOn', {
+                date: new Date(awardedAt).toLocaleDateString(),
+              })}
+              size="small"
+              variant="outlined"
+            />
           )}
         </Stack>
       </Box>
     </Stack>
   </Paper>
-);
+  );
+};
 
 const BadgesPage = () => {
+  const { t } = useI18n();
   const { data, isLoading, isError } = useQuery({ queryKey: ['badges'], queryFn: fetchBadges });
 
   if (isLoading) {
@@ -83,7 +95,7 @@ const BadgesPage = () => {
   if (isError) {
     return (
       <Container maxWidth="lg" sx={{ py: 6 }}>
-        <Typography color="error">Impossible de charger les badges pour le moment.</Typography>
+        <Typography color="error">{t('badgesPage.error')}</Typography>
       </Container>
     );
   }
@@ -99,10 +111,10 @@ const BadgesPage = () => {
     <Container maxWidth="lg" sx={{ py: 6 }}>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight={700} gutterBottom>
-          🎖️ Tableau des badges
+          {t('badgesPage.title')}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Débloquez des distinctions en explorant la plateforme, en créant des capsules et en maîtrisant vos leçons.
+          {t('badgesPage.subtitle')}
         </Typography>
       </Box>
 

@@ -6,6 +6,7 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import TravelExploreIcon from '@mui/icons-material/TravelExplore';
 import BuildIcon from '@mui/icons-material/Build';
 import { useWebSocket } from '../../../contexts/WebSocketProvider'; // On importe le hook du contexte
+import { useI18n } from '../../../i18n/I18nContext';
 
 const iconMap = {
   trophy: <EmojiEventsIcon />,
@@ -27,6 +28,7 @@ const popIn = keyframes`
 `;
 
 function Toast({ open, onClose, badge, awardedAt, rewardXp, title }) {
+  const { t } = useI18n();
   // ... (Le code de ce sous-composant ne change pas)
   return (
     <Slide direction="up" in={open} mountOnEnter unmountOnExit onExited={onClose}>
@@ -45,7 +47,7 @@ function Toast({ open, onClose, badge, awardedAt, rewardXp, title }) {
           {iconMap[badge?.icon] || <EmojiEventsIcon />}
         </Avatar>
         <Box>
-          <Typography variant="overline" sx={{ opacity: 0.8 }}>Haut fait déverrouillé</Typography>
+          <Typography variant="overline" sx={{ opacity: 0.8 }}>{t('notifications.toast.unlocked')}</Typography>
           <Typography variant="subtitle1" fontWeight={700}>{badge?.name}</Typography>
           <Typography variant="body2" color="text.secondary">{badge?.description}</Typography>
           {(rewardXp || title) && (

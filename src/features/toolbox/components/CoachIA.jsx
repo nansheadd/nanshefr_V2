@@ -1,7 +1,7 @@
 // src/features/toolbox/components/CoachIA.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
 import {
   Box,
@@ -10,13 +10,13 @@ import {
   TextField,
   IconButton,
   Typography,
-  CircularProgress,
   Avatar,
   Fade,
   Chip,
   Divider,
   Alert,
   Tooltip,
+  LinearProgress,
 } from '@mui/material';
 import { styled, alpha, keyframes } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
@@ -25,6 +25,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import CloseIcon from '@mui/icons-material/Close';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
+import BoltIcon from '@mui/icons-material/Bolt';
 
 const logoSrc = '/logo192.png';
 
@@ -147,6 +148,31 @@ const TypingIndicator = styled(Box)(({ theme }) => ({
 }));
 
 const askCoachAPI = (payload) => apiClient.post('/toolbox/coach', payload).then((res) => res.data);
+const fetchCoachEnergy = () => apiClient.get('/toolbox/coach/energy').then((res) => res.data);
+
+const formatDuration = (seconds) => {
+  if (seconds == null) return '';
+  const totalSeconds = Math.max(0, Math.round(seconds));
+  if (totalSeconds < 60) {
+    return `${totalSeconds || 1} s`;
+  }
+  const totalMinutes = Math.round(totalSeconds / 60);
+  if (totalMinutes < 60) {
+    return `${totalMinutes} min`;
+  }
+  const totalHours = Math.round(totalMinutes / 60);
+  if (totalHours < 24) {
+    return `${totalHours} h`;
+  }
+  const totalDays = Math.round(totalHours / 24);
+  return `${totalDays} j`;
+};
+
+const formatEnergyValue = (value) => {
+  if (value == null) return '0';
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+};
 
 const ChatMessage = ({ author, message }) => {
   const isUser = author === 'user';
@@ -209,12 +235,121 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const chatEndRef = useRef(null);
   const chatWindowRef = useRef(null);
 
+  const queryClient = useQueryClient();
+  const {
+    data: energy,
+    isLoading: isEnergyLoading,
+    isFetching: isEnergyFetching,
+    refetch: refetchEnergy,
+  } = useQuery({
+    queryKey: ['coach-energy'],
+    queryFn: fetchCoachEnergy,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+
   const mutation = useMutation({
     mutationFn: askCoachAPI,
     onSuccess: (data) => {
       setMessages((prev) => [...prev, { author: 'ia', message: data.response }]);
+      queryClient.setQueryData(['coach-energy'], data.energy);
+      setInfoBanner(null);
+    },
+    onError: (error) => {
+      const detail = error?.response?.data?.detail;
+      if (detail?.code === 'coach_energy_depleted') {
+        const status = detail.energy;
+        queryClient.setQueryData(['coach-energy'], status);
+        setMessages((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
+        const waitDuration = formatDuration(status?.seconds_until_next_message);
+        setInfoBanner({
+          severity: 'warning',
+          message: `⚡ Énergie épuisée. ${waitDuration ? `Prochain message dans ${waitDuration}.` : 'Réessaie un peu plus tard.'}`,
+        });
+      } else {
+        setInfoBanner({ severity: 'error', message: 'Le coach est momentanément indisponible.' });
+      }
     },
   });
+
+  const energyStatus = energy;
+
+  const renderEnergyGauge = () => {
+    if (isEnergyLoading && !energyStatus) {
+      return (
+        <Box sx={{ mt: 2 }}>
+          <LinearProgress variant="indeterminate" sx={{ height: 6, borderRadius: 3 }} />
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            Chargement de l'énergie du coach...
+          </Typography>
+        </Box>
+      );
+    }
+
+    if (!energyStatus) {
+      return null;
+    }
+
+    if (energyStatus.is_unlimited) {
+      return (
+        <Chip
+          icon={<BoltIcon fontSize="small" />}
+          label="Énergie illimitée"
+          color="success"
+          size="small"
+          sx={{ mt: 2, alignSelf: 'flex-start', fontWeight: 600 }}
+        />
+      );
+    }
+
+    const percentage = Math.max(0, Math.min(100, Math.round((energyStatus.percentage || 0) * 100)));
+    const messageCost = energyStatus.message_cost || 1;
+    const availableMessages = Math.max(0, Math.floor(energyStatus.current / messageCost));
+    const nextBonus = energyStatus.seconds_until_next_message && energyStatus.seconds_until_next_message > 0
+      ? `+1 message dans ${formatDuration(energyStatus.seconds_until_next_message)}`
+      : 'Prêt pour un nouveau message';
+
+    return (
+      <Box sx={{ mt: 2 }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+            Énergie du coach
+          </Typography>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <BoltIcon sx={{ fontSize: 14 }} />
+            <Typography variant="caption" color="text.secondary">
+              {`${availableMessages} message${availableMessages > 1 ? 's' : ''}`}
+            </Typography>
+          </Stack>
+        </Stack>
+        <LinearProgress
+          variant="determinate"
+          value={percentage}
+          sx={{
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08),
+            '& .MuiLinearProgress-bar': {
+              borderRadius: 4,
+              backgroundColor: (theme) => {
+                if (percentage <= 20) return theme.palette.error.main;
+                if (percentage <= 50) return theme.palette.warning.main;
+                return theme.palette.primary.main;
+              },
+            },
+          }}
+        />
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 0.5 }}>
+          <Typography variant="caption" color="text.secondary">
+            {`${formatEnergyValue(energyStatus.current)} / ${formatEnergyValue(energyStatus.max)} ⚡`}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {isEnergyFetching ? 'Recharge en cours…' : nextBonus}
+          </Typography>
+        </Stack>
+      </Box>
+    );
+  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -240,7 +375,7 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
       document.body.style.cursor = '';
 
       if (!text) {
-        setInfoBanner({ severity: 'warning', message: "Sélection vide. Cliquez sur un passage de cours." });
+        setInfoBanner({ severity: 'warning', message: t('coach.agent.noSelection') });
         return;
       }
 
@@ -261,9 +396,30 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
     };
   }, [isAgentMode, location.pathname]);
 
- const sendMessage = (text, extra = {}) => {
+  const sendMessage = (text, extra = {}) => {
     const trimmed = text?.trim();
-    if (!trimmed) return;
+    if (!trimmed || mutation.isPending) return;
+
+    if (isEnergyLoading) {
+      setInfoBanner({ severity: 'info', message: "Chargement de ton énergie..." });
+      return;
+    }
+
+    if (!energy) {
+      refetchEnergy();
+      setInfoBanner({ severity: 'info', message: "Chargement de ton énergie..." });
+      return;
+    }
+
+    const messageCost = energy?.message_cost ?? 1;
+    if (!energy.is_unlimited && energy.current < messageCost) {
+      const waitDuration = formatDuration(energy.seconds_until_next_message);
+      setInfoBanner({
+        severity: 'warning',
+        message: `⚡ Plus d'énergie disponible. ${waitDuration ? `Prochain message dans ${waitDuration}.` : 'Patiente un instant avant de réessayer.'}`,
+      });
+      return;
+    }
 
     setInfoBanner(null);
     const context = { path: location.pathname, ...params };
@@ -290,9 +446,7 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
       setIsAgentMode((prev) => !prev);
       setInfoBanner({
         severity: 'info',
-        message: !isAgentMode
-          ? 'Mode agent activé : clique sur un élément du cours pour en discuter avec le coach.'
-          : 'Mode agent désactivé.',
+        message: !isAgentMode ? t('coach.agent.enabled') : t('coach.agent.disabled'),
       });
       return;
     }
@@ -311,7 +465,7 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
           : null,
       });
       if (!lessonText) {
-        setInfoBanner({ severity: 'warning', message: "Impossible de trouver le contenu du chapitre." });
+        setInfoBanner({ severity: 'warning', message: t('coach.errors.lessonNotFound') });
       }
       return;
     }
@@ -380,6 +534,7 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
             )}
           </Stack>
         </Stack>
+        {renderEnergyGauge()}
         <Divider sx={{ mt: 2, opacity: 0.5 }} />
         {infoBanner && (
           <Alert severity={infoBanner.severity} sx={{ mt: 2 }} onClose={() => setInfoBanner(null)}>

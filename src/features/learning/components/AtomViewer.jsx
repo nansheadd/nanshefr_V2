@@ -15,6 +15,14 @@ import LiveCodeExecutorAtom from './atoms/LiveCodeExecutorAtom';
 import CodeSandboxAtom from './atoms/CodeSandboxAtom';
 import CodeProjectBriefAtom from './atoms/CodeProjectBriefAtom';
 import XpRewardOverlay from './XpRewardOverlay';
+import ShortAnswerAtom from './atoms/ShortAnswerAtom';
+import FillInBlankAtom from './atoms/FillInBlankAtom';
+import TrueFalseAtom from './atoms/TrueFalseAtom';
+import MatchingAtom from './atoms/MatchingAtom';
+import OrderingAtom from './atoms/OrderingAtom';
+import FlashcardsAtom from './atoms/FlashcardsAtom';
+import CategorizationAtom from './atoms/CategorizationAtom';
+import DiagramCompletionAtom from './atoms/DiagramCompletionAtom';
 
 const AtomViewer = ({ atoms }) => {
   const theme = useTheme();
@@ -49,6 +57,41 @@ const AtomViewer = ({ atoms }) => {
           bgGradient: 'linear-gradient(135deg, #3b82f615 0%, #2563eb15 100%)',
           label: 'Challenge'
         };
+      case 'short_answer':
+        return {
+          icon: <QuizIcon />,
+          color: '#0ea5e9',
+          bgGradient: 'linear-gradient(135deg, #0ea5e915 0%, #0284c715 100%)',
+          label: 'Réponse courte',
+        };
+      case 'fill_in_the_blank':
+        return {
+          icon: <QuizIcon />,
+          color: '#f97316',
+          bgGradient: 'linear-gradient(135deg, #f9731615 0%, #ea580c15 100%)',
+          label: 'Texte à trous',
+        };
+      case 'true_false':
+        return {
+          icon: <QuizIcon />,
+          color: '#6366f1',
+          bgGradient: 'linear-gradient(135deg, #6366f115 0%, #4f46e515 100%)',
+          label: 'Vrai / Faux',
+        };
+      case 'matching':
+        return {
+          icon: <QuizIcon />,
+          color: '#8b5cf6',
+          bgGradient: 'linear-gradient(135deg, #8b5cf615 0%, #6d28d915 100%)',
+          label: 'Appariement',
+        };
+      case 'ordering':
+        return {
+          icon: <QuizIcon />,
+          color: '#ec4899',
+          bgGradient: 'linear-gradient(135deg, #ec489915 0%, #db277715 100%)',
+          label: 'Ordonnancement',
+        };
       case 'live_code_executor':
         return {
           icon: <ExtensionIcon />,
@@ -69,6 +112,27 @@ const AtomViewer = ({ atoms }) => {
           color: '#f97316',
           bgGradient: 'linear-gradient(135deg, #f9731615 0%, #ea580c15 100%)',
           label: 'Projet'
+        };
+      case 'flashcards':
+        return {
+          icon: <LessonIcon />,
+          color: '#22c55e',
+          bgGradient: 'linear-gradient(135deg, #22c55e15 0%, #15803d15 100%)',
+          label: 'Flashcards',
+        };
+      case 'categorization':
+        return {
+          icon: <QuizIcon />,
+          color: '#c084fc',
+          bgGradient: 'linear-gradient(135deg, #c084fc15 0%, #a855f715 100%)',
+          label: 'Catégorisation',
+        };
+      case 'diagram_completion':
+        return {
+          icon: <QuizIcon />,
+          color: '#0ea5e9',
+          bgGradient: 'linear-gradient(135deg, #0ea5e915 0%, #0284c715 100%)',
+          label: 'Compléter le schéma',
         };
       default:
         return {
@@ -321,6 +385,16 @@ const AtomViewer = ({ atoms }) => {
                       return <LessonAtom atom={atom} onReward={triggerReward} />;
                     case 'quiz':
                       return <QuizAtom atom={atom} onReward={triggerReward} />;
+                    case 'short_answer':
+                      return <ShortAnswerAtom atom={atom} onReward={triggerReward} />;
+                    case 'fill_in_the_blank':
+                      return <FillInBlankAtom atom={atom} onReward={triggerReward} />;
+                    case 'true_false':
+                      return <TrueFalseAtom atom={atom} onReward={triggerReward} />;
+                    case 'matching':
+                      return <MatchingAtom atom={atom} onReward={triggerReward} />;
+                    case 'ordering':
+                      return <OrderingAtom atom={atom} onReward={triggerReward} />;
                     case 'code_example':
                       return <CodeExampleAtom atom={atom} />;
                     case 'code_challenge':
@@ -331,6 +405,12 @@ const AtomViewer = ({ atoms }) => {
                       return <CodeSandboxAtom atom={atom} />;
                     case 'code_project_brief':
                       return <CodeProjectBriefAtom atom={atom} />;
+                    case 'flashcards':
+                      return <FlashcardsAtom atom={atom} onReward={triggerReward} />;
+                    case 'categorization':
+                      return <CategorizationAtom atom={atom} onReward={triggerReward} />;
+                    case 'diagram_completion':
+                      return <DiagramCompletionAtom atom={atom} onReward={triggerReward} />;
                     default:
                       return (
                         <Box 
