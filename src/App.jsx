@@ -18,6 +18,9 @@ import LessonComponent from './features/learning/components/LessonComponent';
 import CapsuleDetail from './features/capsules/components/CapsuleDetail';
 import MoleculePage from './features/learning/pages/MoleculePage';
 import ToolboxHubPage from './features/toolbox/pages/ToolboxHubPage';
+import ChatLayout from './features/chat/components/ChatLayout';
+import GeneralChatPage from './features/chat/pages/GeneralChatPage';
+import DomainChatPage from './features/chat/pages/DomainChatPage';
 
 
 
@@ -167,6 +170,10 @@ export default function App() {
           <Route path="/premium" element={<SubscriptionPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/toolbox" element={<ToolboxHubPage />} />
+          <Route path="/chat" element={<ChatLayout />}>
+            <Route index element={<GeneralChatPage />} />
+            <Route path="domain/:domainId" element={<DomainChatPage />} />
+          </Route>
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Route>
