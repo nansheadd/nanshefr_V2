@@ -9,7 +9,12 @@
     "soon": "Coming soon",
     "cancel": "Cancel"
   },
-  "nav": { "login": "Login", "signup": "Sign up" },
+  "nav": {
+    "login": "Login",
+    "signup": "Sign up",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
   "auth": {
     "loginTitle": "Login",
     "signupTitle": "Sign up",

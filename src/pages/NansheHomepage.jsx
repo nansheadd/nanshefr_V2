@@ -15,7 +15,8 @@ const capsuleKeys = ['japanese', 'design', 'biology', 'python', 'dataScience', '
 export default function NansheHomepage() {
   const [typed, setTyped] = useState('');
   const [showAuth, setShowAuth] = useState(false);
-  const [authTab] = useState('login');
+  const [authTab, setAuthTab] = useState('login');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { t, language, setLanguage } = useI18n();
   const theme = useTheme();
@@ -40,7 +41,14 @@ export default function NansheHomepage() {
 
   return (
     <div className={clsx(styles.container, isDark ? styles.dark : styles.light)}>
-      <AuthDialog open={showAuth} defaultTab={authTab} onClose={() => setShowAuth(false)} />
+      <AuthDialog
+        open={showAuth}
+        defaultTab={authTab}
+        onClose={() => {
+          setShowAuth(false);
+          setMobileMenuOpen(false);
+        }}
+      />
 
       
 
@@ -48,10 +56,21 @@ export default function NansheHomepage() {
       <nav className={styles.nav}>
         <div className={styles.navInner}>
           <div className={styles.brandRow}>
-            <img src="/logo192.png" alt="Nanshe" className={styles.navLogo} />
-            <h1 className={clsx(styles.h1, styles.gradientText)}>Nanshe</h1>
+            <div className={styles.brandIdentity}>
+              <img src="/logo192.png" alt="Nanshe" className={styles.navLogo} />
+              <h1 className={clsx(styles.h1, styles.gradientText)}>Nanshe</h1>
+            </div>
+            <button
+              type="button"
+              className={styles.menuToggle}
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              aria-expanded={mobileMenuOpen}
+              aria-label={mobileMenuOpen ? t('nav.closeMenu', 'Fermer le menu') : t('nav.openMenu', 'Ouvrir le menu')}
+            >
+              {mobileMenuOpen ? '✕' : '☰'}
+            </button>
           </div>
-          <div className={styles.navControls}>
+          <div className={clsx(styles.navControls, mobileMenuOpen && styles.navControlsOpen)}>
             {/* Langue */}
             <select
               className={styles.langSelect}
@@ -69,10 +88,24 @@ export default function NansheHomepage() {
             </button>
 
             {/* Actions */}
-            <button className={styles.ghostBtn} onClick={() => setShowAuth(true)}>
+            <button
+              className={styles.ghostBtn}
+              onClick={() => {
+                setAuthTab('login');
+                setShowAuth(true);
+                setMobileMenuOpen(false);
+              }}
+            >
               {t('nav.login')}
             </button>
-            <button className={clsx(styles.button, styles.buttonPrimary)} onClick={() => setShowAuth(true)}>
+            <button
+              className={clsx(styles.button, styles.buttonPrimary)}
+              onClick={() => {
+                setAuthTab('signup');
+                setShowAuth(true);
+                setMobileMenuOpen(false);
+              }}
+            >
               {t('nav.signup')}
             </button>
           </div>
@@ -88,7 +121,14 @@ export default function NansheHomepage() {
             </h2>
             <p className={styles.heroSubtitle}>{t('hero.subtitle')}</p>
             <div className={styles.ctaRow}>
-              <button className={clsx(styles.button, styles.buttonPrimary)} onClick={() => setShowAuth(true)}>
+              <button
+                className={clsx(styles.button, styles.buttonPrimary)}
+                onClick={() => {
+                  setAuthTab('signup');
+                  setShowAuth(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
                 {t('hero.cta1')} →
               </button>
               <button className={styles.buttonOutline}>
@@ -173,7 +213,14 @@ export default function NansheHomepage() {
             {t('cta.ready')} <span className={styles.gradientText}>{t('cta.readyGradient')}</span> ?
           </h3>
           <p className={styles.ctaSubtitle}>{t('cta.subtitle')}</p>
-          <button className={clsx(styles.button, styles.buttonPrimary, styles.buttonBig)} onClick={() => setShowAuth(true)}>
+          <button
+            className={clsx(styles.button, styles.buttonPrimary, styles.buttonBig)}
+            onClick={() => {
+              setAuthTab('signup');
+              setShowAuth(true);
+              setMobileMenuOpen(false);
+            }}
+          >
             {t('cta.button')}
           </button>
         </div>

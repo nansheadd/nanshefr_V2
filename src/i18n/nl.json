@@ -9,7 +9,12 @@
     "soon": "Binnenkort",
     "cancel": "Annuleren"
   },
-  "nav": { "login": "Inloggen", "signup": "Aanmelden" },
+  "nav": {
+    "login": "Inloggen",
+    "signup": "Aanmelden",
+    "openMenu": "Menu openen",
+    "closeMenu": "Menu sluiten"
+  },
   "auth": {
     "loginTitle": "Inloggen",
     "signupTitle": "Aanmelden",

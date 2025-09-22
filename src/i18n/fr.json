@@ -9,7 +9,12 @@
     "soon": "Bientôt",
     "cancel": "Annuler"
   },
-  "nav": { "login": "Se connecter", "signup": "S'inscrire" },
+  "nav": {
+    "login": "Se connecter",
+    "signup": "S'inscrire",
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu"
+  },
   "auth": {
     "loginTitle": "Se connecter",
     "signupTitle": "S'inscrire",

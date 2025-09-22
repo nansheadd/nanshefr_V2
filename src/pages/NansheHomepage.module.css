@@ -101,6 +101,23 @@
 .navInner { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
 .navLogo { width: 40px; height: 40px; }
 .navControls { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.brandIdentity { display: flex; align-items: center; gap: .8rem; }
+.menuToggle {
+  display: none;
+  background: var(--chip);
+  border: 1px solid var(--card-border);
+  color: var(--fg);
+  border-radius: 12px;
+  padding: .5rem .75rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: opacity .2s ease;
+}
+.menuToggle:hover { opacity: .85; }
+.menuToggle:focus-visible {
+  outline: 2px solid var(--accent2);
+  outline-offset: 2px;
+}
 .langSelect {
   padding: .5rem 1rem;
   border-radius: 8px;
@@ -257,9 +274,23 @@
 @media (max-width: 768px) {
   .nav { padding: 1rem 1.25rem; }
   .navInner { flex-direction: column; align-items: stretch; gap: 1rem; }
-  .brandRow { justify-content: space-between; }
+  .brandRow { justify-content: space-between; width: 100%; }
+  .menuToggle { display: inline-flex; align-items: center; justify-content: center; margin-left: auto; }
   .h1 { font-size: 1.75rem; }
-  .navControls { flex-direction: column; align-items: stretch; gap: .75rem; width: 100%; }
+  .navControls {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .75rem;
+    width: 100%;
+    padding: 1rem;
+    background: var(--card);
+    background: color-mix(in srgb, var(--card) 85%, transparent);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.15);
+  }
+  .navControlsOpen { display: flex; }
   .navControls button,
   .navControls select { width: 100%; }
   .langSelect { width: 100%; }
@@ -306,7 +337,9 @@
 
 @media (max-width: 430px) {
   .navInner { align-items: stretch; }
-  .brandRow { flex-direction: column; align-items: flex-start; gap: .5rem; }
+  .brandRow { flex-direction: row; align-items: center; gap: .5rem; }
+  .brandIdentity { flex-direction: column; align-items: flex-start; gap: .35rem; }
+  .menuToggle { align-self: flex-start; }
   .h1 { font-size: 1.5rem; }
   .navControls { align-items: stretch; }
   .hero { padding: 12rem .85rem 0; }
