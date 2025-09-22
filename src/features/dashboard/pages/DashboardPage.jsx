@@ -1,13 +1,13 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Container, Typography, Grid, Paper, Button, CircularProgress, Chip, Stack } from '@mui/material';
+import { Box, Container, Typography, Grid, Paper, Button, CircularProgress, Stack } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import apiClient from '../../../api/axiosConfig';
 import DashboardHeader from '../components/DashboardHeader';
-import CapsuleProgressBar from '../../capsules/components/CapsuleProgressBar';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import { useI18n } from '../../../i18n/I18nContext';
+import DashboardCapsuleBoard from '../components/DashboardCapsuleBoard';
 
 const fetchStats = async () => {
   const { data } = await apiClient.get('/progress/stats');
@@ -34,38 +34,6 @@ const StatCard = ({ title, value, suffix }) => (
     </Typography>
   </Paper>
 );
-
-const CapsuleCard = ({ capsule }) => {
-  const { t } = useI18n();
-  const xpTarget = capsule.xp_target ?? 60000;
-  const xpCurrent = capsule.user_xp ?? 0;
-
-  return (
-    <Paper
-      variant="outlined"
-      sx={{ p: 2.5, borderRadius: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}
-    >
-      <Typography variant="h6" fontWeight="bold">
-        {capsule.title}
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        {t('dashboard.capsules.domainLabel')}: {capsule.domain} — {t('dashboard.capsules.areaLabel')}: {capsule.area}
-      </Typography>
-      <Chip label={capsule.main_skill} color="primary" size="small" sx={{ alignSelf: 'flex-start' }} />
-
-      <CapsuleProgressBar current={xpCurrent} target={xpTarget} />
-
-      <Button
-        variant="contained"
-        component={RouterLink}
-        to={`/capsule/${capsule.domain}/${capsule.area}/${capsule.id}/plan`}
-        sx={{ alignSelf: 'flex-start', mt: 1 }}
-      >
-        {t('dashboard.capsules.continue')}
-      </Button>
-    </Paper>
-  );
-};
 
 const DashboardPage = () => {
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -240,15 +208,13 @@ const DashboardPage = () => {
       </Box>
 
       {capsulesLoading ? (
-        <CircularProgress />
+        <Box sx={{ mb: 6 }}>
+          <DashboardCapsuleBoard capsules={[]} isLoading />
+        </Box>
       ) : capsules?.length ? (
-        <Grid container spacing={3}>
-          {capsules.map((capsule) => (
-            <Grid item xs={12} md={6} lg={4} key={capsule.id}>
-              <CapsuleCard capsule={capsule} />
-            </Grid>
-          ))}
-        </Grid>
+        <Box sx={{ mb: 6 }}>
+          <DashboardCapsuleBoard capsules={capsules} />
+        </Box>
       ) : (
         <Paper sx={{ p: 3, borderRadius: 3 }} variant="outlined">
           <Typography variant="body1" gutterBottom>
