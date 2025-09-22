@@ -2,6 +2,8 @@
 @keyframes gradientMove { 0%,100% {background-position:0% 50%} 50% {background-position:100% 50%} }
 @keyframes float { 0%,100% {transform: translateY(0)} 50% {transform: translateY(-20px)} }
 @keyframes pulse { 0%,100% {transform: scale(1); opacity:1} 50% {transform: scale(1.05); opacity:.8} }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 
 /* ===== Theme surfaces via CSS variables ===== */
 .container {
@@ -178,11 +180,211 @@
 .benefitTitle { font-size: 1.4rem; font-weight: 800; margin-bottom: .5rem; }
 .benefitText { opacity: .8; line-height: 1.6; }
 
-.gridCapsules { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
-.capsuleCard { padding: 1.5rem; text-align: center; cursor: pointer; }
-.capsuleEmoji { font-size: 3rem; margin-bottom: .5rem; }
-.capsuleTitle { font-weight: 800; }
-.capsuleMeta { margin-top: .5rem; font-size: .8rem; color: var(--accent2); }
+.capsuleBoard { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 2.5rem; }
+.capsuleCard {
+  position: relative;
+  border-radius: 24px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  overflow: hidden;
+  box-shadow: 0 20px 40px color-mix(in srgb, var(--shadow) 70%, transparent 30%);
+  transition: transform .35s cubic-bezier(.4,0,.2,1), box-shadow .35s cubic-bezier(.4,0,.2,1);
+  --capsuleColor1: var(--accent1);
+  --capsuleColor2: var(--accent2);
+}
+.capsuleCard:hover { transform: translateY(-10px) scale(1.01); box-shadow: 0 28px 60px color-mix(in srgb, var(--shadow) 80%, transparent 20%); }
+.capsuleInner {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  position: relative;
+  height: 320px;
+}
+.capsuleInner::before,
+.capsuleInner::after {
+  content: '';
+  position: absolute;
+  background: var(--card-border);
+  opacity: .4;
+  z-index: 1;
+}
+.capsuleInner::before { width: 1px; left: 50%; top: 0; bottom: 0; }
+.capsuleInner::after { height: 1px; top: 50%; left: 0; right: 0; }
+.capsuleImage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--capsuleColor1), var(--capsuleColor2));
+}
+.capsuleOrb {
+  position: absolute;
+  width: 160%;
+  height: 160%;
+  background: radial-gradient(circle, rgba(255,255,255,.18) 0%, transparent 65%);
+  opacity: .9;
+  animation: spin 20s linear infinite;
+}
+.capsuleIcon {
+  position: relative;
+  font-size: 3rem;
+  z-index: 2;
+  filter: drop-shadow(0 12px 24px rgba(0,0,0,.15));
+}
+.capsuleInfo {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: .75rem;
+  position: relative;
+  z-index: 2;
+}
+.capsuleCategory {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem .85rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: white;
+  background: linear-gradient(135deg, var(--capsuleColor1), var(--capsuleColor2));
+  box-shadow: 0 8px 16px color-mix(in srgb, var(--capsuleColor2) 40%, transparent 60%);
+  width: max-content;
+}
+.capsuleName { margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--fg); line-height: 1.3; }
+.capsuleMetaRow { display: flex; flex-wrap: wrap; gap: .75rem; font-size: .85rem; color: var(--fg-muted); }
+.capsuleMetaItem { display: inline-flex; align-items: center; gap: .35rem; }
+.capsuleChat {
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform .3s ease;
+  z-index: 2;
+}
+.capsuleChat:disabled { cursor: default; opacity: .6; }
+.chatBubble {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform .3s ease, box-shadow .3s ease;
+  box-shadow: 0 18px 36px rgba(6,182,212,.35);
+}
+.capsuleChat:hover .chatBubble { transform: scale(1.08); box-shadow: 0 22px 48px rgba(6,182,212,.45); }
+.capsuleChat:active .chatBubble { transform: scale(1.1) rotate(12deg); }
+.chatIcon { font-size: 2rem; }
+.chatBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #ef4444;
+  color: white;
+  font-weight: 700;
+  font-size: .75rem;
+  animation: pulse 2s infinite;
+}
+.capsuleActions {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  position: relative;
+  z-index: 2;
+}
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--fg-muted);
+}
+.progressValue { font-weight: 700; color: var(--capsuleColor1); }
+.progressBar {
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--capsuleColor1) 12%, transparent 88%);
+  overflow: hidden;
+  position: relative;
+}
+.progressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--capsuleColor1), var(--capsuleColor2));
+  position: relative;
+  transition: width .45s ease;
+  overflow: hidden;
+}
+.progressFill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 2.2s infinite;
+}
+.capsuleButtons { display: flex; gap: .75rem; }
+.capsuleButton {
+  flex: 1;
+  border: none;
+  border-radius: 12px;
+  padding: .75rem 1rem;
+  font-weight: 700;
+  font-size: .9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.capsuleButtonPrimary {
+  color: white;
+  background: linear-gradient(135deg, var(--capsuleColor1), var(--capsuleColor2));
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--capsuleColor2) 35%, transparent 65%);
+}
+.capsuleButtonPrimary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--capsuleColor2) 45%, transparent 55%);
+}
+.capsuleButtonSecondary {
+  background: color-mix(in srgb, var(--chip) 70%, transparent 30%);
+  color: var(--fg);
+  border: 1px solid var(--card-border);
+}
+.capsuleButtonSecondary:hover:not(:disabled) { background: color-mix(in srgb, var(--chip) 85%, transparent 15%); }
+.capsuleButton:disabled { cursor: default; opacity: .6; transform: none; box-shadow: none; }
+.buttonEmoji { font-size: 1.1rem; }
+.capsuleStatusCompleted .capsuleName::before { content: '✅ '; }
+.capsuleStatusCompleted .capsuleButtonPrimary { background: linear-gradient(135deg, #10b981, #14b8a6); box-shadow: 0 14px 28px rgba(16,185,129,.35); }
+.capsuleStatusCompleted .progressValue { color: #10b981; }
+.capsuleStatusLocked { opacity: .65; }
+.capsuleStatusLocked .capsuleInner { pointer-events: none; }
+.capsuleStatusLocked .capsuleButtonPrimary {
+  background: color-mix(in srgb, var(--chip) 70%, transparent 30%);
+  color: var(--fg-muted);
+}
+.capsuleStatusLocked .progressFill { background: color-mix(in srgb, var(--chip) 40%, transparent 60%); }
 
 /* ===== CTA ===== */
 .ctaSection { padding: 6rem 3rem 8rem; text-align: center; }
@@ -240,4 +442,21 @@
 @media (max-width: 980px) {
   .heroInner { grid-template-columns: 1fr; }
   .heroVisual { order: -1; margin-bottom: 1.5rem; }
+  .capsuleInner { height: auto; }
+}
+
+@media (max-width: 768px) {
+  .capsuleBoard { grid-template-columns: 1fr; }
+  .capsuleInner {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, auto);
+    height: auto;
+  }
+  .capsuleInner::before,
+  .capsuleInner::after { display: none; }
+  .capsuleImage { min-height: 160px; }
+  .capsuleChat { padding: 1.5rem 0; }
+  .chatBubble { width: 68px; height: 68px; }
+  .capsuleButtons { flex-direction: column; }
+  .progressHeader { flex-direction: column; align-items: flex-start; gap: .35rem; }
 }

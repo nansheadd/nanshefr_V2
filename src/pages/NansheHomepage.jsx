@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useMemo } from 'react';
 import clsx from 'clsx';
 import { useTheme } from '@mui/material/styles';
 import { ColorModeContext } from '../theme/ColorModeContext';
@@ -9,19 +9,163 @@ import styles from './NansheHomepage.module.css';
 import Footer from '../components/Footer';
 
 
-const capsuleIcons = ['🇯🇵', '🎨', '🧬', '💻', '📊', '🎸', '🧘', '📷'];
-const capsuleKeys = ['japanese', 'design', 'biology', 'python', 'dataScience', 'guitar', 'yoga', 'photo'];
+const capsuleCardsData = [
+  {
+    key: 'japanese',
+    icon: '🇯🇵',
+    categoryKey: 'language',
+    lessons: 12,
+    durationHours: 3,
+    xpCurrent: 2400,
+    xpTarget: 6000,
+    chatIcon: '💬',
+    chatCount: 3,
+    primaryCta: 'continue',
+    primaryIcon: '▶️',
+    secondaryCta: 'details',
+    colors: ['#6366f1', '#a855f7'],
+  },
+  {
+    key: 'design',
+    icon: '🎨',
+    categoryKey: 'design',
+    lessons: 8,
+    durationHours: 2,
+    xpCurrent: 6000,
+    xpTarget: 6000,
+    chatIcon: '💬',
+    primaryCta: 'review',
+    primaryIcon: '🔄',
+    secondaryCta: 'details',
+    colors: ['#ec4899', '#f97316'],
+    status: 'completed',
+  },
+  {
+    key: 'biology',
+    icon: '🧬',
+    categoryKey: 'science',
+    lessons: 10,
+    durationHours: 4,
+    xpCurrent: 1800,
+    xpTarget: 5000,
+    chatIcon: '💬',
+    chatCount: 2,
+    primaryCta: 'resume',
+    primaryIcon: '▶️',
+    secondaryCta: 'details',
+    colors: ['#10b981', '#14b8a6'],
+  },
+  {
+    key: 'python',
+    icon: '💻',
+    categoryKey: 'programming',
+    lessons: 15,
+    durationHours: 5,
+    xpCurrent: 4800,
+    xpTarget: 8000,
+    chatIcon: '🤖',
+    chatCount: 1,
+    primaryCta: 'resume',
+    primaryIcon: '▶️',
+    secondaryCta: 'details',
+    colors: ['#f59e0b', '#ef4444'],
+  },
+  {
+    key: 'dataScience',
+    icon: '📊',
+    categoryKey: 'data',
+    lessons: 10,
+    durationHours: 4,
+    xpCurrent: 800,
+    xpTarget: 5000,
+    chatIcon: '📈',
+    chatCount: 5,
+    primaryCta: 'start',
+    primaryIcon: '▶️',
+    secondaryCta: 'details',
+    colors: ['#06b6d4', '#3b82f6'],
+  },
+  {
+    key: 'guitar',
+    icon: '🎸',
+    categoryKey: 'creative',
+    lessons: 9,
+    durationHours: 3,
+    xpCurrent: 3600,
+    xpTarget: 7000,
+    chatIcon: '🎵',
+    primaryCta: 'resume',
+    primaryIcon: '▶️',
+    secondaryCta: 'details',
+    colors: ['#f97316', '#fb7185'],
+  },
+  {
+    key: 'yoga',
+    icon: '🧘',
+    categoryKey: 'wellness',
+    lessons: 12,
+    durationHours: 6,
+    xpCurrent: 0,
+    xpTarget: 6000,
+    chatIcon: '🔒',
+    primaryCta: 'locked',
+    primaryIcon: '🔒',
+    colors: ['#818cf8', '#6366f1'],
+    status: 'locked',
+  },
+  {
+    key: 'photo',
+    icon: '📷',
+    categoryKey: 'creative',
+    lessons: 7,
+    durationHours: 2.5,
+    xpCurrent: 1200,
+    xpTarget: 4000,
+    chatIcon: '💡',
+    chatCount: 4,
+    primaryCta: 'start',
+    primaryIcon: '▶️',
+    secondaryCta: 'details',
+    colors: ['#a855f7', '#6366f1'],
+  },
+];
 
 export default function NansheHomepage() {
   const [typed, setTyped] = useState('');
-  const [activeTab, setActiveTab] = useState('login');
   const [showAuth, setShowAuth] = useState(false);
-  const [authTab, setAuthTab] = useState('login')
 
   const { t, language, setLanguage } = useI18n();
   const theme = useTheme();
-  const { mode, toggleColorMode } = useContext(ColorModeContext);
+  const { toggleColorMode } = useContext(ColorModeContext);
   const isDark = theme.palette.mode === 'dark'; // ou mode === 'dark'
+
+  const locale = useMemo(() => {
+    switch (language) {
+      case 'en':
+        return 'en-US';
+      case 'nl':
+        return 'nl-NL';
+      default:
+        return 'fr-FR';
+    }
+  }, [language]);
+
+  const integerFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(locale, {
+        maximumFractionDigits: 0,
+      }),
+    [locale],
+  );
+
+  const decimalFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(locale, {
+        maximumFractionDigits: 1,
+        minimumFractionDigits: 0,
+      }),
+    [locale],
+  );
 
   const heroTitle = t('hero.title');
 
@@ -41,7 +185,7 @@ export default function NansheHomepage() {
 
   return (
     <div className={clsx(styles.container, isDark ? styles.dark : styles.light)}>
-      <AuthDialog open={showAuth} defaultTab={authTab} onClose={() => setShowAuth(false)} />
+      <AuthDialog open={showAuth} defaultTab="login" onClose={() => setShowAuth(false)} />
 
       
 
@@ -154,14 +298,99 @@ export default function NansheHomepage() {
             {t('capsules.title')} <span className={styles.gradientText}>{t('capsules.titleGradient')}</span>
           </h3>
           <p className={styles.sectionSubtitle}>{t('capsules.subtitle')}</p>
-          <div className={styles.gridCapsules}>
-            {capsuleKeys.map((key, i) => (
-              <div key={key} className={clsx(styles.card, styles.hoverCard, styles.capsuleCard)}>
-                <div className={styles.capsuleEmoji}>{capsuleIcons[i]}</div>
-                <div className={styles.capsuleTitle}>{t(`capsules.items.${key}`)}</div>
-                <div className={styles.capsuleMeta}>12 {t('common.levels')} • 150+ {t('common.atoms')}</div>
-              </div>
-            ))}
+          <div className={styles.capsuleBoard}>
+            {capsuleCardsData.map((capsule) => {
+              const statusClass = capsule.status
+                ? styles[`capsuleStatus${capsule.status.charAt(0).toUpperCase() + capsule.status.slice(1)}`]
+                : undefined;
+              const styleVars = capsule.colors
+                ? {
+                    '--capsuleColor1': capsule.colors[0],
+                    '--capsuleColor2': capsule.colors[1],
+                  }
+                : undefined;
+              const isLocked = capsule.status === 'locked';
+              const progress = capsule.xpTarget > 0
+                ? Math.min(100, Math.round((capsule.xpCurrent / capsule.xpTarget) * 100))
+                : 0;
+              const xpLabel = t('capsules.card.xpValue', {
+                current: integerFormatter.format(capsule.xpCurrent),
+                target: integerFormatter.format(capsule.xpTarget),
+              });
+              const lessonsLabel = t('capsules.card.lessons', {
+                count: integerFormatter.format(capsule.lessons),
+              });
+              const durationLabel = t('capsules.card.durationHours', {
+                count: decimalFormatter.format(capsule.durationHours),
+              });
+              const primaryLabel = t(`capsules.card.cta.${capsule.primaryCta}`);
+              const secondaryLabel = capsule.secondaryCta
+                ? t(`capsules.card.cta.${capsule.secondaryCta}`)
+                : null;
+
+              return (
+                <div
+                  key={capsule.key}
+                  className={clsx(styles.capsuleCard, statusClass)}
+                  style={styleVars}
+                >
+                  <div className={styles.capsuleInner}>
+                    <div className={styles.capsuleImage}>
+                      <div className={styles.capsuleOrb} />
+                      <span className={styles.capsuleIcon}>{capsule.icon}</span>
+                    </div>
+                    <div className={styles.capsuleInfo}>
+                      <span className={styles.capsuleCategory}>
+                        {t(`capsules.card.categories.${capsule.categoryKey}`)}
+                      </span>
+                      <h4 className={styles.capsuleName}>{t(`capsules.items.${capsule.key}`)}</h4>
+                      <div className={styles.capsuleMetaRow}>
+                        <span className={styles.capsuleMetaItem}>📖 {lessonsLabel}</span>
+                        <span className={styles.capsuleMetaItem}>⏱️ {durationLabel}</span>
+                      </div>
+                    </div>
+                    <button type="button" className={styles.capsuleChat} disabled={isLocked}>
+                      <div className={styles.chatBubble}>
+                        <span className={styles.chatIcon}>{capsule.chatIcon}</span>
+                        {capsule.chatCount != null && (
+                          <span className={styles.chatBadge}>
+                            {integerFormatter.format(capsule.chatCount)}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                    <div className={styles.capsuleActions}>
+                      <div className={styles.progressHeader}>
+                        <span>{t('capsules.card.progressLabel')}</span>
+                        <span className={styles.progressValue}>{xpLabel}</span>
+                      </div>
+                      <div className={styles.progressBar}>
+                        <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+                      </div>
+                      <div className={styles.capsuleButtons}>
+                        <button
+                          type="button"
+                          className={clsx(styles.capsuleButton, styles.capsuleButtonPrimary)}
+                          disabled={isLocked}
+                        >
+                          <span className={styles.buttonEmoji}>{capsule.primaryIcon}</span>
+                          {primaryLabel}
+                        </button>
+                        {secondaryLabel && (
+                          <button
+                            type="button"
+                            className={clsx(styles.capsuleButton, styles.capsuleButtonSecondary)}
+                            disabled={isLocked}
+                          >
+                            {secondaryLabel}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

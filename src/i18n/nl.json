@@ -77,6 +77,29 @@
       "guitar": "Gitaar",
       "yoga": "Yoga",
       "photo": "Fotografie"
+    },
+    "card": {
+      "progressLabel": "Voortgang",
+      "lessons": "{{count}} lessen",
+      "durationHours": "{{count}} u",
+      "xpValue": "{{current}} / {{target}} XP",
+      "categories": {
+        "language": "Taal & Cultuur",
+        "design": "Design & Creativiteit",
+        "science": "Wetenschap",
+        "programming": "Programmeren",
+        "data": "Data & AI",
+        "creative": "Creatieve kunsten",
+        "wellness": "Welzijn"
+      },
+      "cta": {
+        "continue": "Doorgaan",
+        "resume": "Hervatten",
+        "review": "Herhalen",
+        "start": "Starten",
+        "details": "Details",
+        "locked": "Vergrendeld"
+      }
     }
   },
   "cta": {
