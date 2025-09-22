@@ -169,13 +169,23 @@ const DashboardHeader = ({ user }) => {
               }
             }}
           >
-            <MenuItem onClick={handleClose} sx={{ py: 1.5 }}>
+            <MenuItem
+              component={RouterLink}
+              to="/profile"
+              onClick={handleClose}
+              sx={{ py: 1.5 }}
+            >
               <PersonIcon sx={{ mr: 2 }} />
               Mon Profil
             </MenuItem>
-            <MenuItem onClick={handleClose} sx={{ py: 1.5 }}>
+            <MenuItem
+              component={RouterLink}
+              to="/profile"
+              onClick={handleClose}
+              sx={{ py: 1.5 }}
+            >
               <SettingsIcon sx={{ mr: 2 }} />
-              Paramètres
+              Paramètres du compte
             </MenuItem>
             <Divider />
             <MenuItem 

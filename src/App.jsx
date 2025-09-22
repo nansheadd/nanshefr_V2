@@ -33,6 +33,7 @@ import BadgesPage from './features/badges/pages/BadgesPage';
 import SubscriptionPage from './features/premium/pages/SubscriptionPage';
 import PaymentSuccessPage from './features/premium/pages/PaymentSuccessPage';
 import AchievementToast from './features/notifications/components/AchievementToast';
+import ProfilePage from './features/profile/pages/ProfilePage';
 
 import VerifyEmailPage from './features/authentication/pages/VerifyEmailPage';
 import ForgotPasswordPage from './features/authentication/pages/ForgotPasswordPage';
@@ -166,6 +167,7 @@ export default function App() {
           <Route path="/premium" element={<SubscriptionPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/toolbox" element={<ToolboxHubPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Route>
 
