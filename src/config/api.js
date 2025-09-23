@@ -1,6 +1,6 @@
 const DEV_BACKEND_FALLBACK = 'http://localhost:8000';
 const PROD_BACKEND_FALLBACK =
-  'https://nanshe-v2-e3etdk061-nansheadds-projects.vercel.app';
+  'https://nanshe-v2.vercel.app';
 
 const trimTrailingSlashes = (value = '') => value.replace(/\/+$/, '');
 
