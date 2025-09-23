@@ -1,6 +1,17 @@
 const DEV_BACKEND_FALLBACK = 'http://localhost:8000';
+const PROD_BACKEND_FALLBACK =
+  'https://nanshe-v2-e3etdk061-nansheadds-projects.vercel.app';
 
 const trimTrailingSlashes = (value) => value.replace(/\/+$/, '');
+
+const isLocalHostname = (hostname = '') => {
+  if (!hostname) return false;
+  if (hostname === 'localhost' || hostname === '::1') return true;
+  if (/^127(?:\.\d{1,3}){3}$/.test(hostname)) return true;
+  return false;
+};
+
+const isVercelHostname = (hostname = '') => hostname.endsWith('.vercel.app');
 
 const resolveBaseUrl = () => {
   const envValue = import.meta.env?.VITE_API_BASE_URL;
@@ -10,8 +21,12 @@ const resolveBaseUrl = () => {
 
   if (typeof window !== 'undefined' && window.location) {
     const origin = trimTrailingSlashes(window.location.origin);
-    if (/localhost:\d+$/.test(origin)) {
+    const { hostname } = window.location;
+    if (isLocalHostname(hostname)) {
       return DEV_BACKEND_FALLBACK;
+    }
+    if (isVercelHostname(hostname)) {
+      return PROD_BACKEND_FALLBACK;
     }
     return origin;
   }
