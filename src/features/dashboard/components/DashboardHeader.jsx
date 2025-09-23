@@ -23,6 +23,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import PersonIcon from '@mui/icons-material/Person';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import NotificationBell from '../../notifications/components/NotificationBell';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import StarsIcon from '@mui/icons-material/Stars';
@@ -217,6 +218,20 @@ const DashboardHeader = () => {
           >
             Mes Stats
           </Button>
+          <Button
+            variant="outlined"
+            component={RouterLink}
+            to="/feature-votes"
+            startIcon={<HowToVoteIcon />}
+            sx={{
+              borderRadius: 3,
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { transform: 'translateY(-2px)' }
+            }}
+          >
+            Votes Communauté
+          </Button>
           {/* Bouton Badges */}
           <Button
             variant="outlined"
@@ -301,6 +316,17 @@ const DashboardHeader = () => {
               <SettingsIcon sx={{ mr: 2 }} />
               Paramètres du compte
             </MenuItem>
+            {user?.is_superuser && (
+              <MenuItem
+                component={RouterLink}
+                to="/feature-votes/manage"
+                onClick={handleClose}
+                sx={{ py: 1.5 }}
+              >
+                <HowToVoteIcon sx={{ mr: 2 }} />
+                Gérer les votes
+              </MenuItem>
+            )}
             <Divider />
             <MenuItem 
               onClick={() => {

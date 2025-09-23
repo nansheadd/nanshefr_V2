@@ -37,6 +37,8 @@ import SubscriptionPage from './features/premium/pages/SubscriptionPage';
 import PaymentSuccessPage from './features/premium/pages/PaymentSuccessPage';
 import AchievementToast from './features/notifications/components/AchievementToast';
 import ProfilePage from './features/profile/pages/ProfilePage';
+import FeatureVotingPage from './features/featureVotes/pages/FeatureVotingPage';
+import FeatureVoteAdminPage from './features/featureVotes/pages/FeatureVoteAdminPage';
 
 import VerifyEmailPage from './features/authentication/pages/VerifyEmailPage';
 import ForgotPasswordPage from './features/authentication/pages/ForgotPasswordPage';
@@ -170,6 +172,8 @@ export default function App() {
           <Route path="/premium" element={<SubscriptionPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/toolbox" element={<ToolboxHubPage />} />
+          <Route path="/feature-votes" element={<FeatureVotingPage />} />
+          <Route path="/feature-votes/manage" element={<FeatureVoteAdminPage />} />
           <Route path="/chat" element={<ChatLayout />}>
             <Route index element={<GeneralChatPage />} />
             <Route path="domain/:domainId" element={<DomainChatPage />} />
