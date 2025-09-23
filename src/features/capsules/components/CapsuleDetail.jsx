@@ -20,6 +20,9 @@ import {
   Paper,
   Stack,
   Typography,
+  Card,
+  CardContent,
+  LinearProgress,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -28,6 +31,9 @@ import ArticleIcon from '@mui/icons-material/Article';
 import QuizIcon from '@mui/icons-material/Quiz';
 import TopicIcon from '@mui/icons-material/Topic';
 import SchoolIcon from '@mui/icons-material/School';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import LockIcon from '@mui/icons-material/Lock';
 import CapsuleProgressBar from './CapsuleProgressBar';
 import FeedbackButtons from '../../learning/components/FeedbackButtons';
 import CapsuleChatPanel from '../../chat/components/CapsuleChatPanel';
@@ -158,7 +164,7 @@ const CapsuleDetail = () => {
 
   if (isLoading) {
     return (
-      <Container sx={{ py: 6, textAlign: 'center' }}>
+      <Container sx={{ py: 8, textAlign: 'center' }}>
         <CircularProgress size={64} />
       </Container>
     );
@@ -183,244 +189,424 @@ const CapsuleDetail = () => {
   const granules = capsule.granules ?? [];
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          component={RouterLink}
-          to="/capsules"
-          variant="text"
-        >
-          Retour
-        </Button>
-        <Typography variant="h4" fontWeight="bold">
-          {capsule.title}
-        </Typography>
+    <Box sx={{ 
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      pb: 4
+    }}>
+      {/* Header Section */}
+      <Box sx={{ 
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(10px)',
+        py: 4, 
+        mb: 4,
+        borderBottom: '1px solid rgba(0,0,0,0.1)'
+      }}>
+        <Container maxWidth="lg">
+          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+            <Button
+              startIcon={<ArrowBackIcon />}
+              component={RouterLink}
+              to="/capsules"
+              variant="text"
+              sx={{ color: 'text.secondary' }}
+            >
+              Retour
+            </Button>
+          </Stack>
+          
+          <Typography 
+            variant="h3" 
+            fontWeight="300" 
+            sx={{ 
+              mb: 1,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            {capsule.title}
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            {capsule.domain} • {capsule.area}
+          </Typography>
+
+          {/* Progress Stats */}
+          <Grid container spacing={3} sx={{ mt: 3 }}>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h4" fontWeight="600" color="primary.main">
+                  {granules.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">Chapitres</Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h4" fontWeight="600" color="secondary.main">
+                  {granules.reduce((acc, granule) => acc + (granule.molecules?.length || 0), 0)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">Leçons</Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h4" fontWeight="600" color="success.main">
+                  {Math.round(((capsule.user_xp ?? 0) / (capsule.xp_target ?? 60000)) * 100)}%
+                </Typography>
+                <Typography variant="body2" color="text.secondary">Progression</Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </Container>
       </Box>
-      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
-        {capsule.domain} • {capsule.area}
-      </Typography>
 
-      {capsule.generation_status === 'pending' && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Cette capsule est encore en cours de génération. Tu peux commencer la première leçon
-          pendant que le reste se prépare. La page se mettra à jour automatiquement.
-        </Alert>
-      )}
+      <Container maxWidth="lg">
+        {capsule.generation_status === 'pending' && (
+          <Alert 
+            severity="info" 
+            sx={{ 
+              mb: 4, 
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+            }}
+          >
+            Cette capsule est encore en cours de génération. Tu peux commencer la première leçon
+            pendant que le reste se prépare.
+          </Alert>
+        )}
 
-      {infoMessage && (
-        <Alert severity="warning" sx={{ mb: 3 }} onClose={() => setInfoMessage(null)}>
-          {infoMessage}
-        </Alert>
-      )}
+        {infoMessage && (
+          <Alert 
+            severity="warning" 
+            sx={{ mb: 4, borderRadius: 3 }} 
+            onClose={() => setInfoMessage(null)}
+          >
+            {infoMessage}
+          </Alert>
+        )}
 
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2, textAlign: 'center' }}>
-            <SchoolIcon color="primary" sx={{ fontSize: 40 }} />
-            <Typography variant="h5" fontWeight={700}>{granules.length}</Typography>
-            <Typography variant="body2">Chapitres</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2, textAlign: 'center' }}>
-            <TopicIcon color="secondary" sx={{ fontSize: 40 }} />
-            <Typography variant="h5" fontWeight={700}>
-              {granules.reduce((acc, granule) => acc + (granule.molecules?.length || 0), 0)}
-            </Typography>
-            <Typography variant="body2">Leçons</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            <CapsuleProgressBar
-              current={capsule.user_xp ?? 0}
-              target={capsule.xp_target ?? 60000}
-              label="Progression globale"
-            />
-          </Paper>
-        </Grid>
-      </Grid>
+        <Grid container spacing={4}>
+          <Grid item xs={12} lg={8}>
+            <Stack spacing={3}>
+              {granules.length === 0 && (
+                <Card sx={{ borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
+                  <CardContent sx={{ py: 6 }}>
+                    <Alert severity="info" sx={{ border: 'none' }}>
+                      Aucun contenu n'est encore disponible. Revenez un peu plus tard.
+                    </Alert>
+                  </CardContent>
+                </Card>
+              )}
 
-      <Grid container spacing={{ xs: 2, md: 3 }}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: { xs: 2, md: 3 }, height: '100%' }}>
-            <Typography variant="h5" fontWeight={600} gutterBottom>
-              Plan d'apprentissage
-            </Typography>
-
-            {granules.length === 0 && (
-              <Alert severity="info">
-                Aucun contenu n'est encore disponible. Revenez un peu plus tard pendant que la capsule se
-                génère.
-              </Alert>
-            )}
-
-            <List sx={{ mt: 2 }}>
-              {granules.map((granule) => {
+              {granules.map((granule, index) => {
                 const isGranuleExpanded = expandedGranules.has(granule.id);
+                const completedMolecules = granule.molecules?.filter(m => m.progress_status === 'completed').length || 0;
+                const totalMolecules = granule.molecules?.length || 0;
+                
                 return (
-                  <Box key={granule.id} sx={{ mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                    <ListItem onClick={() => toggleGranule(granule.id)} button>
-                      <ListItemIcon><Chip label={`Chap. ${granule.order}`} color="primary" /></ListItemIcon>
-                      <ListItemText primary={granule.title} />
-                      <Chip
-                        label={`${Math.round((granule.xp_percent ?? 0) * 100)}% XP`}
-                        size="small"
-                        color="info"
-                        sx={{ mr: 1 }}
-                      />
-                      <Chip
-                        label={granule.progress_status === 'completed' ? 'Terminé' : granule.progress_status === 'in_progress' ? 'En cours' : 'À faire'}
-                        size="small"
-                        color={granule.progress_status === 'completed' ? 'success' : granule.progress_status === 'in_progress' ? 'warning' : 'default'}
-                        sx={{ mr: 1 }}
-                      />
-                      <IconButton edge="end">
-                        {isGranuleExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                      </IconButton>
-                    </ListItem>
-                    <Collapse in={isGranuleExpanded} timeout="auto" unmountOnExit>
-                      <List component="div" disablePadding>
-                        {granule.molecules?.map((molecule) => {
-                          const moleculeState = atomsByMolecule[molecule.id] || {};
-                          const generationStatus = moleculeState.generationStatus || molecule.generation_status;
-                          const progressStatus = moleculeState.progressStatus || molecule.progress_status;
-                          const hasContent = moleculeState.atoms && moleculeState.atoms.length > 0;
-                          const isMoleculeExpanded = expandedMolecules.has(molecule.id);
-                          const isLoading = moleculeState.loading;
-                          const isLocked = molecule.is_locked;
-                          const progressLabel =
-                            progressStatus === 'completed'
-                              ? 'Validé'
-                              : progressStatus === 'failed'
-                                ? 'À rejouer'
-                                : progressStatus === 'in_progress'
-                                  ? 'En cours'
-                                  : 'À faire';
-                          const progressColor =
-                            progressStatus === 'completed'
-                              ? 'success'
-                              : progressStatus === 'failed'
-                                ? 'error'
-                                : progressStatus === 'in_progress'
-                                  ? 'warning'
-                                  : 'default';
-                          const moleculeXpPercent = Math.round((molecule.xp_percent ?? 0) * 100);
-                          return (
-                            <Box key={molecule.id} sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
-                              <ListItem button onClick={() => toggleMolecule(molecule)} sx={{ pl: 6 }}>
-                                <ListItemIcon><TopicIcon color="action" /></ListItemIcon>
-                                <ListItemText
-                                  primary={molecule.title}
-                                  secondary={`Leçon ${molecule.order}`}
-                                />
-                                {isLoading && <CircularProgress size={20} sx={{ mr: 1 }} />}
-                                <Chip
-                                  label={`${moleculeXpPercent}% XP`}
-                                  size="small"
-                                  color="info"
-                                  sx={{ mr: 1 }}
-                                />
-                                <Chip
-                                  label={progressLabel}
-                                  size="small"
-                                  color={progressColor}
-                                  sx={{ mr: 1 }}
-                                />
-                                <IconButton edge="end" onClick={(e) => { e.stopPropagation(); toggleMolecule(molecule); }}>
-                                  {isMoleculeExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                                </IconButton>
-                                <FeedbackButtons
-                                  contentType="molecule"
-                                  contentId={molecule.id}
-                                  initialRating={molecule.user_feedback_rating}
-                                  initialReason={molecule.user_feedback_reason}
-                                  initialComment={molecule.user_feedback_comment}
-                                  onSuccess={() => {
-                                    queryClient.invalidateQueries({ queryKey: ['capsule', domain, area, capsuleId] });
-                                  }}
-                                />
-                                <Button
-                                  size="small"
-                                  sx={{ ml: 1 }}
-                                  variant="contained"
-                                  disabled={
-                                    isLocked ||
-                                    !hasContent ||
-                                    generationStatus === 'pending' ||
-                                    generationStatus === 'failed' ||
-                                    isLoading
-                                  }
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startSession(molecule);
+                  <Card 
+                    key={granule.id}
+                    sx={{ 
+                      borderRadius: 4,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                      overflow: 'visible',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                      }
+                    }}
+                  >
+                    <CardContent sx={{ p: 0 }}>
+                      {/* Granule Header */}
+                      <Box 
+                        onClick={() => toggleGranule(granule.id)}
+                        sx={{ 
+                          p: 4,
+                          cursor: 'pointer',
+                          background: `linear-gradient(135deg, 
+                            ${granule.progress_status === 'completed' ? '#4caf50' : 
+                              granule.progress_status === 'in_progress' ? '#ff9800' : '#e3f2fd'} 0%, 
+                            ${granule.progress_status === 'completed' ? '#81c784' : 
+                              granule.progress_status === 'in_progress' ? '#ffb74d' : '#bbdefb'} 100%)`,
+                          color: granule.progress_status === 'not_started' ? 'text.primary' : 'white',
+                          borderRadius: '16px 16px 0 0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 3
+                        }}
+                      >
+                        <Box 
+                          sx={{ 
+                            width: 60,
+                            height: 60,
+                            borderRadius: '50%',
+                            background: 'rgba(255,255,255,0.2)',
+                            backdropFilter: 'blur(10px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.2rem',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {index + 1}
+                        </Box>
+                        
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="h6" fontWeight="600" sx={{ mb: 0.5 }}>
+                            {granule.title}
+                          </Typography>
+                          <Stack direction="row" spacing={2} alignItems="center">
+                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                              {completedMolecules}/{totalMolecules} leçons
+                            </Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                              {Math.round((granule.xp_percent ?? 0) * 100)}% XP
+                            </Typography>
+                          </Stack>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {granule.progress_status === 'completed' && (
+                            <CheckCircleIcon sx={{ fontSize: 28 }} />
+                          )}
+                          <IconButton 
+                            sx={{ 
+                              color: 'inherit',
+                              background: 'rgba(255,255,255,0.1)',
+                              '&:hover': { background: 'rgba(255,255,255,0.2)' }
+                            }}
+                          >
+                            {isGranuleExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                          </IconButton>
+                        </Box>
+                      </Box>
+
+                      {/* Molecules */}
+                      <Collapse in={isGranuleExpanded} timeout="auto" unmountOnExit>
+                        <Box sx={{ p: 3 }}>
+                          <Stack spacing={2}>
+                            {granule.molecules?.map((molecule, molIndex) => {
+                              const moleculeState = atomsByMolecule[molecule.id] || {};
+                              const generationStatus = moleculeState.generationStatus || molecule.generation_status;
+                              const progressStatus = moleculeState.progressStatus || molecule.progress_status;
+                              const hasContent = moleculeState.atoms && moleculeState.atoms.length > 0;
+                              const isMoleculeExpanded = expandedMolecules.has(molecule.id);
+                              const isLoading = moleculeState.loading;
+                              const isLocked = molecule.is_locked;
+                              const moleculeXpPercent = Math.round((molecule.xp_percent ?? 0) * 100);
+
+                              return (
+                                <Card
+                                  key={molecule.id}
+                                  sx={{
+                                    borderRadius: 2,
+                                    border: '1px solid',
+                                    borderColor: isLocked ? 'grey.300' : 'divider',
+                                    opacity: isLocked ? 0.6 : 1,
+                                    transition: 'all 0.2s ease'
                                   }}
                                 >
-                                  {isLocked ? 'Verrouillé' : generationStatus === 'pending' ? 'En cours...' : 'Étudier'}
-                                </Button>
-                              </ListItem>
-                              <Collapse in={isMoleculeExpanded} timeout="auto" unmountOnExit>
-                                <Box sx={{ pl: 8, pr: 3, py: 2 }}>
-                                  <CapsuleProgressBar
-                                    current={molecule.xp_earned ?? 0}
-                                    target={molecule.xp_total ?? 0}
-                                    label="XP de cette leçon"
-                                    dense
-                                  />
-                                  {moleculeState.error && <Alert severity="error" sx={{ mb: 2 }}>{moleculeState.error}</Alert>}
-                                  {generationStatus === 'pending' && (
-                                    <Alert severity="info" sx={{ mb: 2 }}>
-                                      Génération en cours. Tu peux quitter cette page : tu recevras une notification quand la leçon sera prête.
-                                    </Alert>
-                                  )}
-                                  {generationStatus === 'failed' && (
-                                    <Alert severity="error" sx={{ mb: 2 }}>
-                                      La génération de cette leçon a échoué. Réessaie plus tard.
-                                    </Alert>
-                                  )}
-                                  {!isLoading && !moleculeState.error && generationStatus !== 'pending' && (!moleculeState.atoms || moleculeState.atoms.length === 0) && (
-                                    <Alert severity="info">Les contenus de cette leçon sont encore en train d'être générés.</Alert>
-                                  )}
-                                  {moleculeState.atoms?.map((atom) => {
-                                    const type = (atom.content_type || '').toLowerCase();
-                                    return (
-                                      <ListItem key={atom.id} sx={{ pl: 0, alignItems: 'center' }}>
-                                        <ListItemIcon>
-                                          {type === 'lesson' ? <ArticleIcon color="primary" /> : <QuizIcon color="secondary" />}
-                                        </ListItemIcon>
-                                        <ListItemText primary={atom.title} secondary={type === 'lesson' ? 'Leçon' : 'Quiz'} />
+                                  <CardContent sx={{ p: 3 }}>
+                                    <Box 
+                                      sx={{ 
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 2,
+                                        cursor: isLocked ? 'not-allowed' : 'pointer'
+                                      }}
+                                      onClick={() => !isLocked && toggleMolecule(molecule)}
+                                    >
+                                      <Box 
+                                        sx={{ 
+                                          width: 40,
+                                          height: 40,
+                                          borderRadius: '50%',
+                                          background: isLocked ? 'grey.300' : 
+                                                    progressStatus === 'completed' ? 'success.light' :
+                                                    progressStatus === 'in_progress' ? 'warning.light' : 'primary.light',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          color: 'white'
+                                        }}
+                                      >
+                                        {isLocked ? <LockIcon /> : 
+                                         progressStatus === 'completed' ? <CheckCircleIcon /> :
+                                         <PlayCircleOutlineIcon />}
+                                      </Box>
+
+                                      <Box sx={{ flex: 1 }}>
+                                        <Typography variant="subtitle1" fontWeight="500" sx={{ mb: 0.5 }}>
+                                          {molecule.title}
+                                        </Typography>
+                                        <Stack direction="row" spacing={2} alignItems="center">
+                                          <Typography variant="body2" color="text.secondary">
+                                            Leçon {molecule.order}
+                                          </Typography>
+                                          <Chip 
+                                            label={`${moleculeXpPercent}% XP`}
+                                            size="small"
+                                            color="info"
+                                          />
+                                        </Stack>
+                                      </Box>
+
+                                      <Stack direction="row" spacing={1} alignItems="center">
+                                        {isLoading && <CircularProgress size={20} />}
+                                        
+                                        <Button
+                                          size="small"
+                                          variant="contained"
+                                          disabled={
+                                            isLocked ||
+                                            !hasContent ||
+                                            generationStatus === 'pending' ||
+                                            generationStatus === 'failed' ||
+                                            isLoading
+                                          }
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            startSession(molecule);
+                                          }}
+                                          sx={{ borderRadius: 2 }}
+                                        >
+                                          {isLocked ? 'Verrouillé' : 
+                                           generationStatus === 'pending' ? 'En cours...' : 'Étudier'}
+                                        </Button>
+
                                         <FeedbackButtons
-                                          contentType="atom"
-                                          contentId={atom.id}
-                                          initialRating={atom.user_feedback_rating}
-                                          initialReason={atom.user_feedback_reason}
-                                          initialComment={atom.user_feedback_comment}
+                                          contentType="molecule"
+                                          contentId={molecule.id}
+                                          initialRating={molecule.user_feedback_rating}
+                                          initialReason={molecule.user_feedback_reason}
+                                          initialComment={molecule.user_feedback_comment}
                                           onSuccess={() => {
                                             queryClient.invalidateQueries({ queryKey: ['capsule', domain, area, capsuleId] });
                                           }}
                                         />
-                                      </ListItem>
-                                    );
-                                  })}
-                                </Box>
-                              </Collapse>
-                            </Box>
-                          );
-                        })}
-                      </List>
-                    </Collapse>
-                  </Box>
+
+                                        <IconButton 
+                                          size="small"
+                                          onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            if (!isLocked) toggleMolecule(molecule); 
+                                          }}
+                                        >
+                                          {isMoleculeExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                                        </IconButton>
+                                      </Stack>
+                                    </Box>
+
+                                    {/* Molecule Progress */}
+                                    <Box sx={{ mt: 2 }}>
+                                      <LinearProgress 
+                                        variant="determinate" 
+                                        value={moleculeXpPercent}
+                                        sx={{ 
+                                          height: 6,
+                                          borderRadius: 3,
+                                          bgcolor: 'grey.200'
+                                        }}
+                                      />
+                                    </Box>
+
+                                    {/* Atoms */}
+                                    <Collapse in={isMoleculeExpanded} timeout="auto" unmountOnExit>
+                                      <Box sx={{ mt: 3 }}>
+                                        {moleculeState.error && (
+                                          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                                            {moleculeState.error}
+                                          </Alert>
+                                        )}
+                                        
+                                        {generationStatus === 'pending' && (
+                                          <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+                                            Génération en cours...
+                                          </Alert>
+                                        )}
+
+                                        <Stack spacing={1}>
+                                          {moleculeState.atoms?.map((atom) => {
+                                            const isLesson = (atom.content_type || '').toLowerCase() === 'lesson';
+                                            return (
+                                              <Box 
+                                                key={atom.id}
+                                                sx={{ 
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  p: 2,
+                                                  borderRadius: 2,
+                                                  background: 'grey.50',
+                                                  gap: 2
+                                                }}
+                                              >
+                                                <Box 
+                                                  sx={{ 
+                                                    width: 32,
+                                                    height: 32,
+                                                    borderRadius: '50%',
+                                                    background: isLesson ? 'primary.light' : 'secondary.light',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: 'white'
+                                                  }}
+                                                >
+                                                  {isLesson ? <ArticleIcon fontSize="small" /> : <QuizIcon fontSize="small" />}
+                                                </Box>
+                                                <Box sx={{ flex: 1 }}>
+                                                  <Typography variant="body2" fontWeight="500">
+                                                    {atom.title}lorenzo
+                                                  </Typography>
+                                                  <Typography variant="caption" color="text.secondary">
+                                                    {isLesson ? 'Leçon' : 'Quiz'}
+                                                  </Typography>
+                                                </Box>
+                                                <FeedbackButtons
+                                                  contentType="atom"
+                                                  contentId={atom.id}
+                                                  initialRating={atom.user_feedback_rating}
+                                                  initialReason={atom.user_feedback_reason}
+                                                  initialComment={atom.user_feedback_comment}
+                                                  onSuccess={() => {
+                                                    queryClient.invalidateQueries({ queryKey: ['capsule', domain, area, capsuleId] });
+                                                  }}
+                                                />
+                                              </Box>
+                                            );
+                                          })}
+                                        </Stack>
+                                      </Box>
+                                    </Collapse>
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
+                          </Stack>
+                        </Box>
+                      </Collapse>
+                    </CardContent>
+                  </Card>
                 );
               })}
-            </List>
-          </Paper>
+            </Stack>
+          </Grid>
+
+          <Grid item xs={12} lg={4}>
+            <Box sx={{ position: 'sticky', top: 20 }}>
+              <CapsuleChatPanel 
+                domain={capsule.domain} 
+                area={capsule.area} 
+                capsuleTitle={capsule.title} 
+              />
+            </Box>
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <CapsuleChatPanel domain={capsule.domain} area={capsule.area} capsuleTitle={capsule.title} />
-        </Grid>
-      </Grid>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 
