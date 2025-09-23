@@ -2,7 +2,16 @@ const DEV_BACKEND_FALLBACK = 'http://localhost:8000';
 const PROD_BACKEND_FALLBACK =
   'https://nanshe-v2-e3etdk061-nansheadds-projects.vercel.app';
 
-const trimTrailingSlashes = (value) => value.replace(/\/+$/, '');
+const trimTrailingSlashes = (value = '') => value.replace(/\/+$/, '');
+
+const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0;
+
+const getWindowLocation = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  return window.location ?? null;
+};
 
 const isLocalHostname = (hostname = '') => {
   if (!hostname) return false;
@@ -13,25 +22,63 @@ const isLocalHostname = (hostname = '') => {
 
 const isVercelHostname = (hostname = '') => hostname.endsWith('.vercel.app');
 
+const getHostnameFromUrl = (value) => {
+  if (!isNonEmptyString(value)) {
+    return '';
+  }
+  try {
+    return new URL(value).hostname;
+  } catch (error) {
+    console.warn('Unable to parse hostname from provided API base URL.', value, error);
+    return '';
+  }
+};
+
+const shouldPreferProdBackend = (hostname) => {
+  if (!hostname) {
+    return false;
+  }
+  if (isLocalHostname(hostname)) {
+    return false;
+  }
+  if (isVercelHostname(hostname)) {
+    return true;
+  }
+  return false;
+};
+
 const resolveBaseUrl = () => {
   const envValue = import.meta.env?.VITE_API_BASE_URL;
-  if (typeof envValue === 'string' && envValue.trim().length > 0) {
-    return trimTrailingSlashes(envValue.trim());
-  }
+  const location = getWindowLocation();
+  const hostname = location?.hostname ?? '';
+  const isDevBuild = Boolean(import.meta.env?.DEV);
+  const isProdBuild = Boolean(import.meta.env?.PROD);
 
-  if (typeof window !== 'undefined' && window.location) {
-    const origin = trimTrailingSlashes(window.location.origin);
-    const { hostname } = window.location;
-    if (isLocalHostname(hostname)) {
-      return DEV_BACKEND_FALLBACK;
-    }
-    if (isVercelHostname(hostname)) {
+  if (isNonEmptyString(envValue)) {
+    const trimmedEnv = trimTrailingSlashes(envValue.trim());
+    const envHostname = getHostnameFromUrl(trimmedEnv);
+    if (envHostname && hostname && envHostname === hostname && shouldPreferProdBackend(hostname)) {
       return PROD_BACKEND_FALLBACK;
     }
-    return origin;
+    return trimmedEnv;
   }
 
-  return DEV_BACKEND_FALLBACK;
+  if (isDevBuild || isLocalHostname(hostname)) {
+    return DEV_BACKEND_FALLBACK;
+  }
+
+  if (shouldPreferProdBackend(hostname)) {
+    return PROD_BACKEND_FALLBACK;
+  }
+
+  if (location) {
+    const origin = trimTrailingSlashes(location.origin);
+    if (isNonEmptyString(origin)) {
+      return origin;
+    }
+  }
+
+  return isProdBuild ? PROD_BACKEND_FALLBACK : DEV_BACKEND_FALLBACK;
 };
 
 export const API_BASE_URL = resolveBaseUrl();
