@@ -20,6 +20,7 @@
     "signupTitle": "Aanmelden",
     "email": "E-mail",
     "password": "Wachtwoord",
+    "passwordConfirm": "Bevestig wachtwoord",
     "username": "Gebruikersnaam",
     "loginButton": "Inloggen",
     "signupButton": "Maak je eerste capsule"
@@ -133,6 +134,7 @@
   "errors": {
     "badCredentials": "Onjuiste inloggegevens.",
     "signupFailed": "Aanmelden is mislukt.",
+    "passwordMismatch": "Wachtwoorden komen niet overeen.",
     "generic": "Er is iets misgegaan. Probeer het opnieuw."
   },
   "capsulePlan": {

@@ -13,7 +13,12 @@ export default function AuthDialog({ open, defaultTab = 'login', onClose }) {
 
   const [activeTab, setActiveTab] = React.useState(defaultTab);
   const [loginForm, setLoginForm] = React.useState({ username: '', password: '' });
-  const [signupForm, setSignupForm] = React.useState({ username: '', email: '', password: '' });
+  const [signupForm, setSignupForm] = React.useState({
+    username: '',
+    email: '',
+    password: '',
+    passwordConfirm: '',
+  });
   const [error, setError] = React.useState('');
 
   React.useEffect(() => {
@@ -40,8 +45,20 @@ export default function AuthDialog({ open, defaultTab = 'login', onClose }) {
   const onSignup = async (e) => {
     e.preventDefault();
     setError('');
+    if (signupForm.password !== signupForm.passwordConfirm) {
+      setError(t('errors.passwordMismatch') || 'Les mots de passe ne correspondent pas.');
+      return;
+    }
+
+    const payload = {
+      username: signupForm.username.trim(),
+      email: signupForm.email.trim(),
+      password: signupForm.password,
+      passwordConfirm: signupForm.passwordConfirm,
+    };
+
     try {
-      await registerAndLogin(signupForm); // ton hook existant
+      await registerAndLogin(payload); // ton hook existant
       // ton backend envoie déjà l’e-mail de confirmation
       onClose?.();
       navigate('/dashboard');
@@ -146,7 +163,25 @@ export default function AuthDialog({ open, defaultTab = 'login', onClose }) {
               autoComplete="new-password"
               required
             />
-            <button className={clsx(styles.button, styles.buttonPrimary)} disabled={isLoading}>
+            <input
+              type="password"
+              className={styles.input}
+              placeholder={t('auth.passwordConfirm') || 'Confirmez le mot de passe'}
+              value={signupForm.passwordConfirm}
+              onChange={(e) => setSignupForm({ ...signupForm, passwordConfirm: e.target.value })}
+              autoComplete="new-password"
+              required
+            />
+            <button
+              className={clsx(styles.button, styles.buttonPrimary)}
+              disabled={
+                isLoading ||
+                !signupForm.username.trim() ||
+                !signupForm.email.trim() ||
+                !signupForm.password ||
+                signupForm.password !== signupForm.passwordConfirm
+              }
+            >
               {t('auth.signupButton')}
             </button>
 

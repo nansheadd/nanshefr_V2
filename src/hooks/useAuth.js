@@ -22,8 +22,32 @@ const loginUser = async (credentials) => {
   return data;
 };
 
-const registerUser = async (userData) => {
-  const { data } = await apiClient.post('/users/', userData);
+const registerUser = async (userData = {}) => {
+  const payload = { ...userData };
+
+  if (typeof payload.username === 'string') {
+    payload.username = payload.username.trim();
+  }
+
+  if (typeof payload.email === 'string') {
+    payload.email = payload.email.trim();
+  }
+
+  if (payload.passwordConfirm !== undefined) {
+    payload.password_confirm = payload.passwordConfirm;
+    delete payload.passwordConfirm;
+  }
+
+  if (payload.password_confirmation !== undefined) {
+    payload.password_confirm = payload.password_confirmation;
+    delete payload.password_confirmation;
+  }
+
+  if (payload.password_confirm === undefined && payload.password !== undefined) {
+    payload.password_confirm = payload.password;
+  }
+
+  const { data } = await apiClient.post('/users/', payload);
   return data;
 };
 
