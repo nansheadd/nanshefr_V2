@@ -27,16 +27,15 @@ import SchoolIcon from '@mui/icons-material/School';
 import TopicIcon from '@mui/icons-material/Topic';
 import ArticleIcon from '@mui/icons-material/Article';
 import QuizIcon from '@mui/icons-material/Quiz';
-import apiClient from '../../../api/axiosConfig';
+import {
+  fetchCapsuleDetail,
+  fetchMoleculeAtoms,
+  generateMoleculeBonus,
+} from '../api/capsulesApi';
 import FeedbackButtons from '../../learning/components/FeedbackButtons';
 import CapsuleProgressBar from '../components/CapsuleProgressBar';
 import { useAuth } from '../../../hooks/useAuth';
 import { useI18n } from '../../../i18n/I18nContext';
-
-const fetchCapsule = async (domain, area, capsuleId) => {
-  const { data } = await apiClient.get(`/capsules/${domain}/${area}/${capsuleId}`);
-  return data;
-};
 
 const CapsulePlanPage = () => {
   const { domain, area, capsuleId } = useParams();
@@ -56,7 +55,7 @@ const CapsulePlanPage = () => {
 
   const { data: capsule, isLoading, isError, error } = useQuery({
     queryKey: ['capsule', domain, area, capsuleId],
-    queryFn: () => fetchCapsule(domain, area, capsuleId),
+    queryFn: () => fetchCapsuleDetail(domain, area, capsuleId),
     enabled: !!capsuleId,
     refetchInterval: (query) => {
       const status = query.state.data?.generation_status;
@@ -68,19 +67,16 @@ const CapsulePlanPage = () => {
     mutationFn: async (moleculeId) => {
       setAtomsByMolecule((prev) => ({
         ...prev,
-        [moleculeId]: { loading: true, error: null, atoms: [], generationStatus: 'pending', progressStatus: 'in_progress' },
+        [moleculeId]: {
+          loading: true,
+          error: null,
+          atoms: [],
+          generationStatus: 'pending',
+          progressStatus: 'in_progress',
+        },
       }));
-      const response = await apiClient.get(`/capsules/molecules/${moleculeId}/atoms`, {
-        validateStatus: (status) => [200, 202].includes(status),
-      });
-      if (response.status === 202) {
-        return { moleculeId, atoms: [], generationStatus: 'pending', progressStatus: 'in_progress' };
-      }
-      const atoms = response.data || [];
-      const allCompleted = atoms.every((atom) => atom.progress_status === 'completed');
-      const anyAttempt = atoms.some((atom) => atom.progress_status !== 'not_started');
-      const progressStatus = allCompleted ? 'completed' : anyAttempt ? 'in_progress' : 'not_started';
-      return { moleculeId, atoms, generationStatus: 'completed', progressStatus };
+      const result = await fetchMoleculeAtoms(moleculeId);
+      return { moleculeId, ...result };
     },
     onSuccess: ({ moleculeId, atoms, generationStatus, progressStatus }) => {
       setAtomsByMolecule((prev) => ({
@@ -102,8 +98,8 @@ const CapsulePlanPage = () => {
 
   const generateBonus = useMutation({
     mutationFn: async ({ moleculeId, kind }) => {
-      const { data } = await apiClient.post(`/capsules/molecules/${moleculeId}/bonus`, { kind });
-      return { moleculeId, atoms: data || [] };
+      const result = await generateMoleculeBonus(moleculeId, { kind });
+      return { moleculeId, ...result };
     },
     onMutate: ({ moleculeId }) => {
       setAtomsByMolecule((prev) => ({
@@ -115,10 +111,7 @@ const CapsulePlanPage = () => {
         },
       }));
     },
-    onSuccess: ({ moleculeId, atoms }) => {
-      const allCompleted = atoms.every((atom) => atom.progress_status === 'completed');
-      const anyAttempt = atoms.some((atom) => atom.progress_status !== 'not_started');
-      const progressStatus = allCompleted ? 'completed' : anyAttempt ? 'in_progress' : 'not_started';
+    onSuccess: ({ moleculeId, atoms, progressStatus }) => {
       setAtomsByMolecule((prev) => ({
         ...prev,
         [moleculeId]: {

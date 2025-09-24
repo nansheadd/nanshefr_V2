@@ -9,6 +9,7 @@ import SchoolIcon from '@mui/icons-material/School';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { getCurrentStreakDays, getTotalStudyTimeSeconds } from '../utils/studyStats';
+import { fetchMyCapsules } from '../../capsules/api/capsulesApi';
 
 const StatCard = styled(Card)(({ theme, color = 'primary' }) => ({
   borderRadius: 16,
@@ -55,10 +56,12 @@ const formatTime = (seconds) => {
 
 const StatsCards = () => {
   // Query 1: Récupérer les capsules de l'utilisateur
-  const { data: enrolledCapsules, isLoading: isLoadingCapsules } = useQuery({
+  const { data: capsuleResponse, isLoading: isLoadingCapsules } = useQuery({
     queryKey: ['my-capsules'],
-    queryFn: async () => (await apiClient.get('/capsules/me')).data,
+    queryFn: fetchMyCapsules,
   });
+
+  const enrolledCapsules = capsuleResponse?.items ?? [];
 
   // Query 2: Récupérer les stats de progression
   const { data: progressStats, isLoading: isLoadingStats } = useQuery({

@@ -2,28 +2,48 @@ import React from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
-import { 
-  Container, Box, Typography, CircularProgress, Alert, 
-  Breadcrumbs, Link, Fade, Skeleton, Chip, LinearProgress 
+import {
+  Container, Box, Typography, CircularProgress, Alert,
+  Breadcrumbs, Link, Fade, Skeleton, Chip, LinearProgress
 } from '@mui/material';
-import { 
-  Home as HomeIcon, 
+import {
+  Home as HomeIcon,
   School as SchoolIcon,
-  AutoStories as BookIcon 
+  AutoStories as BookIcon
 } from '@mui/icons-material';
 import AtomViewer from '../components/AtomViewer';
+import { fetchMoleculeAtoms } from '../../capsules/api/capsulesApi';
 
 const MoleculePage = () => {
   const { moleculeId } = useParams();
   const activityLogRef = React.useRef(null);
 
-  const { data: atoms, isLoading, isError, error } = useQuery({
+  const {
+    data: atomResponse,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ['atoms', moleculeId],
-    queryFn: async () => {
-      const { data } = await apiClient.get(`/capsules/molecules/${moleculeId}/atoms`);
-      return data;
+    queryFn: () => fetchMoleculeAtoms(moleculeId),
+    enabled: Boolean(moleculeId),
+    refetchInterval: (query) => {
+      const status = query.state.data?.generationStatus;
+      return status === 'pending' ? 4000 : false;
     },
   });
+
+  const atoms = React.useMemo(
+    () => atomResponse?.atoms ?? (Array.isArray(atomResponse) ? atomResponse : []),
+    [atomResponse]
+  );
+  const generationStatus = atomResponse?.generationStatus;
+  const atomCount = atoms.length;
+  const statusLabel = generationStatus === 'pending'
+    ? 'Génération...'
+    : atomCount > 0
+      ? 'Disponible'
+      : 'En attente';
 
   const sendEndActivity = React.useCallback((logId) => {
     if (!logId) return;
@@ -194,48 +214,66 @@ const MoleculePage = () => {
           </Box>
           
           <Box sx={{ display: 'flex', gap: 1, mt: 3 }}>
-            <Chip 
-              label={`${atoms?.length || 0} éléments`} 
-              sx={{ 
-                bgcolor: 'rgba(255,255,255,0.2)', 
+            <Chip
+              label={`${atomCount} élément${atomCount > 1 ? 's' : ''}`}
+              sx={{
+                bgcolor: 'rgba(255,255,255,0.2)',
                 color: 'white',
-                fontWeight: 600 
-              }} 
+                fontWeight: 600
+              }}
             />
-            <Chip 
-              label="En cours" 
-              sx={{ 
-                bgcolor: 'rgba(255,255,255,0.2)', 
+            <Chip
+              label={statusLabel}
+              sx={{
+                bgcolor: 'rgba(255,255,255,0.2)',
                 color: 'white',
-                fontWeight: 600 
-              }} 
+                fontWeight: 600
+              }}
             />
           </Box>
         </Box>
 
         {/* Content */}
+        {generationStatus === 'pending' && (
+          <Alert
+            severity="info"
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(59, 130, 246, 0.15)',
+              bgcolor: 'info.lighter',
+              '& .MuiAlert-icon': { fontSize: 28 },
+              mb: 3,
+            }}
+          >
+            <Typography variant="h6">Contenu en préparation</Typography>
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Le contenu de cette leçon est en cours de génération. Merci de patienter quelques instants.
+            </Typography>
+          </Alert>
+        )}
+
         {atoms && atoms.length > 0 ? (
           <Fade in timeout={1000}>
             <Box>
               <AtomViewer atoms={atoms} />
             </Box>
           </Fade>
-        ) : (
-          <Alert 
-            severity="info" 
-            sx={{ 
+        ) : generationStatus !== 'pending' ? (
+          <Alert
+            severity="warning"
+            sx={{
               borderRadius: 3,
               boxShadow: '0 4px 20px rgba(59, 130, 246, 0.15)',
-              bgcolor: 'info.lighter',
+              bgcolor: 'warning.lighter',
               '& .MuiAlert-icon': { fontSize: 28 }
             }}
           >
-            <Typography variant="h6">Contenu en préparation</Typography>
+            <Typography variant="h6">Contenu indisponible</Typography>
             <Typography variant="body2" sx={{ mt: 1 }}>
-              Le contenu de cette leçon sera bientôt disponible. Revenez plus tard!
+              Aucun contenu n'est encore associé à cette leçon.
             </Typography>
           </Alert>
-        )}
+        ) : null}
       </Container>
     </Fade>
   );

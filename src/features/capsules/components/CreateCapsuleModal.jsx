@@ -23,41 +23,14 @@ import {
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import apiClient from '../../../api/axiosConfig';
 import { useI18n } from '../../../i18n/I18nContext';
-
-const classifyTopic = async (text) => {
-  const { data } = await apiClient.post('/capsules/classify-topic/', { text });
-  return data;
-};
-
-const createCapsule = async (payload) => {
-  const { data } = await apiClient.post('/capsules/', payload);
-  return data;
-};
-
-const createCapsuleFromPdf = async ({ file, metadata }) => {
-  const formData = new FormData();
-  formData.append('pdf_file', file);
-  formData.append('title', metadata.title);
-  formData.append('domain', metadata.domain);
-  formData.append('area', metadata.area);
-  formData.append('main_skill', metadata.main_skill);
-  const { data } = await apiClient.post('/capsules/from-pdf', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-};
-
-const fetchClassificationOptions = async () => {
-  const { data } = await apiClient.get('/capsules/classification/options');
-  return data;
-};
-
-const submitClassificationFeedback = async (payload) => {
-  const { data } = await apiClient.post('/capsules/classification/feedback', payload);
-  return data;
-};
+import {
+  classifyCapsuleTopic as classifyCapsuleTopicRequest,
+  createCapsule as createCapsuleRequest,
+  createCapsuleFromPdf as createCapsuleFromPdfRequest,
+  fetchClassificationOptions as fetchClassificationOptionsRequest,
+  submitClassificationFeedback as submitClassificationFeedbackRequest,
+} from '../api/capsulesApi';
 
 const CreateCapsuleModal = ({ open, onClose, onCreated, onStatus, currentUser }) => {
   const queryClient = useQueryClient();
@@ -85,13 +58,13 @@ const CreateCapsuleModal = ({ open, onClose, onCreated, onStatus, currentUser })
 
   const classificationOptionsQuery = useQuery({
     queryKey: ['classification-options'],
-    queryFn: fetchClassificationOptions,
+    queryFn: fetchClassificationOptionsRequest,
     enabled: false,
     staleTime: 5 * 60 * 1000,
   });
 
   const classifyMutation = useMutation({
-    mutationFn: classifyTopic,
+    mutationFn: classifyCapsuleTopicRequest,
     onMutate: () => {
       const next = { phase: 'classifying' };
       setStatus(next);
@@ -119,7 +92,7 @@ const CreateCapsuleModal = ({ open, onClose, onCreated, onStatus, currentUser })
   });
 
   const feedbackMutation = useMutation({
-    mutationFn: submitClassificationFeedback,
+    mutationFn: submitClassificationFeedbackRequest,
     onSuccess: (data) => {
       if (data?.taxonomy) {
         queryClient.setQueryData(['classification-options'], data.taxonomy);
@@ -162,7 +135,7 @@ const CreateCapsuleModal = ({ open, onClose, onCreated, onStatus, currentUser })
   };
 
   const createMutation = useMutation({
-    mutationFn: createCapsule,
+    mutationFn: createCapsuleRequest,
     onMutate: () => {
       const next = { phase: 'creating' };
       setStatus(next);
@@ -175,7 +148,7 @@ const CreateCapsuleModal = ({ open, onClose, onCreated, onStatus, currentUser })
   });
 
   const createFromPdfMutation = useMutation({
-    mutationFn: createCapsuleFromPdf,
+    mutationFn: createCapsuleFromPdfRequest,
     onMutate: () => {
       const next = { phase: 'creating_pdf' };
       setStatus(next);
@@ -198,7 +171,7 @@ const CreateCapsuleModal = ({ open, onClose, onCreated, onStatus, currentUser })
       setStatus(next);
       onStatus?.(next);
     }
-  }, [open]);
+  }, [open, classifyMutation, createMutation, createFromPdfMutation, onStatus]);
 
   useEffect(() => {
     if (open && classification) {
@@ -309,7 +282,7 @@ const CreateCapsuleModal = ({ open, onClose, onCreated, onStatus, currentUser })
         notes: classificationChanged ? 'Correction utilisateur depuis le modal de création' : null,
         metadata: null,
       });
-    } catch (err) {
+    } catch {
       return;
     }
 
@@ -337,7 +310,10 @@ const CreateCapsuleModal = ({ open, onClose, onCreated, onStatus, currentUser })
 
   const isBusy = classifyMutation.isLoading || createMutation.isLoading || createFromPdfMutation.isLoading || feedbackMutation.isLoading;
 
-  const domainsData = classificationOptionsQuery.data?.domains ?? [];
+  const domainsData = useMemo(
+    () => classificationOptionsQuery.data?.domains ?? [],
+    [classificationOptionsQuery.data]
+  );
   const domainOptions = useMemo(() => domainsData.map((entry) => entry.domain), [domainsData]);
   const currentAreas = useMemo(() => {
     const match = domainsData.find((entry) => entry.domain === finalDomain);

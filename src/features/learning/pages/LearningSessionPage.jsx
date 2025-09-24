@@ -1,8 +1,8 @@
 // Fichier: src/features/learning/pages/LearningSessionPage.jsx
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import apiClient from '../../../api/axiosConfig'; // Assurez-vous que le chemin est correct
+import { fetchLearningSession } from '../../capsules/api/capsulesApi';
 
 import { Box, Typography, CircularProgress, Alert, Breadcrumbs, Link as MuiLink } from '@mui/material';
 import AtomViewer from '../components/AtomViewer'; // <-- NOUVEL IMPORT
@@ -11,19 +11,25 @@ const LearningSessionPage = () => {
   const { capsuleId, granuleOrder, moleculeOrder } = useParams();
   const navigate = useNavigate();
 
-  const { data: atoms, isLoading, isError, error } = useQuery({
+  const {
+    data: session,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ['learningSession', capsuleId, granuleOrder, moleculeOrder],
-    queryFn: async () => {
-      // On fait un appel direct au backend pour récupérer les atomes
-      const response = await apiClient.get(
-        `/capsules/${capsuleId}/granule/${granuleOrder}/molecule/${moleculeOrder}`
-      );
-      return response.data;
-    },
+    queryFn: () => fetchLearningSession(capsuleId, granuleOrder, moleculeOrder),
     // On désactive le refetch automatique pour ne pas régénérer la leçon sans raison
-    refetchOnWindowFocus: false, 
+    refetchOnWindowFocus: false,
     retry: 1,
+    refetchInterval: (query) => {
+      const status = query.state.data?.generationStatus;
+      return status === 'pending' ? 4000 : false;
+    },
   });
+
+  const atoms = session?.atoms ?? (Array.isArray(session) ? session : []);
+  const generationStatus = session?.generationStatus;
 
   if (isLoading) {
     return (
@@ -54,7 +60,17 @@ const LearningSessionPage = () => {
         Niveau {granuleOrder} - Leçon {moleculeOrder}
       </Typography>
 
-      <AtomViewer atoms={atoms || []} />
+      {generationStatus === 'pending' && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Les contenus sont en cours de génération. Cette page se mettra à jour automatiquement dès qu'ils seront prêts.
+        </Alert>
+      )}
+
+      {atoms.length === 0 && generationStatus !== 'pending' ? (
+        <Alert severity="warning">Aucun contenu disponible pour cette leçon pour le moment.</Alert>
+      ) : (
+        <AtomViewer atoms={atoms} />
+      )}
     </Box>
   );
 };

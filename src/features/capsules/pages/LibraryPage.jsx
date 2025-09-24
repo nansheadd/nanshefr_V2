@@ -1,12 +1,12 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import apiClient from '../../../api/axiosConfig';
-import { 
+import { Link as RouterLink } from 'react-router-dom';
+import {
   Box, Typography, CircularProgress, Alert, Grid, Card, CardContent, 
   Container, Skeleton, Stack, Button, CardActions, alpha
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { fetchMyCapsules } from '../api/capsulesApi';
 
 // --- Icônes (similaires à CapsuleList) ---
 import SchoolIcon from '@mui/icons-material/School';
@@ -49,15 +49,17 @@ const CapsuleCard = styled(Card)(({ theme, domaincolor }) => ({
 }));
 
 const LibraryPage = () => {
-  const navigate = useNavigate();
   // --- Récupérer les capsules de l'utilisateur inscrit ---
-  const { data: enrolledCapsules, isLoading, isError } = useQuery({
-    queryKey: ['my-capsules'], // Clé de query unique pour les capsules de l'utilisateur
-    queryFn: async () => {
-      const { data } = await apiClient.get('/capsules/me'); // Appel au bon endpoint
-      return data;
-    }
+  const {
+    data: capsuleResponse,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['my-capsules'],
+    queryFn: fetchMyCapsules,
   });
+
+  const enrolledCapsules = capsuleResponse?.items ?? [];
 
   if (isError) {
     return (

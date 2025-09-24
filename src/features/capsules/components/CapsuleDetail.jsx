@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../../../api/axiosConfig';
-import { useAuth } from '../../../hooks/useAuth';
 import {
   Alert,
   Box,
@@ -37,24 +35,21 @@ import LockIcon from '@mui/icons-material/Lock';
 import CapsuleProgressBar from './CapsuleProgressBar';
 import FeedbackButtons from '../../learning/components/FeedbackButtons';
 import CapsuleChatPanel from '../../chat/components/CapsuleChatPanel';
+import { fetchCapsuleDetail, fetchMoleculeAtoms } from '../api/capsulesApi';
 
 const CapsuleDetail = () => {
   const { domain, area, capsuleId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   const [expandedGranules, setExpandedGranules] = useState(new Set());
   const [expandedMolecules, setExpandedMolecules] = useState(new Set());
   const [atomsByMolecule, setAtomsByMolecule] = useState({});
   const [infoMessage, setInfoMessage] = useState(null);
 
-  const { data: capsule, isLoading, isError, error, isFetching } = useQuery({
+  const { data: capsule, isLoading, isError, error } = useQuery({
     queryKey: ['capsule', domain, area, capsuleId],
-    queryFn: async () => {
-      const { data } = await apiClient.get(`/capsules/${domain}/${area}/${capsuleId}`);
-      return data;
-    },
+    queryFn: () => fetchCapsuleDetail(domain, area, capsuleId),
     refetchInterval: (query) => {
       const status = query.state.data?.generation_status;
       return status === 'pending' ? 4000 : false;
@@ -101,19 +96,16 @@ const CapsuleDetail = () => {
     mutationFn: async (moleculeId) => {
       setAtomsByMolecule((prev) => ({
         ...prev,
-        [moleculeId]: { loading: true, error: null, atoms: [], status: 'pending' },
+        [moleculeId]: {
+          loading: true,
+          error: null,
+          atoms: [],
+          generationStatus: 'pending',
+          progressStatus: 'in_progress',
+        },
       }));
-      const response = await apiClient.get(`/capsules/molecules/${moleculeId}/atoms`, {
-        validateStatus: (status) => [200, 202].includes(status),
-      });
-      if (response.status === 202) {
-        return { moleculeId, atoms: [], generationStatus: 'pending', progressStatus: 'in_progress' };
-      }
-      const atoms = response.data || [];
-      const allCompleted = atoms.every((atom) => atom.progress_status === 'completed');
-      const anyAttempt = atoms.some((atom) => atom.progress_status !== 'not_started');
-      const progressStatus = allCompleted ? 'completed' : anyAttempt ? 'in_progress' : 'not_started';
-      return { moleculeId, atoms, generationStatus: 'completed', progressStatus };
+      const result = await fetchMoleculeAtoms(moleculeId);
+      return { moleculeId, ...result };
     },
     onSuccess: ({ moleculeId, atoms, generationStatus, progressStatus }) => {
       setAtomsByMolecule((prev) => ({
@@ -388,7 +380,7 @@ const CapsuleDetail = () => {
                       <Collapse in={isGranuleExpanded} timeout="auto" unmountOnExit>
                         <Box sx={{ p: 3 }}>
                           <Stack spacing={2}>
-                            {granule.molecules?.map((molecule, molIndex) => {
+            {granule.molecules?.map((molecule) => {
                               const moleculeState = atomsByMolecule[molecule.id] || {};
                               const generationStatus = moleculeState.generationStatus || molecule.generation_status;
                               const progressStatus = moleculeState.progressStatus || molecule.progress_status;
