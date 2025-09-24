@@ -20,6 +20,7 @@
     "signupTitle": "Sign up",
     "email": "Email",
     "password": "Password",
+    "passwordConfirm": "Confirm password",
     "username": "Username",
     "loginButton": "Login",
     "signupButton": "Create your first capsule"
@@ -133,6 +134,7 @@
   "errors": {
     "badCredentials": "Incorrect credentials.",
     "signupFailed": "Unable to sign up.",
+    "passwordMismatch": "Passwords do not match.",
     "generic": "Something went wrong. Please try again."
   },
   "capsulePlan": {

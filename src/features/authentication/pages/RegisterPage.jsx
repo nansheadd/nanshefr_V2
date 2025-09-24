@@ -21,7 +21,12 @@ import LockRoundedIcon from '@mui/icons-material/LockRounded';
 const logoSrc = '/logo192.png';
 
 const RegisterPage = () => {
-  const [formData, setFormData] = useState({ username: '', email: '', password: '' });
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    passwordConfirm: '',
+  });
   const [error, setError] = useState('');
   const { registerAndLogin, isLoading } = useAuth();
   const theme = useTheme();
@@ -70,8 +75,20 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (formData.password !== formData.passwordConfirm) {
+      setError('Les mots de passe ne correspondent pas.');
+      return;
+    }
+
+    const payload = {
+      username: formData.username.trim(),
+      email: formData.email.trim(),
+      password: formData.password,
+      passwordConfirm: formData.passwordConfirm,
+    };
+
     try {
-      await registerAndLogin(formData);
+      await registerAndLogin(payload);
     } catch (err) {
       setError(err.response?.data?.detail || 'Une erreur est survenue.');
     }
@@ -166,12 +183,36 @@ const RegisterPage = () => {
               }}
               sx={inputStyles}
             />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              label="Confirmez le mot de passe"
+              name="passwordConfirm"
+              type="password"
+              value={formData.passwordConfirm}
+              onChange={handleChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockRoundedIcon />
+                  </InputAdornment>
+                )
+              }}
+              sx={inputStyles}
+            />
 
             <Button
               type="submit"
               fullWidth
               variant="gradient"
-              disabled={isLoading}
+              disabled={
+                isLoading ||
+                !formData.username.trim() ||
+                !formData.email.trim() ||
+                !formData.password ||
+                formData.password !== formData.passwordConfirm
+              }
               sx={{ mt: 3, py: 1.3, borderRadius: 2 }}
             >
               {isLoading ? <CircularProgress size={22} /> : "S'inscrire"}
