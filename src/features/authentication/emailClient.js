@@ -9,7 +9,9 @@ async function postJSON(url, body) {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    // indispensable pour que le cookie access_token suive les requêtes protégées
+    credentials: 'include'
   });
   if (!res.ok) {
     let detail = 'Unexpected error';

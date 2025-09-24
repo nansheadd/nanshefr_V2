@@ -78,7 +78,9 @@ export default function ReportContentPage() {
       const response = await fetch(buildApiUrl('/legal/report'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        // Active l'envoi du cookie access_token si l'utilisateur est authentifié
+        credentials: 'include'
       });
 
       if (!response.ok) {
