@@ -99,14 +99,14 @@ export const CHAT_WS_URL = (() => {
   try {
     const base = new URL(API_WS_URL);
     const trimmedPath = base.pathname.replace(/\/+$/, '');
-    const hasChatSuffix = /\/chat$/.test(trimmedPath);
-    base.pathname = hasChatSuffix ? trimmedPath : `${trimmedPath}/chat`;
+    const hasConversationSuffix = /\/conversations$/.test(trimmedPath);
+    base.pathname = hasConversationSuffix ? trimmedPath : `${trimmedPath}/conversations`;
     base.search = '';
     base.hash = '';
     return base.toString();
   } catch (error) {
     console.warn('Unable to derive Chat WebSocket URL from API_WS_URL. Falling back to localhost.', error);
-    return 'ws://localhost:8000/api/v2/ws/chat';
+    return 'ws://localhost:8000/api/v2/ws/conversations';
   }
 })();
 
@@ -116,7 +116,8 @@ export const buildChatSocketUrl = (room, params = {}) => {
     if (room) {
       url.searchParams.set('room', room);
     }
-    Object.entries(params || {}).forEach(([key, value]) => {
+    const entries = Object.entries(params || {});
+    entries.forEach(([key, value]) => {
       if (value === undefined || value === null) return;
       const stringValue = typeof value === 'string' ? value : String(value);
       if (stringValue.length === 0) return;
