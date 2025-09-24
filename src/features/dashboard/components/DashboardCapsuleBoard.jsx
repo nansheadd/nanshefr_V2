@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import clsx from 'clsx';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
 import styles from './DashboardCapsuleBoard.module.css';
 import { useI18n } from '../../../i18n/I18nContext';
@@ -105,6 +105,7 @@ const sumDuration = (collection, accessor) => {
 
 const DashboardCapsuleBoard = ({ capsules, isLoading }) => {
   const { t, language } = useI18n();
+  const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
@@ -144,13 +145,16 @@ const DashboardCapsuleBoard = ({ capsules, isLoading }) => {
     [isDark],
   );
 
-  const handleOpenCoach = (capsule) => {
-    if (typeof window === 'undefined') return;
-    window.dispatchEvent(
-      new CustomEvent('nanshe:toolbox-open', {
-        detail: { tool: 'coach', expand: true, capsuleId: capsule?.id },
-      }),
-    );
+  const handleOpenChat = (event, destination, disabled) => {
+    if (disabled) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      return;
+    }
+
+    navigate(destination);
   };
 
   if (isLoading) {
@@ -326,7 +330,14 @@ const DashboardCapsuleBoard = ({ capsules, isLoading }) => {
           rawCapsule.coach_enabled ??
           rawCapsule.assistant_enabled ??
           true;
-        const chatIcon = capsule?.chatIcon || rawCapsule.chatIcon || (chatEnabled ? '🤖' : '💬');
+        const chatIcon = capsule?.chatIcon || rawCapsule.chatIcon || (chatEnabled ? '💬' : '🔒');
+
+        const chatDestination = domainSlug
+          ? `/chat/domain/${encodeURIComponent(domainSlug)}${
+              areaSlug ? `?area=${encodeURIComponent(areaSlug)}` : ''
+            }`
+          : '/chat';
+        const isChatDisabled = isLocked || !chatEnabled;
 
         const xpLabel = t('capsules.card.xpValue', {
           current: integerFormatter.format(xpCurrent),
@@ -414,9 +425,9 @@ const DashboardCapsuleBoard = ({ capsules, isLoading }) => {
               <button
                 type="button"
                 className={styles.chatButton}
-                onClick={() => handleOpenCoach(capsule)}
-                disabled={isLocked || !chatEnabled}
-                aria-label={t('dashboard.toolbox.tiles.coach.title')}
+                onClick={(event) => handleOpenChat(event, chatDestination, isChatDisabled)}
+                disabled={isChatDisabled}
+                aria-label={t('capsules.card.chatAriaLabel')}
               >
                 <div className={styles.chatBubble}>
                   <span className={styles.chatIcon} aria-hidden>

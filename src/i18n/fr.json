@@ -89,6 +89,7 @@
       "lessons": "{{count}} leçons",
       "durationHours": "{{count}} h",
       "xpValue": "{{current}} / {{target}} XP",
+      "chatAriaLabel": "Ouvrir le salon du domaine",
       "categories": {
         "language": "Langues & Culture",
         "design": "Design & Créativité",
