@@ -26,8 +26,35 @@ const ChatRoomView = ({
   metadata,
 }) => {
   const { user } = useAuth();
+  const connectionMetadata = useMemo(() => {
+    const baseMetadata = metadata && typeof metadata === 'object' ? metadata : {};
+    const normalizedDomain =
+      (typeof domain === 'string' && domain.trim()) || baseMetadata.domain || 'general';
+    const candidateArea =
+      baseMetadata.area ||
+      defaultArea ||
+      initialAreaFilter ||
+      (Array.isArray(availableAreas) && availableAreas.length > 0 ? availableAreas[0] : '') ||
+      'general';
+    const normalizedArea = normalizeArea(candidateArea);
+
+    const nextMetadata = {
+      ...baseMetadata,
+      domain: normalizedDomain,
+      room: roomId,
+    };
+
+    if (normalizedArea) {
+      nextMetadata.area = normalizedArea;
+    } else if ('area' in nextMetadata) {
+      delete nextMetadata.area;
+    }
+
+    return nextMetadata;
+  }, [metadata, domain, roomId, defaultArea, initialAreaFilter, availableAreas]);
+
   const { messages, activeUsers, status, error, sendMessage } = useChatRoom(roomId, {
-    metadata: { domain, room: roomId, ...metadata },
+    metadata: connectionMetadata,
   });
 
   const [composerValue, setComposerValue] = useState('');
