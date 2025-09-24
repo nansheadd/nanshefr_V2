@@ -177,9 +177,18 @@ const DashboardCapsuleBoard = ({ capsules, isLoading }) => {
   return (
     <div className={styles.board}>
       {capsules.map((capsule, index) => {
-        const domainSlug = slugify(capsule?.domain);
-        const areaSlug = slugify(capsule?.area);
-        const skillSlug = slugify(capsule?.main_skill);
+        const rawCapsule = capsule?.raw ?? {};
+        const domainValue = capsule?.domain ?? rawCapsule.domain;
+        const areaValue = capsule?.area ?? rawCapsule.area;
+        const skillValue =
+          capsule?.main_skill ??
+          rawCapsule.main_skill ??
+          rawCapsule.skill ??
+          rawCapsule.focus;
+
+        const domainSlug = slugify(domainValue);
+        const areaSlug = slugify(areaValue);
+        const skillSlug = slugify(skillValue);
 
         const categoryKey =
           DOMAIN_CATEGORY_MAP[domainSlug] || DOMAIN_CATEGORY_MAP[areaSlug] || DOMAIN_CATEGORY_MAP[skillSlug] || FALLBACK_STYLE.categoryKey;
@@ -187,6 +196,7 @@ const DashboardCapsuleBoard = ({ capsules, isLoading }) => {
         const categoryStyle = CATEGORY_STYLES[categoryKey] || CATEGORY_STYLES[FALLBACK_STYLE.categoryKey] || FALLBACK_STYLE;
         const [color1, color2] = categoryStyle.colors;
         const capsuleIcon = categoryStyle.icon || FALLBACK_STYLE.icon;
+        const displayedIcon = capsule?.icon ?? rawCapsule.icon ?? rawCapsule.emoji ?? capsuleIcon;
 
         const cardStyle = {
           ...baseCardVars,
@@ -194,18 +204,53 @@ const DashboardCapsuleBoard = ({ capsules, isLoading }) => {
           '--color2': color2,
         };
 
-        const xpTarget = safeNumber(capsule?.xp_target) ?? safeNumber(capsule?.xpTarget) ?? 6000;
-        const xpCurrent = safeNumber(capsule?.user_xp) ?? safeNumber(capsule?.xp_current) ?? 0;
-        const progress = xpTarget > 0 ? Math.min(100, Math.round((xpCurrent / xpTarget) * 100)) : 0;
+        const xpTarget =
+          safeNumber(capsule?.xp_target) ??
+          safeNumber(capsule?.xpTarget) ??
+          safeNumber(capsule?.xp_goal) ??
+          safeNumber(rawCapsule.xp_target) ??
+          safeNumber(rawCapsule.xpTarget) ??
+          safeNumber(rawCapsule.xp_goal) ??
+          safeNumber(rawCapsule.goal_xp) ??
+          6000;
+        const xpCurrent =
+          safeNumber(capsule?.xp_current) ??
+          safeNumber(capsule?.user_xp) ??
+          safeNumber(rawCapsule.xp_current) ??
+          safeNumber(rawCapsule.user_xp) ??
+          safeNumber(rawCapsule.progress_xp) ??
+          safeNumber(rawCapsule.xp) ??
+          0;
+
+        const progressFromData =
+          safeNumber(capsule?.progress_percentage) ??
+          safeNumber(capsule?.progress) ??
+          safeNumber(rawCapsule.progress_percentage) ??
+          safeNumber(rawCapsule.progress_percent) ??
+          safeNumber(rawCapsule.completion_rate) ??
+          safeNumber(rawCapsule.progress);
+        const computedProgress = xpTarget > 0 ? Math.round((xpCurrent / xpTarget) * 100) : 0;
+        const progress = Math.min(100, progressFromData ?? computedProgress ?? 0);
+
+        const progressStatus =
+          capsule?.progress_status ??
+          rawCapsule.progress_status ??
+          rawCapsule.learning_status ??
+          rawCapsule.study_status ??
+          rawCapsule.status;
 
         const isLocked = Boolean(
-          capsule?.locked ||
-            capsule?.is_locked ||
-            capsule?.status === 'locked' ||
-            capsule?.access === 'locked' ||
-            capsule?.permissions === 'locked',
+          capsule?.is_locked ??
+            rawCapsule.is_locked ??
+            rawCapsule.locked ??
+            (typeof rawCapsule.access === 'string' ? rawCapsule.access === 'locked' : rawCapsule.access) ??
+            (typeof rawCapsule.permissions === 'string'
+              ? rawCapsule.permissions === 'locked'
+              : rawCapsule.permissions),
         );
-        const isCompleted = !isLocked && (capsule?.status === 'completed' || progress >= 100);
+        const isCompleted =
+          !isLocked &&
+          (progressStatus === 'completed' || rawCapsule.status === 'completed' || progress >= 100);
 
         let primaryCta = 'resume';
         if (isLocked) {
@@ -217,14 +262,33 @@ const DashboardCapsuleBoard = ({ capsules, isLoading }) => {
         }
         const secondaryCta = !isLocked ? 'details' : null;
 
+        const lessonsArray = Array.isArray(capsule?.lessons)
+          ? capsule.lessons
+          : Array.isArray(rawCapsule.lessons)
+              ? rawCapsule.lessons
+              : null;
+        const modulesArray = Array.isArray(capsule?.modules)
+          ? capsule.modules
+          : Array.isArray(rawCapsule.modules)
+              ? rawCapsule.modules
+              : null;
+
         const lessonsCount =
+          safeNumber(capsule?.lesson_count) ??
           safeNumber(capsule?.lessons_count) ??
           safeNumber(capsule?.total_lessons) ??
-          safeNumber(capsule?.lesson_count) ??
+          safeNumber(rawCapsule.lesson_count) ??
+          safeNumber(rawCapsule.lessons_count) ??
+          safeNumber(rawCapsule.total_lessons) ??
+          safeNumber(rawCapsule.lesson_total) ??
           safeNumber(capsule?.stats?.lessons_count) ??
-          (Array.isArray(capsule?.lessons) ? capsule.lessons.length : null) ??
-          (Array.isArray(capsule?.modules)
-            ? capsule.modules.reduce((sum, module) => sum + (Array.isArray(module?.lessons) ? module.lessons.length : 0), 0)
+          (Array.isArray(lessonsArray) ? lessonsArray.length : null) ??
+          (Array.isArray(modulesArray)
+            ? modulesArray.reduce(
+                (sum, module) =>
+                  sum + (Array.isArray(module?.lessons) ? module.lessons.length : 0),
+                0,
+              )
             : null);
 
         const durationMinutes =
@@ -232,7 +296,17 @@ const DashboardCapsuleBoard = ({ capsules, isLoading }) => {
           safeNumber(capsule?.estimated_duration_minutes) ??
           safeNumber(capsule?.duration_minutes) ??
           safeNumber(capsule?.duration) ??
-          sumDuration(capsule?.lessons, (lesson) => lesson?.estimated_duration_minutes ?? lesson?.duration_minutes ?? lesson?.duration);
+          safeNumber(rawCapsule.total_duration_minutes) ??
+          safeNumber(rawCapsule.estimated_duration_minutes) ??
+          safeNumber(rawCapsule.duration_minutes) ??
+          safeNumber(rawCapsule.duration) ??
+          sumDuration(
+            lessonsArray,
+            (lesson) =>
+              lesson?.estimated_duration_minutes ??
+              lesson?.duration_minutes ??
+              lesson?.duration,
+          );
         const durationHours = durationMinutes != null ? durationMinutes / 60 : null;
 
         const chatCount =
@@ -240,10 +314,19 @@ const DashboardCapsuleBoard = ({ capsules, isLoading }) => {
           safeNumber(capsule?.chat_unread_count) ??
           safeNumber(capsule?.assistant_unread_count) ??
           safeNumber(capsule?.coach_unread_count) ??
+          safeNumber(rawCapsule.unread_messages_count) ??
+          safeNumber(rawCapsule.chat_unread_count) ??
+          safeNumber(rawCapsule.assistant_unread_count) ??
+          safeNumber(rawCapsule.coach_unread_count) ??
           null;
 
-        const chatEnabled = capsule?.coach_enabled ?? capsule?.assistant_enabled ?? true;
-        const chatIcon = capsule?.chatIcon || (chatEnabled ? '🤖' : '💬');
+        const chatEnabled =
+          capsule?.coach_enabled ??
+          capsule?.assistant_enabled ??
+          rawCapsule.coach_enabled ??
+          rawCapsule.assistant_enabled ??
+          true;
+        const chatIcon = capsule?.chatIcon || rawCapsule.chatIcon || (chatEnabled ? '🤖' : '💬');
 
         const xpLabel = t('capsules.card.xpValue', {
           current: integerFormatter.format(xpCurrent),
@@ -257,23 +340,31 @@ const DashboardCapsuleBoard = ({ capsules, isLoading }) => {
             ? t('capsules.card.durationHours', { count: decimalFormatter.format(durationHours) })
             : null;
 
-        const domainAreaLabel = [capsule?.domain, capsule?.area]
+        const domainAreaLabel = [domainValue, areaValue]
           .filter(Boolean)
           .map((value) => value.replace(/_/g, ' '))
           .join(' • ');
 
         const categoryLabel = categoryKey
           ? t(`capsules.card.categories.${categoryKey}`)
-          : domainAreaLabel || capsule?.main_skill || capsule?.domain || 'Capsule';
+          : domainAreaLabel || skillValue || domainValue || 'Capsule';
+
+        const capsuleTitle =
+          capsule?.title ??
+          rawCapsule.title ??
+          rawCapsule.name ??
+          skillValue ??
+          t('dashboard.capsules.title');
 
         const primaryLabel = t(`capsules.card.cta.${primaryCta}`);
         const secondaryLabel = secondaryCta ? t(`capsules.card.cta.${secondaryCta}`) : null;
 
         const primaryIcon = CTA_ICONS[primaryCta] ?? CTA_ICONS.resume;
 
+        const hasRouting = capsule?.id && domainValue && areaValue;
         const baseLink =
-          capsule?.id && capsule?.domain && capsule?.area
-            ? `/capsule/${encodeURIComponent(capsule.domain)}/${encodeURIComponent(capsule.area)}/${capsule.id}`
+          hasRouting
+            ? `/capsule/${encodeURIComponent(domainValue)}/${encodeURIComponent(areaValue)}/${capsule.id}`
             : '/capsules';
         const planLink = baseLink === '/capsules' ? baseLink : `${baseLink}/plan`;
 
@@ -301,13 +392,13 @@ const DashboardCapsuleBoard = ({ capsules, isLoading }) => {
               <div className={styles.image}>
                 <div className={styles.orb} />
                 <span className={styles.icon} aria-hidden>
-                  {capsule?.icon || capsuleIcon}
+                  {displayedIcon}
                 </span>
               </div>
 
               <div className={styles.info}>
                 <span className={styles.categoryTag}>{categoryLabel}</span>
-                <h4 className={styles.name}>{capsule?.title || capsule?.name || capsule?.main_skill || t('dashboard.capsules.title')}</h4>
+                <h4 className={styles.name}>{capsuleTitle}</h4>
                 {!!metaItems.length && (
                   <div className={styles.metaRow}>
                     {metaItems.map((item, metaIndex) => (

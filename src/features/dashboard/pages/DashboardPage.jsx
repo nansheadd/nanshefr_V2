@@ -9,14 +9,10 @@ import EditNoteIcon from '@mui/icons-material/EditNote';
 import { useI18n } from '../../../i18n/I18nContext';
 import DashboardCapsuleBoard from '../components/DashboardCapsuleBoard';
 import { getCurrentStreakDays, getTotalStudyTimeSeconds } from '../utils/studyStats';
+import { fetchMyCapsules } from '../../capsules/api/capsulesApi';
 
 const fetchStats = async () => {
   const { data } = await apiClient.get('/progress/stats');
-  return data;
-};
-
-const fetchMyCapsules = async () => {
-  const { data } = await apiClient.get('/capsules/me');
   return data;
 };
 
@@ -42,10 +38,12 @@ const DashboardPage = () => {
     queryFn: fetchStats,
   });
 
-  const { data: capsules, isLoading: capsulesLoading } = useQuery({
+  const { data: capsuleResponse, isLoading: capsulesLoading } = useQuery({
     queryKey: ['capsules', 'me'],
     queryFn: fetchMyCapsules,
   });
+
+  const capsules = capsuleResponse?.items ?? [];
 
   const { t } = useI18n();
 
@@ -215,7 +213,7 @@ const DashboardPage = () => {
         <Box sx={{ mb: 6 }}>
           <DashboardCapsuleBoard capsules={[]} isLoading />
         </Box>
-      ) : capsules?.length ? (
+      ) : capsules.length ? (
         <Box sx={{ mb: 6 }}>
           <DashboardCapsuleBoard capsules={capsules} />
         </Box>

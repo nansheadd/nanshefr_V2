@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
-import apiClient from '../../../api/axiosConfig';
 import { useAuth } from '../../../hooks/useAuth';
 import { 
   Box, Typography, CircularProgress, Alert, Grid, Card, CardContent, 
@@ -36,6 +35,10 @@ import MusicNoteIcon from '@mui/icons-material/MusicNote';
 
 import CreateCapsuleModal from './CreateCapsuleModal';
 import { useI18n } from '../../../i18n/I18nContext';
+import {
+  enrollInCapsule,
+  fetchPublicCapsules,
+} from '../api/capsulesApi';
 
 const DOMAIN_CONFIG = {
   languages: {
@@ -142,7 +145,7 @@ const SearchBar = styled(TextField)(({ theme }) => ({
   }
 }));
 
-const DomainCard = styled(Card)(({ theme }) => ({
+const DomainCard = styled(Card)(() => ({
   borderRadius: 20,
   cursor: 'pointer',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -179,7 +182,7 @@ const CapsuleCard = styled(Card)(({ theme }) => ({
   }
 }));
 
-const StatsChip = styled(Chip)(({ theme }) => ({
+const StatsChip = styled(Chip)(() => ({
   fontWeight: 'bold',
   borderRadius: 12,
   backdropFilter: 'blur(10px)',
@@ -217,20 +220,25 @@ const CapsuleList = () => {
   }, [location.state, location.pathname, navigate]);
 
   // Fetch public capsules
-  const { data: capsules, isLoading, isError } = useQuery({
+  const {
+    data: capsuleResponse,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['capsules', 'public'],
-    queryFn: async () => {
-      const { data } = await apiClient.get('/capsules/public');
-      return data;
-    },
+    queryFn: fetchPublicCapsules,
     enabled: isAuthenticated,
   });
 
+  const capsules = useMemo(() => capsuleResponse?.items ?? [], [capsuleResponse]);
+
   // Enroll mutation
   const enrollMutation = useMutation({
-    mutationFn: (capsuleId) => apiClient.post(`/capsules/${capsuleId}/enroll`),
+    mutationFn: (capsuleId) => enrollInCapsule(capsuleId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['capsules'] });
+      queryClient.invalidateQueries({ queryKey: ['capsules', 'public'] });
+      queryClient.invalidateQueries({ queryKey: ['capsules', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['my-capsules'] });
     },
   });
 

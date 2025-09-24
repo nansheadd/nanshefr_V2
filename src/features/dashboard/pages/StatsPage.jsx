@@ -5,6 +5,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import apiClient from '../../../api/axiosConfig';
+import { fetchMyCapsules } from '../../capsules/api/capsulesApi';
 import {
   getBreakdownEntries,
   getCurrentStreakDays,
@@ -12,11 +13,6 @@ import {
   getTotalSessions,
   getTotalStudyTimeSeconds,
 } from '../utils/studyStats';
-
-const fetchMyCapsules = async () => {
-  const { data } = await apiClient.get('/capsules/me');
-  return data;
-};
 
 const fetchCapsuleProgress = async () => {
   const { data } = await apiClient.get('/users/me/capsule-progress');
@@ -91,10 +87,12 @@ const CapsuleProgressCard = ({ capsule, progress }) => {
 };
 
 const StatsPage = () => {
-  const { data: capsules, isLoading: capsLoading, isError: capsError } = useQuery({
+  const { data: capsuleResponse, isLoading: capsLoading, isError: capsError } = useQuery({
     queryKey: ['capsules', 'me'],
     queryFn: fetchMyCapsules,
   });
+
+  const capsules = capsuleResponse?.items ?? [];
 
   const { data: progressEntries, isLoading: progressLoading, isError: progressError } = useQuery({
     queryKey: ['capsule-progress'],
@@ -142,7 +140,7 @@ const StatsPage = () => {
               Visualisez la progression globale sur vos capsules actives.
             </Typography>
           </Box>
-          <Chip label={`${capsules?.length ?? 0} capsules`} color="primary" />
+          <Chip label={`${capsules.length} capsules`} color="primary" />
         </Box>
 
         {(capsLoading || progressLoading || statsLoading) && (
@@ -288,7 +286,7 @@ const StatsPage = () => {
         )}
 
         <Stack spacing={2}>
-          {capsules?.length ? (
+          {capsules.length ? (
             capsules.map((capsule) => (
               <CapsuleProgressCard
                 key={capsule.id}
