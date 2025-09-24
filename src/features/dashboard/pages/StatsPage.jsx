@@ -5,6 +5,13 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import apiClient from '../../../api/axiosConfig';
+import {
+  getBreakdownEntries,
+  getCurrentStreakDays,
+  getEntryDurationSeconds,
+  getTotalSessions,
+  getTotalStudyTimeSeconds,
+} from '../utils/studyStats';
 
 const fetchMyCapsules = async () => {
   const { data } = await apiClient.get('/capsules/me');
@@ -31,6 +38,16 @@ const formatDuration = (seconds = 0) => {
   if (minutes) parts.push(`${minutes} min`);
   if (!hours && !minutes) parts.push(`${remainingSeconds} s`);
   return parts.join(' ');
+};
+
+const pickFirstString = (entry, keys) => {
+  for (const key of keys) {
+    const value = entry?.[key];
+    if (typeof value === 'string' && value.length > 0) {
+      return value;
+    }
+  }
+  return null;
 };
 
 const CapsuleProgressCard = ({ capsule, progress }) => {
@@ -97,12 +114,21 @@ const StatsPage = () => {
     return map;
   }, [progressEntries]);
 
-  const domainBreakdown = React.useMemo(() => studyStats?.breakdown?.by_domain ?? [], [studyStats]);
-  const areaBreakdown = React.useMemo(() => studyStats?.breakdown?.by_area ?? [], [studyStats]);
-  const capsuleBreakdown = React.useMemo(() => studyStats?.breakdown?.by_capsule ?? [], [studyStats]);
-  const totalStudyTime = studyStats?.total_study_time_seconds ?? 0;
-  const currentStreak = studyStats?.current_streak_days ?? 0;
-  const totalSessions = studyStats?.total_sessions ?? 0;
+  const domainBreakdown = React.useMemo(
+    () => getBreakdownEntries(studyStats, 'domain'),
+    [studyStats]
+  );
+  const areaBreakdown = React.useMemo(
+    () => getBreakdownEntries(studyStats, 'area'),
+    [studyStats]
+  );
+  const capsuleBreakdown = React.useMemo(
+    () => getBreakdownEntries(studyStats, 'capsule'),
+    [studyStats]
+  );
+  const totalStudyTime = getTotalStudyTimeSeconds(studyStats);
+  const currentStreak = getCurrentStreakDays(studyStats);
+  const totalSessions = getTotalSessions(studyStats);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -152,7 +178,9 @@ const StatsPage = () => {
                   <LocalFireDepartmentIcon color="warning" sx={{ fontSize: 32 }} />
                   <Box>
                     <Typography variant="body2" color="text.secondary">Streak actuel</Typography>
-                    <Typography variant="h6" fontWeight={700}>{currentStreak} jour(s)</Typography>
+                    <Typography variant="h6" fontWeight={700}>
+                      {currentStreak} jour{currentStreak > 1 ? 's' : ''}
+                    </Typography>
                     <Typography variant="caption" color="text.secondary">Activité consécutive</Typography>
                   </Box>
                 </Stack>
@@ -163,10 +191,15 @@ const StatsPage = () => {
                   <Box>
                     <Typography variant="body2" color="text.secondary">Temps par domaine</Typography>
                     <Typography variant="h6" fontWeight={700}>
-                      {domainBreakdown.length ? formatDuration(domainBreakdown[0]?.seconds) : '—'}
+                      {domainBreakdown.length
+                        ? formatDuration(getEntryDurationSeconds(domainBreakdown[0]))
+                        : '—'}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {domainBreakdown.length ? domainBreakdown[0]?.domain : 'Aucun suivi pour le moment'}
+                      {domainBreakdown.length
+                        ? pickFirstString(domainBreakdown[0], ['domain', 'label', 'name']) ??
+                          'Aucun suivi pour le moment'
+                        : 'Aucun suivi pour le moment'}
                     </Typography>
                   </Box>
                 </Stack>
@@ -180,12 +213,17 @@ const StatsPage = () => {
                   <Grid item xs={12} md={4}>
                     <Typography variant="subtitle1" fontWeight={600} gutterBottom>Domaine</Typography>
                     <Stack spacing={1}>
-                      {domainBreakdown.slice(0, 5).map((entry) => (
-                        <Paper key={entry.domain} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
-                          <Typography variant="body2" fontWeight={600}>{entry.domain}</Typography>
-                          <Typography variant="caption" color="text.secondary">{formatDuration(entry.seconds)}</Typography>
-                        </Paper>
-                      ))}
+                      {domainBreakdown.slice(0, 5).map((entry, index) => {
+                        const label = pickFirstString(entry, ['domain', 'label', 'name']) ?? `Domaine ${index + 1}`;
+                        return (
+                          <Paper key={`${label}-${index}`} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                            <Typography variant="body2" fontWeight={600}>{label}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {formatDuration(getEntryDurationSeconds(entry))}
+                            </Typography>
+                          </Paper>
+                        );
+                      })}
                       {!domainBreakdown.length && (
                         <Typography variant="caption" color="text.secondary">Aucun temps suivi pour le moment.</Typography>
                       )}
@@ -194,13 +232,25 @@ const StatsPage = () => {
                   <Grid item xs={12} md={4}>
                     <Typography variant="subtitle1" fontWeight={600} gutterBottom>Zone</Typography>
                     <Stack spacing={1}>
-                      {areaBreakdown.slice(0, 5).map((entry) => (
-                        <Paper key={`${entry.domain}-${entry.area}`} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
-                          <Typography variant="body2" fontWeight={600}>{entry.area}</Typography>
-                          <Typography variant="caption" color="text.secondary">{entry.domain}</Typography>
-                          <Typography variant="caption" color="text.secondary">{formatDuration(entry.seconds)}</Typography>
-                        </Paper>
-                      ))}
+                      {areaBreakdown.slice(0, 5).map((entry, index) => {
+                        const areaLabel = pickFirstString(entry, ['area', 'label', 'name']) ?? `Zone ${index + 1}`;
+                        const domainLabel = pickFirstString(entry, ['domain', 'parent', 'group']);
+                        return (
+                          <Paper
+                            key={`${areaLabel}-${domainLabel ?? index}`}
+                            variant="outlined"
+                            sx={{ p: 1.5, borderRadius: 2 }}
+                          >
+                            <Typography variant="body2" fontWeight={600}>{areaLabel}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {domainLabel ?? 'Domaine non renseigné'}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {formatDuration(getEntryDurationSeconds(entry))}
+                            </Typography>
+                          </Paper>
+                        );
+                      })}
                       {!areaBreakdown.length && (
                         <Typography variant="caption" color="text.secondary">Commencez une capsule pour analyser vos habitudes.</Typography>
                       )}
@@ -209,13 +259,23 @@ const StatsPage = () => {
                   <Grid item xs={12} md={4}>
                     <Typography variant="subtitle1" fontWeight={600} gutterBottom>Capsule</Typography>
                     <Stack spacing={1}>
-                      {capsuleBreakdown.slice(0, 5).map((entry) => (
-                        <Paper key={entry.capsule_id} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
-                          <Typography variant="body2" fontWeight={600}>{entry.title}</Typography>
-                          <Typography variant="caption" color="text.secondary">{entry.domain} • {entry.area}</Typography>
-                          <Typography variant="caption" color="text.secondary">{formatDuration(entry.seconds)}</Typography>
-                        </Paper>
-                      ))}
+                      {capsuleBreakdown.slice(0, 5).map((entry, index) => {
+                        const capsuleLabel =
+                          pickFirstString(entry, ['title', 'capsule', 'name']) ?? `Capsule ${index + 1}`;
+                        const capsuleContext = pickFirstString(entry, ['domain']);
+                        const capsuleArea = pickFirstString(entry, ['area']);
+                        return (
+                          <Paper key={`${capsuleLabel}-${index}`} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                            <Typography variant="body2" fontWeight={600}>{capsuleLabel}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {[capsuleContext, capsuleArea].filter(Boolean).join(' • ') || 'Contexte non renseigné'}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {formatDuration(getEntryDurationSeconds(entry))}
+                            </Typography>
+                          </Paper>
+                        );
+                      })}
                       {!capsuleBreakdown.length && (
                         <Typography variant="caption" color="text.secondary">Aucune capsule encore chronométrée.</Typography>
                       )}

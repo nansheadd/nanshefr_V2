@@ -8,6 +8,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import { useI18n } from '../../../i18n/I18nContext';
 import DashboardCapsuleBoard from '../components/DashboardCapsuleBoard';
+import { getCurrentStreakDays, getTotalStudyTimeSeconds } from '../utils/studyStats';
 
 const fetchStats = async () => {
   const { data } = await apiClient.get('/progress/stats');
@@ -77,6 +78,9 @@ const DashboardPage = () => {
     );
   };
 
+  const totalStudyTimeSeconds = getTotalStudyTimeSeconds(stats);
+  const currentStreakDays = getCurrentStreakDays(stats);
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 4 }}>
@@ -96,16 +100,16 @@ const DashboardPage = () => {
           <Grid item xs={12} md={4}>
             <StatCard
               title={t('dashboard.stats.totalStudy')}
-              value={Math.round((stats?.total_study_time_seconds ?? 0) / 60)}
+              value={Math.round(totalStudyTimeSeconds / 60)}
               suffix={t('dashboard.stats.minutes')}
             />
           </Grid>
           <Grid item xs={12} md={4}>
             <StatCard
               title={t('dashboard.stats.currentStreak')}
-              value={stats?.current_streak_days ?? 0}
+              value={currentStreakDays}
               suffix={
-                (stats?.current_streak_days ?? 0) > 1
+                currentStreakDays > 1
                   ? t('dashboard.stats.dayPlural')
                   : t('dashboard.stats.daySingular')
               }
