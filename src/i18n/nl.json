@@ -89,6 +89,7 @@
       "lessons": "{{count}} lessen",
       "durationHours": "{{count}} u",
       "xpValue": "{{current}} / {{target}} XP",
+      "chatAriaLabel": "Domeinchat openen",
       "categories": {
         "language": "Taal & Cultuur",
         "design": "Design & Creativiteit",

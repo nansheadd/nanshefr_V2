@@ -89,6 +89,7 @@
       "lessons": "{{count}} lessons",
       "durationHours": "{{count}} hrs",
       "xpValue": "{{current}} / {{target}} XP",
+      "chatAriaLabel": "Open the domain chat",
       "categories": {
         "language": "Language & Culture",
         "design": "Design & Creativity",
