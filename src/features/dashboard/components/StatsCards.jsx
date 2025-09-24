@@ -8,6 +8,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SchoolIcon from '@mui/icons-material/School';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import { getCurrentStreakDays, getTotalStudyTimeSeconds } from '../utils/studyStats';
 
 const StatCard = styled(Card)(({ theme, color = 'primary' }) => ({
   borderRadius: 16,
@@ -44,41 +45,6 @@ const IconContainer = styled(Box)(({ theme, color }) => ({
   boxShadow: `0 8px 24px ${theme.palette[color].main}40`,
 }));
 
-const stats = [
-  {
-    title: 'Cours Terminés',
-    value: '12',
-    change: '+15%',
-    icon: <SchoolIcon />,
-    color: 'primary',
-    progress: 75
-  },
-  {
-    title: 'Temps d\'étude',
-    value: '47h',
-    change: '+8h cette semaine',
-    icon: <AccessTimeIcon />,
-    color: 'secondary',
-    progress: 60
-  },
-  {
-    title: 'Streak Actuel',
-    value: '5 jours',
-    change: 'Record: 12 jours',
-    icon: <TrendingUpIcon />,
-    color: 'success',
-    progress: 42
-  },
-  {
-    title: 'Badges Obtenus',
-    value: '8',
-    change: '+2 ce mois',
-    icon: <EmojiEventsIcon />,
-    color: 'warning',
-    progress: 80
-  },
-];
-
 // Fonction pour formater les secondes en heures/minutes
 const formatTime = (seconds) => {
     if (seconds < 60) return `${seconds}s`;
@@ -102,6 +68,9 @@ const StatsCards = () => {
 
   const isLoading = isLoadingCapsules || isLoadingStats;
 
+  const totalStudyTimeSeconds = getTotalStudyTimeSeconds(progressStats);
+  const currentStreakDays = getCurrentStreakDays(progressStats);
+
   const stats = [
     {
       title: 'Capsules Actives',
@@ -111,13 +80,15 @@ const StatsCards = () => {
     },
     {
       title: 'Temps d\'apprentissage',
-      value: isLoading ? '...' : formatTime(progressStats?.total_study_time_seconds || 0),
+      value: isLoading ? '...' : formatTime(totalStudyTimeSeconds),
       icon: <AccessTimeIcon />,
       color: 'secondary',
     },
     {
       title: 'Streak Actuel',
-      value: isLoading ? '...' : `${progressStats?.current_streak_days || 0} jours`,
+      value: isLoading
+        ? '...'
+        : `${currentStreakDays} jour${currentStreakDays > 1 ? 's' : ''}`,
       icon: <TrendingUpIcon />,
       color: 'success',
     },
