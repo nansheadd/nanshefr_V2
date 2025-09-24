@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/axiosConfig';
 import { useWebSocket } from '../contexts/WebSocketProvider';
+import { clearStoredAccessToken, setStoredAccessToken } from '../utils/authTokens';
 
 const fetchUser = async () => {
   try {
@@ -16,9 +17,13 @@ const loginUser = async (credentials) => {
   const formData = new URLSearchParams();
   formData.append('username', credentials.username);
   formData.append('password', credentials.password);
+  clearStoredAccessToken();
   const { data } = await apiClient.post('/users/login', formData, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
+  if (data?.access_token) {
+    setStoredAccessToken(data.access_token);
+  }
   return data;
 };
 
@@ -53,6 +58,7 @@ const registerUser = async (userData = {}) => {
 
 const logoutUser = async () => {
   const { data } = await apiClient.post('/users/logout');
+  clearStoredAccessToken();
   return data;
 };
 

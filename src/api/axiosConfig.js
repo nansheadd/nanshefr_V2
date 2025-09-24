@@ -1,6 +1,7 @@
 // Fichier: src/api/axiosConfig.js (Version finale pour les cookies)
 import axios from 'axios';
 import { API_V2_URL } from '../config/api';
+import { clearStoredAccessToken, getStoredAccessToken } from '../utils/authTokens';
 
 const apiClient = axios.create({
   baseURL: API_V2_URL,
@@ -9,12 +10,20 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
+  const token = getStoredAccessToken();
+  if (token) {
+    config.headers = config.headers ?? {};
+    if (!config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
   if (typeof window !== 'undefined') {
     console.debug('[API][request]', {
       url: config.url,
       method: config.method,
       withCredentials: config.withCredentials,
-      cookies: document.cookie,
+      cookies: typeof document !== 'undefined' ? document.cookie : undefined,
       headers: config.headers,
     });
   }
@@ -42,6 +51,10 @@ apiClient.interceptors.response.use(
         data: error.response?.data,
         headers: error.config?.headers,
       });
+    }
+
+    if (error.response?.status === 401) {
+      clearStoredAccessToken();
     }
 
     return Promise.reject(error);
