@@ -84,6 +84,15 @@ const resolveBaseUrl = () => {
 export const API_BASE_URL = resolveBaseUrl();
 export const API_V2_URL = `${API_BASE_URL}/api/v2`;
 
+if (typeof window !== 'undefined') {
+  console.info('[API][config] Resolved API base URL.', {
+    apiBaseUrl: API_BASE_URL,
+    apiV2Url: API_V2_URL,
+    location: window?.location?.href ?? null,
+    envBaseUrl: import.meta.env?.VITE_API_BASE_URL ?? null,
+  });
+}
+
 export const API_WS_URL = (() => {
   try {
     const { protocol, host } = new URL(API_BASE_URL);

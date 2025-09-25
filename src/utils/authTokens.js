@@ -8,26 +8,48 @@ const isBrowser = () => typeof window !== 'undefined' && typeof window.localStor
 
 export const getStoredAccessToken = () => {
   if (!isBrowser()) {
+    console.debug('[AuthTokens] getStoredAccessToken skipped: not in browser context.');
     return null;
   }
-  return window.localStorage.getItem(STORAGE_KEY);
+
+  const rawValue = window.localStorage.getItem(STORAGE_KEY);
+  if (rawValue) {
+    console.debug('[AuthTokens] Retrieved access token from storage.', {
+      length: rawValue.length,
+    });
+  } else {
+    console.debug('[AuthTokens] No access token present in storage.');
+  }
+
+  return rawValue;
 };
 
 export const setStoredAccessToken = (token) => {
   if (!isBrowser()) {
+    console.debug('[AuthTokens] setStoredAccessToken skipped: not in browser context.');
     return;
   }
-  if (token) {
-    window.localStorage.setItem(STORAGE_KEY, token);
+
+  const normalizedToken = typeof token === 'string' ? token.trim() : '';
+
+  if (normalizedToken) {
+    window.localStorage.setItem(STORAGE_KEY, normalizedToken);
+    console.info('[AuthTokens] Stored access token in localStorage.', {
+      length: normalizedToken.length,
+    });
   } else {
     window.localStorage.removeItem(STORAGE_KEY);
+    console.warn('[AuthTokens] Cleared access token because provided value was empty.');
   }
 };
 
 export const clearStoredAccessToken = () => {
   if (!isBrowser()) {
+    console.debug('[AuthTokens] clearStoredAccessToken skipped: not in browser context.');
     return;
   }
+
   window.localStorage.removeItem(STORAGE_KEY);
+  console.info('[AuthTokens] Access token removed from localStorage.');
 };
 
