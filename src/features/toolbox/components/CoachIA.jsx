@@ -840,6 +840,8 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   );
   const agentTooltip = quickActions.find((action) => action.type === 'agent_mode')?.tooltip;
 
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     writeStoredConversationId(conversationId);
   }, [conversationId]);
@@ -894,8 +896,6 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
       cancelled = true;
     };
   }, [queryClient]);
-
-  const queryClient = useQueryClient();
   const {
     data: energy,
     isLoading: isEnergyLoading,
