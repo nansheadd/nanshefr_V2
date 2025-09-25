@@ -554,19 +554,20 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
 
   useEffect(() => {
     if (coachIsSpeaking) {
-      setActiveFrame(0);
       if (!speakingIntervalRef.current) {
+        setActiveFrame(0);
         speakingIntervalRef.current = setInterval(() => {
           setActiveFrame((prev) => (prev + 1) % coachFrames.length);
         }, 120);
       }
-    } else {
-      if (speakingIntervalRef.current) {
-        clearInterval(speakingIntervalRef.current);
-        speakingIntervalRef.current = null;
-      }
-      setActiveFrame(0);
+      return;
     }
+
+    if (speakingIntervalRef.current) {
+      clearInterval(speakingIntervalRef.current);
+      speakingIntervalRef.current = null;
+    }
+    setActiveFrame(0);
   }, [coachIsSpeaking]);
 
   useEffect(
