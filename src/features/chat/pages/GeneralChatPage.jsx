@@ -19,6 +19,7 @@ const GeneralChatPage = () => {
       allowAreaSelection={false}
       showActiveUsers
       variant="full"
+      historyRoomId="general"
     />
   );
 };

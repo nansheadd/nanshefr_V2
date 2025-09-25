@@ -31,6 +31,8 @@ const CapsuleChatPanel = ({ domain, area, capsuleTitle }) => {
     return base;
   }, [sanitizedArea, sanitizedDomain]);
 
+  const historyParamsValue = useMemo(() => ({ capsule: capsuleTitle }), [capsuleTitle]);
+
   return (
     <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Stack direction="row" spacing={1.5} alignItems="center">
@@ -58,6 +60,8 @@ const CapsuleChatPanel = ({ domain, area, capsuleTitle }) => {
           showActiveUsers
           variant="embedded"
           metadata={{ capsule: capsuleTitle }}
+          historyRoomId={sanitizedDomain}
+          historyParams={historyParamsValue}
         />
       </ChatProvider>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
