@@ -18,6 +18,7 @@ import {
   Alert,
   Tooltip,
   LinearProgress,
+  CircularProgress,
 } from '@mui/material';
 import { styled, alpha, keyframes } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
@@ -27,6 +28,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import BoltIcon from '@mui/icons-material/Bolt';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 const slideIn = keyframes`
   from { opacity: 0; transform: translateY(10px); }
@@ -46,6 +48,48 @@ const coachFrames = [
 ];
 
 const TYPEWRITER_DELAY = 22;
+
+const COACH_WELCOME_MESSAGE =
+  "👋 Salut ! Je suis votre Coach IA personnel.\n\nComment puis-je vous accompagner dans votre apprentissage aujourd'hui ?";
+
+const COACH_CONVERSATION_STORAGE_KEY = 'nanshe.coach.conversationId';
+
+const getConversationStorage = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  try {
+    return window.sessionStorage || window.localStorage || null;
+  } catch (error) {
+    console.warn('CoachIA: unable to access sessionStorage for conversations.', error);
+    return null;
+  }
+};
+
+const readStoredConversationId = () => {
+  const storage = getConversationStorage();
+  if (!storage) return null;
+  try {
+    return storage.getItem(COACH_CONVERSATION_STORAGE_KEY);
+  } catch (error) {
+    console.warn('CoachIA: unable to read stored conversation id.', error);
+    return null;
+  }
+};
+
+const writeStoredConversationId = (value) => {
+  const storage = getConversationStorage();
+  if (!storage) return;
+  try {
+    if (value) {
+      storage.setItem(COACH_CONVERSATION_STORAGE_KEY, value);
+    } else {
+      storage.removeItem(COACH_CONVERSATION_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.warn('CoachIA: unable to persist conversation id.', error);
+  }
+};
 
 const ChatWindow = styled(Paper, {
   shouldForwardProp: (prop) => prop !== 'layout',
@@ -255,6 +299,254 @@ const TypingIndicator = styled(Box)(({ theme }) => ({
 
 const askCoachAPI = (payload) => apiClient.post('/toolbox/coach', payload).then((res) => res.data);
 const fetchCoachEnergy = () => apiClient.get('/toolbox/coach/energy').then((res) => res.data);
+
+const fetchCoachConversation = async (conversationId) => {
+  const endpoints = conversationId
+    ? [
+        `/toolbox/coach/conversations/${encodeURIComponent(conversationId)}`,
+        `/toolbox/coach/conversation/${encodeURIComponent(conversationId)}`,
+      ]
+    : [
+        '/toolbox/coach/conversations/current',
+        '/toolbox/coach/conversations/latest',
+        '/toolbox/coach/conversation',
+      ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await apiClient.get(endpoint);
+      if (response?.data) {
+        return response.data;
+      }
+    } catch (error) {
+      const status = error?.response?.status;
+      if (status && [400, 404, 405].includes(status)) {
+        continue;
+      }
+      console.warn('CoachIA: unable to fetch conversation.', endpoint, error);
+      throw error;
+    }
+  }
+
+  return null;
+};
+
+const resetCoachConversation = async (conversationId) => {
+  const attempts = [];
+  if (conversationId) {
+    const encoded = encodeURIComponent(conversationId);
+    attempts.push({ method: 'delete', url: `/toolbox/coach/conversations/${encoded}` });
+    attempts.push({ method: 'delete', url: `/toolbox/coach/conversation/${encoded}` });
+  }
+  attempts.push({ method: 'post', url: '/toolbox/coach/conversations/reset' });
+  attempts.push({ method: 'delete', url: '/toolbox/coach/conversations/current' });
+  attempts.push({ method: 'delete', url: '/toolbox/coach/conversation' });
+
+  let lastError = null;
+  for (const attempt of attempts) {
+    const { method, url } = attempt;
+    if (!apiClient[method]) continue;
+    try {
+      const response = await apiClient[method](url);
+      return response?.data ?? null;
+    } catch (error) {
+      const status = error?.response?.status;
+      if (status && [400, 404, 405].includes(status)) {
+        lastError = error;
+        continue;
+      }
+      lastError = error;
+      break;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  return null;
+};
+
+const pickString = (...values) => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return null;
+};
+
+const extractConversationData = (payload) => {
+  if (!payload || typeof payload !== 'object') {
+    return { conversationId: null, messages: null, responseText: '', energy: null };
+  }
+
+  const conversation =
+    payload.conversation ||
+    payload.data?.conversation ||
+    payload.session ||
+    payload.thread ||
+    null;
+
+  const conversationId = pickString(
+    payload.conversation_id,
+    payload.conversationId,
+    conversation?.id,
+    conversation?.conversation_id,
+    conversation?.uuid,
+    payload.id,
+    payload.session_id,
+    payload.thread_id,
+  );
+
+  const messages =
+    (Array.isArray(payload.messages) && payload.messages) ||
+    (Array.isArray(payload.history) && payload.history) ||
+    (Array.isArray(payload.message_history) && payload.message_history) ||
+    (Array.isArray(payload.entries) && payload.entries) ||
+    (Array.isArray(payload.items) && payload.items) ||
+    (Array.isArray(payload.data?.messages) && payload.data.messages) ||
+    (Array.isArray(payload.data?.history) && payload.data.history) ||
+    (Array.isArray(conversation?.messages) && conversation.messages) ||
+    (Array.isArray(conversation?.history) && conversation.history) ||
+    null;
+
+  const responseText =
+    pickString(
+      payload.response,
+      payload.answer,
+      payload.message,
+      payload.text,
+      payload.output,
+      payload.content,
+      payload.reply,
+      payload.data?.response,
+      payload.data?.answer,
+    ) || '';
+
+  const energy =
+    payload.energy ||
+    payload.meta?.energy ||
+    conversation?.energy ||
+    payload.data?.energy ||
+    null;
+
+  return { conversationId, messages, responseText, energy };
+};
+
+const extractMessageRole = (raw) => {
+  if (!raw) return '';
+
+  if (raw.is_assistant || raw.isAssistant) return 'assistant';
+  if (raw.is_user || raw.isUser) return 'user';
+
+  const seen = [];
+  const push = (value) => {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      seen.push(value.trim());
+    }
+  };
+
+  const sources = [raw, raw.message, raw.payload, raw.data, raw.event, raw.meta];
+  sources.forEach((source) => {
+    if (!source || typeof source !== 'object') return;
+    push(source.role);
+    push(source.author_role);
+    push(source.authorRole);
+    push(source.sender_role);
+    push(source.senderRole);
+    push(source.user_role);
+    push(source.type);
+    push(source.author);
+    push(source.from);
+    push(source.participant?.role);
+  });
+
+  if (typeof raw.role === 'string') push(raw.role);
+  if (typeof raw.author === 'string') push(raw.author);
+
+  return seen.length > 0 ? seen[0].toLowerCase() : '';
+};
+
+const determineAuthorFromRole = (role) => {
+  if (!role) return 'user';
+  const normalized = role.toLowerCase();
+  if (['assistant', 'coach', 'ai', 'ia', 'bot'].includes(normalized)) return 'ia';
+  if (['system', 'narrator', 'moderator'].includes(normalized)) return 'ia';
+  return 'user';
+};
+
+const extractMessageContent = (raw) => {
+  if (raw == null) return '';
+  if (typeof raw === 'string') return raw;
+
+  const contents = [];
+  const push = (value) => {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      contents.push(value);
+    }
+  };
+
+  const walk = (source) => {
+    if (!source) return;
+    if (typeof source === 'string') {
+      push(source);
+      return;
+    }
+    if (typeof source !== 'object') return;
+    push(source.content);
+    push(source.message);
+    push(source.text);
+    push(source.body);
+    push(source.value);
+    push(source.output);
+    push(source.summary);
+    push(source.response);
+    push(source.reply);
+    if (source.delta && typeof source.delta === 'object') {
+      push(source.delta.content);
+      push(source.delta.text);
+    }
+    if (Array.isArray(source.parts)) {
+      source.parts.forEach((part) => walk(part));
+    }
+    if (Array.isArray(source.content)) {
+      source.content.forEach((part) => walk(part));
+    }
+  };
+
+  walk(raw);
+
+  return contents.find((value) => value && value.trim().length > 0) || '';
+};
+
+const mapApiMessageToLocal = (raw, { animateAssistant = false, isLast = false } = {}) => {
+  if (raw == null) return null;
+
+  const role = extractMessageRole(raw);
+  const author = determineAuthorFromRole(role);
+  const content = extractMessageContent(raw);
+
+  if (!content) {
+    return null;
+  }
+
+  const shouldAnimateAssistant = animateAssistant && isLast && author === 'ia';
+
+  return createMessage(author, content, { immediate: author !== 'ia' || !shouldAnimateAssistant });
+};
+
+const convertConversationMessages = (messages = [], { animateAssistant = false } = {}) => {
+  if (!Array.isArray(messages)) return [];
+  return messages
+    .map((entry, index) =>
+      mapApiMessageToLocal(entry, {
+        animateAssistant,
+        isLast: index === messages.length - 1,
+      }),
+    )
+    .filter(Boolean);
+};
 
 const formatDuration = (seconds) => {
   if (seconds == null) return '';
@@ -521,12 +813,11 @@ const buildQuickActions = (context, isAgentAvailable) => {
 const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const { t } = useI18n();
   const [messages, setMessages] = useState(() => [
-    createMessage(
-      'ia',
-      "👋 Salut ! Je suis votre Coach IA personnel.\n\nComment puis-je vous accompagner dans votre apprentissage aujourd'hui ?",
-      { immediate: false },
-    ),
+    createMessage('ia', COACH_WELCOME_MESSAGE, { immediate: false }),
   ]);
+  const [conversationId, setConversationId] = useState(null);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false);
+  const [isResettingConversation, setIsResettingConversation] = useState(false);
   const [input, setInput] = useState('');
   const [isAgentMode, setIsAgentMode] = useState(false);
   const [infoBanner, setInfoBanner] = useState(null);
@@ -535,6 +826,7 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const chatEndRef = useRef(null);
   const chatWindowRef = useRef(null);
   const messagesRef = useRef([]);
+  const hasHydratedConversationRef = useRef(false);
   const typingIntervalRef = useRef(null);
   const typingMessageRef = useRef(null);
   const speakingIntervalRef = useRef(null);
@@ -547,6 +839,61 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
     [coachContext, isAgentAvailable],
   );
   const agentTooltip = quickActions.find((action) => action.type === 'agent_mode')?.tooltip;
+
+  useEffect(() => {
+    writeStoredConversationId(conversationId);
+  }, [conversationId]);
+
+  useEffect(() => {
+    if (hasHydratedConversationRef.current) {
+      return;
+    }
+
+    hasHydratedConversationRef.current = true;
+    let cancelled = false;
+
+    const loadConversation = async () => {
+      setIsLoadingConversation(true);
+      try {
+        const storedId = readStoredConversationId();
+        const data = await fetchCoachConversation(storedId);
+        if (!data || cancelled) {
+          return;
+        }
+
+        const { conversationId: nextId, messages: rawMessages, energy } = extractConversationData(data);
+        const effectiveId = nextId || storedId || null;
+        if (effectiveId) {
+          setConversationId(effectiveId);
+        }
+
+        if (energy) {
+          queryClient.setQueryData(['coach-energy'], energy);
+        }
+
+        if (Array.isArray(rawMessages) && rawMessages.length > 0) {
+          const normalized = convertConversationMessages(rawMessages, { animateAssistant: false });
+          if (normalized.length > 0) {
+            setMessages(normalized);
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('CoachIA: unable to hydrate conversation history.', error);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingConversation(false);
+        }
+      }
+    };
+
+    loadConversation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [queryClient]);
 
   const queryClient = useQueryClient();
   const {
@@ -564,8 +911,33 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const mutation = useMutation({
     mutationFn: askCoachAPI,
     onSuccess: (data) => {
-      setMessages((prev) => [...prev, createMessage('ia', data.response, { immediate: false })]);
-      queryClient.setQueryData(['coach-energy'], data.energy);
+      const { conversationId: nextId, messages: rawMessages, responseText, energy } = extractConversationData(data);
+
+      if (nextId) {
+        setConversationId(nextId);
+      }
+
+      if (energy) {
+        queryClient.setQueryData(['coach-energy'], energy);
+      } else if (data.energy) {
+        queryClient.setQueryData(['coach-energy'], data.energy);
+      }
+
+      const normalizedMessages = convertConversationMessages(rawMessages, { animateAssistant: true });
+      const previousCount = messagesRef.current.length;
+
+      if (normalizedMessages.length >= previousCount && normalizedMessages.length > 0) {
+        setMessages(normalizedMessages);
+      } else if (normalizedMessages.length > 0) {
+        const lastServerMessage = normalizedMessages[normalizedMessages.length - 1];
+        if (lastServerMessage && lastServerMessage.author === 'ia') {
+          setMessages((prev) => [...prev, createMessage('ia', lastServerMessage.message, { immediate: false })]);
+        }
+      } else if (responseText || data.response) {
+        const text = responseText || data.response;
+        setMessages((prev) => [...prev, createMessage('ia', text, { immediate: false })]);
+      }
+
       setInfoBanner(null);
     },
     onError: (error) => {
@@ -758,7 +1130,14 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const sendMessage = useCallback(
     (text, extra = {}) => {
       const trimmed = text?.trim();
-      if (!trimmed || mutation.isPending) return;
+      if (
+        !trimmed ||
+        mutation.isPending ||
+        isLoadingConversation ||
+        isResettingConversation
+      ) {
+        return;
+      }
 
       if (isEnergyLoading) {
         setInfoBanner({ severity: 'info', message: "Chargement de ton énergie..." });
@@ -786,15 +1165,34 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
       const history = messagesRef.current.slice(1).map(({ author, message }) => ({ author, message }));
 
       setMessages((prev) => [...prev, createMessage('user', trimmed)]);
-      mutation.mutate({
+      const payload = {
         message: trimmed,
         context,
         history,
         quick_action: extra.quick_action || null,
         selection: extra.selection || null,
-      });
+      };
+
+      if (conversationId) {
+        payload.conversation_id = conversationId;
+        payload.conversationId = conversationId;
+        payload.conversation = { id: conversationId };
+      }
+
+      mutation.mutate(payload);
     },
-    [mutation, isEnergyLoading, energy, refetchEnergy, setInfoBanner, location.pathname, params],
+    [
+      mutation,
+      isEnergyLoading,
+      energy,
+      refetchEnergy,
+      setInfoBanner,
+      location.pathname,
+      params,
+      conversationId,
+      isLoadingConversation,
+      isResettingConversation,
+    ],
   );
 
   const handleSend = () => {
@@ -802,6 +1200,27 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
     sendMessage(input);
     setInput('');
   };
+
+  const handleResetConversation = useCallback(async () => {
+    if (isResettingConversation || mutation.isPending) {
+      return;
+    }
+
+    setIsResettingConversation(true);
+    setInfoBanner(null);
+
+    try {
+      await resetCoachConversation(conversationId);
+      setConversationId(null);
+      setMessages([createMessage('ia', COACH_WELCOME_MESSAGE, { immediate: false })]);
+      writeStoredConversationId(null);
+    } catch (error) {
+      console.warn('CoachIA: unable to reset conversation.', error);
+      setInfoBanner({ severity: 'error', message: 'Impossible de réinitialiser la conversation pour le moment.' });
+    } finally {
+      setIsResettingConversation(false);
+    }
+  }, [conversationId, isResettingConversation, mutation.isPending, setInfoBanner]);
 
   const handleQuickAction = (action) => {
     if (action?.disabled) {
@@ -952,6 +1371,24 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
                 />
               </span>
             </Tooltip>
+            <Tooltip title="Nouvelle conversation" placement="bottom">
+              <span>
+                <IconButton
+                  onClick={handleResetConversation}
+                  size="small"
+                  disabled={
+                    isResettingConversation || mutation.isPending || isLoadingConversation
+                  }
+                  sx={{ bgcolor: alpha('#000', 0.05), '&:hover': { bgcolor: alpha('#000', 0.1) } }}
+                >
+                  {isResettingConversation ? (
+                    <CircularProgress size={16} sx={{ color: 'text.secondary' }} />
+                  ) : (
+                    <RestartAltIcon fontSize="small" />
+                  )}
+                </IconButton>
+              </span>
+            </Tooltip>
             {onClose && (
               <IconButton onClick={onClose} size="small" sx={{ bgcolor: alpha('#000', 0.05), '&:hover': { bgcolor: alpha('#000', 0.1) } }}>
                 <CloseIcon fontSize="small" />
@@ -969,6 +1406,14 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
       </ChatHeader>
 
       <Stack sx={{ flexGrow: 1, p: 2, overflowY: 'auto', gap: 1 }}>
+        {isLoadingConversation && (
+          <Stack alignItems="center" spacing={1} sx={{ py: 2 }}>
+            <CircularProgress size={18} />
+            <Typography variant="caption" color="text.secondary">
+              Chargement de ta conversation...
+            </Typography>
+          </Stack>
+        )}
         {messages.map((msg, index) => {
           const isActive = index === messages.length - 1 && msg.author === 'ia' && msg.isTyping;
           return (
@@ -1052,12 +1497,17 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-          disabled={mutation.isPending}
+          disabled={mutation.isPending || isLoadingConversation || isResettingConversation}
           InputProps={{
             endAdornment: (
               <IconButton
                 onClick={handleSend}
-                disabled={mutation.isPending || !input.trim()}
+                disabled={
+                  mutation.isPending ||
+                  isLoadingConversation ||
+                  isResettingConversation ||
+                  !input.trim()
+                }
                 sx={{
                   bgcolor: 'primary.main',
                   color: 'white',
