@@ -3,6 +3,27 @@ import axios from 'axios';
 import { API_V2_URL } from '../config/api';
 import { clearStoredAccessToken, getStoredAccessToken } from '../utils/authTokens';
 
+const maskToken = (token) => {
+  if (typeof token !== 'string') {
+    return null;
+  }
+
+  const trimmed = token.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.length <= 8) {
+    return `${trimmed[0] ?? ''}${'*'.repeat(Math.max(trimmed.length - 2, 0))}${
+      trimmed.slice(-1) ?? ''
+    } (len:${trimmed.length})`;
+  }
+
+  const prefix = trimmed.slice(0, 4);
+  const suffix = trimmed.slice(-4);
+  return `${prefix}…${suffix} (len:${trimmed.length})`;
+};
+
 const apiClient = axios.create({
   baseURL: API_V2_URL,
   // Cette ligne est la seule chose nécessaire pour que les cookies fonctionnent
@@ -10,12 +31,24 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = getStoredAccessToken();
-  if (token) {
-    config.headers = config.headers ?? {};
+  const rawToken = getStoredAccessToken();
+  const normalizedToken = typeof rawToken === 'string' ? rawToken.trim() : '';
+
+  config.headers = config.headers ?? {};
+
+  if (normalizedToken) {
     if (!config.headers.Authorization) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${normalizedToken}`;
+      console.info('[API][request] Authorization header injected from storage.', {
+        token: maskToken(normalizedToken),
+      });
+    } else {
+      console.debug('[API][request] Authorization header already present.', {
+        token: maskToken(normalizedToken),
+      });
     }
+  } else {
+    console.warn('[API][request] No access token available when preparing request.');
   }
 
   if (typeof window !== 'undefined') {
