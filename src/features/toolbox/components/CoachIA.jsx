@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
-import { useTranslation } from 'react-i18next';
+import { useI18n } from '../../../i18n/I18nContext';
 import {
   Box,
   Paper,
@@ -321,7 +321,7 @@ const quickActions = [
 ];
 
 const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
-  const { t } = useTranslation();
+  const { t } = useI18n();
   const [messages, setMessages] = useState(() => [
     createMessage(
       'ia',
