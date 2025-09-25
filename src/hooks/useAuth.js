@@ -103,6 +103,18 @@ export const useAuth = () => {
     }
   }, [user, isLoading]);
 
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (user) {
+      reconnect();
+    } else {
+      disconnect();
+    }
+  }, [user, isLoading, reconnect, disconnect]);
+
   // Après login: invalidation + refetch de l'utilisateur, puis reconnect WS
   const loginMutation = useMutation({
     mutationFn: loginUser,
