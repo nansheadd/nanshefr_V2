@@ -1,6 +1,6 @@
 // src/contexts/WebSocketProvider.jsx
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { API_WS_URL } from '../config/api';
+import { buildApiWsUrl } from '../config/api';
 import { getStoredAccessToken } from '../utils/authTokens';
 
 // 👉 le contexte expose maintenant { lastMessage, connected, reconnect, disconnect }
@@ -34,7 +34,8 @@ export const WebSocketProvider = ({ children }) => {
     }
 
     try {
-      const socket = new window.WebSocket(API_WS_URL);
+      const socketUrl = buildApiWsUrl();
+      const socket = new window.WebSocket(socketUrl);
       socketRef.current = socket;
 
       socket.onopen = () => {

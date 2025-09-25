@@ -1,6 +1,7 @@
+import { getStoredAccessToken } from '../utils/authTokens';
+
 const DEV_BACKEND_FALLBACK = 'http://localhost:8000';
-const PROD_BACKEND_FALLBACK =
-  'https://nanshe-v2.vercel.app';
+const PROD_BACKEND_FALLBACK = 'https://nanshe-v2.vercel.app';
 
 const trimTrailingSlashes = (value = '') => value.replace(/\/+$/, '');
 
@@ -120,24 +121,81 @@ export const CHAT_WS_URL = (() => {
   }
 })();
 
-export const buildChatSocketUrl = (room, params = {}) => {
+const WS_FALLBACK_URL = 'ws://localhost:8000/api/v2/ws';
+const CHAT_WS_FALLBACK_URL = 'ws://localhost:8000/api/v2/ws/conversations';
+
+const sanitizeToken = (value) => {
+  if (typeof value !== 'string') return '';
+  return value.trim();
+};
+
+const applyFallbackToken = (url, explicitToken) => {
+  const directToken = sanitizeToken(explicitToken);
+  if (directToken) {
+    url.searchParams.set('token', directToken);
+    return;
+  }
+
+  const fallbackToken = sanitizeToken(getStoredAccessToken());
+  if (fallbackToken) {
+    url.searchParams.set('token', fallbackToken);
+  } else {
+    url.searchParams.delete('token');
+  }
+};
+
+const buildWsUrl = (baseUrl, params = {}, fallbackUrl = WS_FALLBACK_URL) => {
   try {
-    const url = new URL(CHAT_WS_URL);
-    if (room) {
-      url.searchParams.set('room', room);
-    }
+    const url = new URL(baseUrl);
     const entries = Object.entries(params || {});
+    let explicitToken;
+
     entries.forEach(([key, value]) => {
       if (value === undefined || value === null) return;
       const stringValue = typeof value === 'string' ? value : String(value);
-      if (stringValue.length === 0) return;
+      if (!stringValue || stringValue.length === 0) return;
+      if (key === 'token') {
+        explicitToken = stringValue;
+      }
       url.searchParams.set(key, stringValue);
     });
+
+    applyFallbackToken(url, explicitToken);
+    url.hash = '';
     return url.toString();
   } catch (error) {
-    console.warn('Unable to build chat WebSocket URL. Falling back to default.', error);
+    console.warn('Unable to build WebSocket URL. Falling back to default.', { baseUrl, error });
+    if (fallbackUrl && fallbackUrl !== baseUrl) {
+      return buildWsUrl(fallbackUrl, params, null);
+    }
+    return fallbackUrl || baseUrl;
+  }
+};
+
+export const buildApiWsUrl = (params = {}) => buildWsUrl(API_WS_URL, params, WS_FALLBACK_URL);
+
+export const buildChatSocketUrl = (room, params = {}) => {
+  const mergedParams = { ...(params || {}) };
+  if (room) {
+    mergedParams.room = room;
+  }
+
+  const built = buildWsUrl(CHAT_WS_URL, mergedParams, CHAT_WS_FALLBACK_URL);
+
+  try {
+    const parsed = new URL(built);
+    if (!parsed.searchParams.has('room')) {
+      parsed.searchParams.set('room', room || 'general');
+    }
+    return parsed.toString();
+  } catch (error) {
+    console.warn('Unable to normalize chat WebSocket URL. Returning raw value.', { built, error });
+    if (built && built.includes('room=')) {
+      return built;
+    }
     const safeRoom = encodeURIComponent(room || 'general');
-    return `${CHAT_WS_URL}?room=${safeRoom}`;
+    const joiner = built && built.includes('?') ? '&' : '?';
+    return `${built || CHAT_WS_FALLBACK_URL}${joiner}room=${safeRoom}`;
   }
 };
 
