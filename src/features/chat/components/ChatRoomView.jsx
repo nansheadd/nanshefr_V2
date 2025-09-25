@@ -24,6 +24,9 @@ const ChatRoomView = ({
   showActiveUsers = true,
   variant = 'full',
   metadata,
+  historyRoomId,
+  historyParams,
+  autoLoadHistory = true,
 }) => {
   const { user } = useAuth();
   const connectionMetadata = useMemo(() => {
@@ -53,9 +56,25 @@ const ChatRoomView = ({
     return nextMetadata;
   }, [metadata, domain, roomId, defaultArea, initialAreaFilter, availableAreas]);
 
-  const { messages, activeUsers, status, error, sendMessage } = useChatRoom(roomId, {
-    metadata: connectionMetadata,
-  });
+  const historyConfig = useMemo(() => {
+    if (!autoLoadHistory) {
+      return { autoLoad: false };
+    }
+    const params = historyParams && typeof historyParams === 'object' ? historyParams : undefined;
+    return {
+      autoLoad: true,
+      requestId: historyRoomId || roomId,
+      params,
+    };
+  }, [autoLoadHistory, historyParams, historyRoomId, roomId]);
+
+  const { messages, activeUsers, status, error, sendMessage, isFetchingHistory, hasHistory } = useChatRoom(
+    roomId,
+    {
+      metadata: connectionMetadata,
+      history: historyConfig,
+    },
+  );
 
   const [composerValue, setComposerValue] = useState('');
   const [internalFilter, setInternalFilter] = useState(normalizeArea(initialAreaFilter));
@@ -136,6 +155,7 @@ const ChatRoomView = ({
         title={title}
         description={description}
         status={status}
+        isLoadingHistory={isFetchingHistory}
         areaFilter={effectiveFilter}
         onAreaFilterChange={handleFilterChange}
         areaOptions={areaOptions}
@@ -160,6 +180,8 @@ const ChatRoomView = ({
               messages={filteredMessages}
               status={status}
               currentUsername={user?.username}
+              isLoadingHistory={isFetchingHistory}
+              hasHistory={hasHistory}
             />
           </Box>
           <Box sx={{ px: 2, py: 1.5, borderTop: (theme) => `1px solid ${theme.palette.divider}` }}>

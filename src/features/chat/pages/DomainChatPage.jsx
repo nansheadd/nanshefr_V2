@@ -60,6 +60,7 @@ const DomainChatPage = () => {
       allowAreaSelection
       showActiveUsers
       variant="full"
+      historyRoomId={roomKey}
     />
   );
 };

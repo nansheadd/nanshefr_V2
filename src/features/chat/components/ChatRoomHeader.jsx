@@ -16,12 +16,15 @@ const STATUS_CONFIG = {
   error: { label: 'Erreur', color: 'error' },
   closed: { label: 'Déconnecté', color: 'default' },
   idle: { label: 'Inactif', color: 'default' },
+  loading: { label: 'Chargement…', color: 'info' },
+  'loading-history': { label: 'Chargement…', color: 'info' },
 };
 
 const ChatRoomHeader = ({
   title,
   description,
   status,
+  isLoadingHistory = false,
   areaFilter,
   onAreaFilterChange,
   areaOptions = [],
@@ -30,7 +33,8 @@ const ChatRoomHeader = ({
   actions,
   activeCount,
 }) => {
-  const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.idle;
+  const statusKey = isLoadingHistory ? 'loading' : status;
+  const statusConfig = STATUS_CONFIG[statusKey] || STATUS_CONFIG.idle;
   const hasAreaFilter = showAreaFilter && areaOptions.length > 0;
 
   return (

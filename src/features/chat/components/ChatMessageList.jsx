@@ -2,9 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import { Box, CircularProgress, Stack, Typography } from '@mui/material';
 import ChatMessageItem from './ChatMessageItem';
 
-const ChatMessageList = ({ messages, status, currentUsername }) => {
+const ChatMessageList = ({ messages, status, currentUsername, isLoadingHistory = false, hasHistory = false }) => {
   const bottomRef = useRef(null);
-  const isLoading = status === 'connecting';
+  const isLoadingConnection = status === 'connecting';
+  const isLoading = isLoadingConnection || isLoadingHistory;
 
   useEffect(() => {
     if (!bottomRef.current) return;
@@ -12,6 +13,7 @@ const ChatMessageList = ({ messages, status, currentUsername }) => {
   }, [messages]);
 
   const hasMessages = Array.isArray(messages) && messages.length > 0;
+  const isReady = hasHistory || ['connected', 'closed', 'error'].includes(status);
 
   return (
     <Box sx={{ flex: 1, overflowY: 'auto', pr: 1 }}>
@@ -32,7 +34,7 @@ const ChatMessageList = ({ messages, status, currentUsername }) => {
           <Box ref={bottomRef} />
         </Stack>
       ) : (
-        !isLoading && (
+        !isLoading && isReady && (
           <Stack spacing={1} sx={{ py: 4, alignItems: 'center', color: 'text.secondary' }}>
             <Typography variant="body2">Aucun message pour le moment.</Typography>
             <Typography variant="body2">Soyez la première personne à lancer la discussion !</Typography>
