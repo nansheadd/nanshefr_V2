@@ -55,12 +55,13 @@ const resolveBaseUrl = () => {
   const isProdBuild = Boolean(import.meta.env?.PROD);
 
   if (isNonEmptyString(envValue)) {
-    const trimmedEnv = trimTrailingSlashes(envValue.trim());
-    const envHostname = getHostnameFromUrl(trimmedEnv);
-    if (envHostname && hostname && envHostname === hostname && shouldPreferProdBackend(hostname)) {
-      return PROD_BACKEND_FALLBACK;
-    }
-    return trimmedEnv;
+    // Always honor the explicit environment override to avoid accidentally
+    // switching to a different origin. This is critical for authentication
+    // flows relying on same-site cookies (e.g. when the frontend is served
+    // from nanshe.vercel.app and proxies API requests through the same
+    // domain). Falling back to another hostname would make the cookies
+    // third-party and therefore unusable.
+    return trimTrailingSlashes(envValue.trim());
   }
 
   if (isDevBuild || isLocalHostname(hostname)) {
