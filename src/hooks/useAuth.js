@@ -1,150 +1,65 @@
-// Fichier: src/hooks/useAuth.js
+// src/hooks/useAuth.js
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/axiosConfig';
 import { useWebSocket } from '../contexts/WebSocketProvider';
-import { clearStoredAccessToken, setStoredAccessToken } from '../utils/authTokens';
+import { clearStoredAccessToken, setStoredAccessToken, getStoredAccessToken } from '../utils/authTokens';
 import {
   clearStoredUserProfile,
   getStoredUserProfile,
   setStoredUserProfile,
 } from '../utils/userProfileStorage';
 
+// Charge l'utilisateur courant via cookie HttpOnly (ou header si fallback localStorage)
 const fetchUser = async () => {
   try {
     const { data } = await apiClient.get('/users/me');
-    if (data) {
-      setStoredUserProfile(data);
-    } else {
-      clearStoredUserProfile();
-    }
+    if (data) setStoredUserProfile(data);
+    else clearStoredUserProfile();
     return data;
   } catch (error) {
     if (error?.response?.status === 401) {
       clearStoredUserProfile();
       return null;
     }
-
     const cached = getStoredUserProfile();
-    if (cached) {
-      return cached;
-    }
-
-    return null;
+    return cached || null;
   }
 };
 
-const TOKEN_KEYS = ['access_token', 'accessToken', 'token', 'access'];
+// Login: envoie form-urlencoded, garde access_token du body en fallback localStorage si présent
+const loginUser = async ({ username, password }) => {
+  clearStoredAccessToken(); // reset du fallback avant login
+  const form = new URLSearchParams();
+  form.set('username', String(username ?? ''));
+  form.set('password', String(password ?? ''));
 
-const normalizeTokenString = (value) => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-};
-
-const resolveAccessToken = (input, visited = new Set(), allowLooseString = true) => {
-  if (typeof input === 'string') {
-    return allowLooseString ? normalizeTokenString(input) : null;
-  }
-
-  if (!input) {
-    return null;
-  }
-
-  if (Array.isArray(input)) {
-    for (const item of input) {
-      const nested = resolveAccessToken(item, visited, allowLooseString);
-      if (nested) {
-        return nested;
-      }
-    }
-    return null;
-  }
-
-  if (typeof input !== 'object') {
-    return null;
-  }
-
-  if (visited.has(input)) {
-    return null;
-  }
-  visited.add(input);
-
-  for (const key of TOKEN_KEYS) {
-    if (Object.prototype.hasOwnProperty.call(input, key)) {
-      const nested = resolveAccessToken(input[key], visited, true);
-      if (nested) {
-        return nested;
-      }
-    }
-  }
-
-  for (const value of Object.values(input)) {
-    if (value && typeof value === 'object') {
-      const nested = resolveAccessToken(value, visited, false);
-      if (nested) {
-        return nested;
-      }
-    }
-  }
-
-  return null;
-};
-
-const loginUser = async (credentials) => {
-  const formData = new URLSearchParams();
-  formData.append('username', credentials.username);
-  formData.append('password', credentials.password);
-  clearStoredAccessToken();
-  const { data } = await apiClient.post('/users/login', formData, {
+  const { data } = await apiClient.post('/users/login', form, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
-  const directToken = typeof data === 'object' && data !== null ? data.access_token : null;
-  const accessToken = resolveAccessToken(directToken ?? data);
 
-  if (typeof window !== 'undefined') {
-    console.debug('[Auth] Login response evaluated for token.', {
-      payloadType: data === null ? null : typeof data,
-      payloadKeys: data && typeof data === 'object' ? Object.keys(data) : null,
-      hasDirectAccessToken: typeof directToken === 'string' && directToken.trim().length > 0,
-      resolvedTokenLength: typeof accessToken === 'string' ? accessToken.length : null,
-    });
-  }
-
-  if (typeof accessToken === 'string' && accessToken.trim()) {
-    setStoredAccessToken(accessToken);
+  if (data && typeof data.access_token === 'string' && data.access_token.trim()) {
+    setStoredAccessToken(data.access_token);
   } else {
-    console.warn('[Auth] Login succeeded but no access token was found in response payload.', {
-      payloadKeys: data && typeof data === 'object' ? Object.keys(data) : null,
-    });
+    // eslint-disable-next-line no-console
+    console.warn('[Auth] Login succeeded but no access_token in response body (cookie-only auth).');
   }
   return data;
 };
 
 const registerUser = async (userData = {}) => {
   const payload = { ...userData };
-
-  if (typeof payload.username === 'string') {
-    payload.username = payload.username.trim();
-  }
-
-  if (typeof payload.email === 'string') {
-    payload.email = payload.email.trim();
-  }
+  if (typeof payload.username === 'string') payload.username = payload.username.trim();
+  if (typeof payload.email === 'string') payload.email = payload.email.trim();
 
   if (payload.passwordConfirm !== undefined) {
     payload.password_confirm = payload.passwordConfirm;
     delete payload.passwordConfirm;
   }
-
   if (payload.password_confirmation !== undefined) {
     payload.password_confirm = payload.password_confirmation;
     delete payload.password_confirmation;
   }
-
   if (payload.password_confirm === undefined && payload.password !== undefined) {
     payload.password_confirm = payload.password;
   }
@@ -155,7 +70,7 @@ const registerUser = async (userData = {}) => {
 
 const logoutUser = async () => {
   const { data } = await apiClient.post('/users/logout');
-  clearStoredAccessToken();
+  clearStoredAccessToken(); // supprime le fallback
   return data;
 };
 
@@ -172,41 +87,28 @@ export const useAuth = () => {
   });
 
   useEffect(() => {
-    if (user) {
-      setStoredUserProfile(user);
-    } else if (!isLoading) {
-      clearStoredUserProfile();
-    }
+    if (user) setStoredUserProfile(user);
+    else if (!isLoading) clearStoredUserProfile();
   }, [user, isLoading]);
 
   useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
-    if (user) {
-      reconnect();
-    } else {
-      disconnect();
-    }
+    if (isLoading) return;
+    if (user) reconnect();
+    else disconnect();
   }, [user, isLoading, reconnect, disconnect]);
 
-  // Après login: invalidation + refetch de l'utilisateur, puis reconnect WS
   const loginMutation = useMutation({
     mutationFn: loginUser,
     onSuccess: async () => {
+      // Après login: on relit /users/me (le cookie HttpOnly sera désormais envoyé)
       await queryClient.invalidateQueries({ queryKey: ['user'] });
       await queryClient.refetchQueries({ queryKey: ['user'] });
-      // le cookie access_token est posé par /users/login → on reconnecte la WS avec ce cookie
       reconnect();
     },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: registerUser,
-  });
+  const registerMutation = useMutation({ mutationFn: registerUser });
 
-  // Après logout: on efface le cache user et on déconnecte la WS
   const logoutMutation = useMutation({
     mutationFn: logoutUser,
     onSuccess: () => {
@@ -216,16 +118,9 @@ export const useAuth = () => {
     },
   });
 
-  // helper: inscription puis login, puis reconnect WS
   const registerAndLogin = async (userData) => {
     await registerMutation.mutateAsync(userData);
-    await loginMutation.mutateAsync({
-      username: userData.username,
-      password: userData.password,
-    });
-    // onSuccess du loginMutation fera déjà le reconnect,
-    // mais on peut forcer un ensure pour être sûr que le user est bien rafraîchi si besoin :
-    // await queryClient.ensureQueryData({ queryKey: ['user'], queryFn: fetchUser });
+    await loginMutation.mutateAsync({ username: userData.username, password: userData.password });
   };
 
   return {
