@@ -2,7 +2,8 @@
 // Centralise the logic used to persist the access token returned by the API
 // when cookies are not available (e.g. during local development over HTTP).
 
-const STORAGE_KEY = 'nanshe.access_token';
+const PRIMARY_STORAGE_KEY = 'access_token';
+const LEGACY_STORAGE_KEYS = ['nanshe.access_token'];
 const COOKIE_NAME = 'access_token';
 
 const isBrowser = () => typeof window !== 'undefined';
@@ -46,16 +47,32 @@ export const getStoredAccessToken = () => {
     return null;
   }
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY);
-  if (rawValue) {
+  const keysToInspect = [PRIMARY_STORAGE_KEY, ...LEGACY_STORAGE_KEYS];
+  for (const key of keysToInspect) {
+    const rawValue = window.localStorage.getItem(key);
+    if (!rawValue) {
+      continue;
+    }
+
     console.debug('[AuthTokens] Retrieved access token from localStorage fallback.', {
       length: rawValue.length,
+      key,
     });
-  } else {
-    console.debug('[AuthTokens] No access token present in storage.');
+    if (key !== PRIMARY_STORAGE_KEY) {
+      try {
+        window.localStorage.setItem(PRIMARY_STORAGE_KEY, rawValue);
+        window.localStorage.removeItem(key);
+        console.info('[AuthTokens] Migrated legacy access token storage key.', { from: key });
+      } catch (error) {
+        console.warn('[AuthTokens] Failed to migrate legacy access token storage key.', { from: key, error });
+      }
+    }
+
+    return rawValue;
   }
 
-  return rawValue;
+  console.debug('[AuthTokens] No access token present in storage.');
+  return null;
 };
 
 export const setStoredAccessToken = (token) => {
@@ -70,7 +87,10 @@ export const setStoredAccessToken = (token) => {
       length: cookieToken.length,
     });
     if (hasLocalStorage()) {
-      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(PRIMARY_STORAGE_KEY);
+      for (const legacyKey of LEGACY_STORAGE_KEYS) {
+        window.localStorage.removeItem(legacyKey);
+      }
     }
     return;
   }
@@ -83,12 +103,18 @@ export const setStoredAccessToken = (token) => {
   const normalizedToken = typeof token === 'string' ? token.trim() : '';
 
   if (normalizedToken) {
-    window.localStorage.setItem(STORAGE_KEY, normalizedToken);
+    window.localStorage.setItem(PRIMARY_STORAGE_KEY, normalizedToken);
+    for (const legacyKey of LEGACY_STORAGE_KEYS) {
+      window.localStorage.removeItem(legacyKey);
+    }
     console.info('[AuthTokens] Stored access token in localStorage fallback.', {
       length: normalizedToken.length,
     });
   } else {
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(PRIMARY_STORAGE_KEY);
+    for (const legacyKey of LEGACY_STORAGE_KEYS) {
+      window.localStorage.removeItem(legacyKey);
+    }
     console.warn('[AuthTokens] Cleared access token because provided value was empty.');
   }
 };
@@ -105,7 +131,10 @@ export const clearStoredAccessToken = () => {
   }
 
   if (hasLocalStorage()) {
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(PRIMARY_STORAGE_KEY);
+    for (const legacyKey of LEGACY_STORAGE_KEYS) {
+      window.localStorage.removeItem(legacyKey);
+    }
     console.info('[AuthTokens] Access token removed from localStorage fallback.');
   }
 };
