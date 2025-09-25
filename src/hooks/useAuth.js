@@ -36,19 +36,27 @@ const fetchUser = async () => {
 
 const TOKEN_KEYS = ['access_token', 'accessToken', 'token', 'access'];
 
-const resolveAccessToken = (input) => {
+const normalizeTokenString = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const resolveAccessToken = (input, visited = new Set(), allowLooseString = true) => {
+  if (typeof input === 'string') {
+    return allowLooseString ? normalizeTokenString(input) : null;
+  }
+
   if (!input) {
     return null;
   }
 
-  if (typeof input === 'string') {
-    const trimmed = input.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  }
-
   if (Array.isArray(input)) {
     for (const item of input) {
-      const nested = resolveAccessToken(item);
+      const nested = resolveAccessToken(item, visited, allowLooseString);
       if (nested) {
         return nested;
       }
@@ -60,9 +68,14 @@ const resolveAccessToken = (input) => {
     return null;
   }
 
+  if (visited.has(input)) {
+    return null;
+  }
+  visited.add(input);
+
   for (const key of TOKEN_KEYS) {
     if (Object.prototype.hasOwnProperty.call(input, key)) {
-      const nested = resolveAccessToken(input[key]);
+      const nested = resolveAccessToken(input[key], visited, true);
       if (nested) {
         return nested;
       }
@@ -70,9 +83,11 @@ const resolveAccessToken = (input) => {
   }
 
   for (const value of Object.values(input)) {
-    const nested = resolveAccessToken(value);
-    if (nested) {
-      return nested;
+    if (value && typeof value === 'object') {
+      const nested = resolveAccessToken(value, visited, false);
+      if (nested) {
+        return nested;
+      }
     }
   }
 
@@ -89,6 +104,15 @@ const loginUser = async (credentials) => {
   });
   const directToken = typeof data === 'object' && data !== null ? data.access_token : null;
   const accessToken = resolveAccessToken(directToken ?? data);
+
+  if (typeof window !== 'undefined') {
+    console.debug('[Auth] Login response evaluated for token.', {
+      payloadType: data === null ? null : typeof data,
+      payloadKeys: data && typeof data === 'object' ? Object.keys(data) : null,
+      hasDirectAccessToken: typeof directToken === 'string' && directToken.trim().length > 0,
+      resolvedTokenLength: typeof accessToken === 'string' ? accessToken.length : null,
+    });
+  }
 
   if (typeof accessToken === 'string' && accessToken.trim()) {
     setStoredAccessToken(accessToken);
