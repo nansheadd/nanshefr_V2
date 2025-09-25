@@ -87,11 +87,15 @@ const loginUser = async (credentials) => {
   const { data } = await apiClient.post('/users/login', formData, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
-  const accessToken = resolveAccessToken(data);
+  const directToken = typeof data === 'object' && data !== null ? data.access_token : null;
+  const accessToken = resolveAccessToken(directToken ?? data);
+
   if (typeof accessToken === 'string' && accessToken.trim()) {
     setStoredAccessToken(accessToken);
   } else {
-    console.warn('[Auth] Login succeeded but no access token was found in response payload.');
+    console.warn('[Auth] Login succeeded but no access token was found in response payload.', {
+      payloadKeys: data && typeof data === 'object' ? Object.keys(data) : null,
+    });
   }
   return data;
 };
