@@ -34,6 +34,38 @@ const fetchUser = async () => {
   }
 };
 
+const resolveAccessToken = (data) => {
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  if (typeof data.access_token === 'string' && data.access_token.trim()) {
+    return data.access_token;
+  }
+
+  if (typeof data.accessToken === 'string' && data.accessToken.trim()) {
+    return data.accessToken;
+  }
+
+  if (typeof data.token === 'string' && data.token.trim()) {
+    return data.token;
+  }
+
+  if (typeof data.access === 'string' && data.access.trim()) {
+    return data.access;
+  }
+
+  if (data.detail && typeof data.detail === 'object') {
+    return resolveAccessToken(data.detail);
+  }
+
+  if (data.data && typeof data.data === 'object') {
+    return resolveAccessToken(data.data);
+  }
+
+  return null;
+};
+
 const loginUser = async (credentials) => {
   const formData = new URLSearchParams();
   formData.append('username', credentials.username);
@@ -42,8 +74,11 @@ const loginUser = async (credentials) => {
   const { data } = await apiClient.post('/users/login', formData, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
-  if (data?.access_token) {
-    setStoredAccessToken(data.access_token);
+  const accessToken = resolveAccessToken(data);
+  if (typeof accessToken === 'string' && accessToken.trim()) {
+    setStoredAccessToken(accessToken);
+  } else {
+    console.warn('[Auth] Login succeeded but no access token was found in response payload.');
   }
   return data;
 };
