@@ -1,8 +1,9 @@
 // src/features/toolbox/components/CoachIA.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Paper,
@@ -27,12 +28,24 @@ import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import BoltIcon from '@mui/icons-material/Bolt';
 
-const logoSrc = '/logo192.png';
-
 const slideIn = keyframes`
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 `;
+
+const caretBlink = keyframes`
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+`;
+
+const coachFrames = [
+  '/avatars/coach-frame-1.svg',
+  '/avatars/coach-frame-2.svg',
+  '/avatars/coach-frame-3.svg',
+  '/avatars/coach-frame-4.svg',
+];
+
+const TYPEWRITER_DELAY = 22;
 
 const ChatWindow = styled(Paper, {
   shouldForwardProp: (prop) => prop !== 'layout',
@@ -91,19 +104,79 @@ const ChatHeader = styled(Box)(({ theme }) => ({
 const MessageContainer = styled(Box)(({ isUser, theme }) => ({
   animation: `${slideIn} 0.3s ease-out`,
   alignSelf: isUser ? 'flex-end' : 'flex-start',
-  maxWidth: '85%',
+  maxWidth: isUser ? '85%' : '100%',
   margin: theme.spacing(0.5, 0),
 }));
 
 const MessageBubble = styled(Paper)(({ isUser, theme }) => ({
-  padding: theme.spacing(1.5, 2),
-  borderRadius: isUser ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
+  padding: theme.spacing(1.75, 2.25),
+  borderRadius: isUser ? '20px 20px 4px 20px' : '18px',
   background: isUser
     ? `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`
-    : alpha(theme.palette.background.paper, 0.9),
+    : `linear-gradient(180deg, ${alpha(theme.palette.secondary.light, 0.35)}, ${alpha(
+        theme.palette.background.paper,
+        0.95,
+      )})`,
   color: isUser ? theme.palette.primary.contrastText : theme.palette.text.primary,
-  boxShadow: `0 4px 16px ${alpha(theme.palette.common.black, 0.1)}`,
-  border: isUser ? 'none' : `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+  boxShadow: isUser
+    ? `0 4px 16px ${alpha(theme.palette.common.black, 0.15)}`
+    : `0 12px 26px ${alpha(theme.palette.common.black, 0.18)}`,
+  border: isUser ? 'none' : `2px solid ${alpha(theme.palette.secondary.main, 0.25)}`,
+  position: 'relative',
+  overflow: 'hidden',
+}));
+
+const PortraitFrame = styled(Box)(({ theme }) => ({
+  width: 96,
+  height: 96,
+  borderRadius: 18,
+  overflow: 'hidden',
+  position: 'relative',
+  border: `3px solid ${alpha(theme.palette.primary.dark, 0.5)}`,
+  boxShadow: `0 18px 28px ${alpha(theme.palette.common.black, 0.35)}`,
+  background: `radial-gradient(circle at 30% 20%, ${alpha(theme.palette.primary.light, 0.4)}, ${alpha(
+    theme.palette.common.black,
+    0.6,
+  )})`,
+}));
+
+const PortraitImage = styled('img')({
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  display: 'block',
+});
+
+const PortraitGlow = styled('div')(({ theme, isActive }) => ({
+  position: 'absolute',
+  inset: -6,
+  borderRadius: 22,
+  background: isActive
+    ? `radial-gradient(circle, ${alpha(theme.palette.secondary.main, 0.45)} 0%, transparent 70%)`
+    : 'transparent',
+  filter: 'blur(12px)',
+  opacity: isActive ? 1 : 0,
+  transition: 'opacity 0.3s ease',
+  pointerEvents: 'none',
+}));
+
+const BubbleShine = styled('div')(({ theme }) => ({
+  position: 'absolute',
+  inset: 0,
+  background: `linear-gradient(120deg, ${alpha(theme.palette.common.white, 0)} 30%, ${alpha(
+    theme.palette.common.white,
+    0.35,
+  )} 50%, ${alpha(theme.palette.common.white, 0)} 70%)`,
+  mixBlendMode: 'soft-light',
+  pointerEvents: 'none',
+}));
+
+const Caret = styled('span')(({ theme }) => ({
+  display: 'inline-block',
+  marginLeft: 4,
+  width: 10,
+  animation: `${caretBlink} 1s steps(1, end) infinite`,
+  color: alpha(theme.palette.secondary.main, 0.9),
 }));
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
@@ -174,35 +247,63 @@ const formatEnergyValue = (value) => {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 };
 
-const ChatMessage = ({ author, message }) => {
-  const isUser = author === 'user';
+const generateMessageId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const createMessage = (author, text, { immediate = author === 'user' } = {}) => ({
+  id: generateMessageId(),
+  author,
+  message: text,
+  displayed: immediate ? text : '',
+  isTyping: author === 'ia' ? !immediate : false,
+});
+
+const getTypingStep = (text) => {
+  if (!text) return 1;
+  if (text.length > 600) return 4;
+  if (text.length > 320) return 3;
+  if (text.length > 160) return 2;
+  return 1;
+};
+
+const ChatMessage = ({ message, isActive, activeFrameSrc }) => {
+  const isUser = message.author === 'user';
+  const text = message.displayed ?? message.message;
   return (
     <MessageContainer isUser={isUser}>
-      <Stack direction="row" spacing={1.5} alignItems="flex-end">
+      <Stack direction="row" spacing={isUser ? 1.5 : 2.5} alignItems="flex-end">
         {!isUser && (
-          <Avatar
-            src={isUser ? undefined : logoSrc}
-            sx={{
-              width: 32,
-              height: 32,
-              background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
-              boxShadow: 2,
-            }}
-          >
-            {isUser ? <AccountCircleIcon /> : <SmartToyIcon sx={{ fontSize: 18 }} />}
-          </Avatar>
+          <Box sx={{ position: 'relative' }}>
+            <PortraitGlow isActive={isActive} />
+            <PortraitFrame>
+              <PortraitImage src={isActive ? activeFrameSrc : coachFrames[0]} alt="Coach IA" />
+              <BubbleShine />
+            </PortraitFrame>
+          </Box>
         )}
 
-        <Stack spacing={0.5} sx={{ flex: 1 }}>
-          <MessageBubble isUser={isUser} elevation={2}>
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-              {message}
+        <Stack spacing={0.75} sx={{ flex: 1 }}>
+          <MessageBubble isUser={isUser} elevation={0}>
+            {!isUser && <BubbleShine />}
+            <Typography
+              variant="body2"
+              sx={{
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.6,
+                letterSpacing: isUser ? 0 : '0.02em',
+                fontFamily: isUser ? 'inherit' : `'Source Code Pro', 'Courier New', monospace`,
+                fontSize: isUser ? '0.95rem' : '1rem',
+                position: 'relative',
+                zIndex: 1,
+              }}
+            >
+              {text}
+              {isActive && <Caret>▍</Caret>}
             </Typography>
           </MessageBubble>
         </Stack>
 
         {isUser && (
-          <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+          <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
             <AccountCircleIcon sx={{ fontSize: 18 }} />
           </Avatar>
         )}
@@ -220,12 +321,13 @@ const quickActions = [
 ];
 
 const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
-  const [messages, setMessages] = useState([
-    {
-      author: 'ia',
-      message:
-        "👋 Salut ! Je suis votre Coach IA personnel.\n\nComment puis-je vous accompagner dans votre apprentissage aujourd'hui ?",
-    },
+  const { t } = useTranslation();
+  const [messages, setMessages] = useState(() => [
+    createMessage(
+      'ia',
+      "👋 Salut ! Je suis votre Coach IA personnel.\n\nComment puis-je vous accompagner dans votre apprentissage aujourd'hui ?",
+      { immediate: false },
+    ),
   ]);
   const [input, setInput] = useState('');
   const [isAgentMode, setIsAgentMode] = useState(false);
@@ -234,6 +336,11 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const params = useParams();
   const chatEndRef = useRef(null);
   const chatWindowRef = useRef(null);
+  const messagesRef = useRef([]);
+  const typingIntervalRef = useRef(null);
+  const typingMessageRef = useRef(null);
+  const speakingIntervalRef = useRef(null);
+  const [activeFrame, setActiveFrame] = useState(0);
 
   const queryClient = useQueryClient();
   const {
@@ -251,7 +358,7 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const mutation = useMutation({
     mutationFn: askCoachAPI,
     onSuccess: (data) => {
-      setMessages((prev) => [...prev, { author: 'ia', message: data.response }]);
+      setMessages((prev) => [...prev, createMessage('ia', data.response, { immediate: false })]);
       queryClient.setQueryData(['coach-energy'], data.energy);
       setInfoBanner(null);
     },
@@ -352,8 +459,174 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   };
 
   useEffect(() => {
+    messagesRef.current = messages;
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, mutation.isPending]);
+
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+
+    if (!last || last.author !== 'ia' || !last.isTyping) {
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+        typingIntervalRef.current = null;
+        typingMessageRef.current = null;
+      }
+      return;
+    }
+
+    if (typingMessageRef.current === last.id) {
+      return;
+    }
+
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+    }
+
+    typingMessageRef.current = last.id;
+    typingIntervalRef.current = setInterval(() => {
+      setMessages((prev) => {
+        const index = prev.findIndex((item) => item.id === last.id);
+        if (index === -1) {
+          clearInterval(typingIntervalRef.current);
+          typingIntervalRef.current = null;
+          typingMessageRef.current = null;
+          return prev;
+        }
+
+        const target = prev[index];
+        const nextDisplayed = target.message.slice(0, target.displayed.length + getTypingStep(target.message));
+        const stillTyping = nextDisplayed.length < target.message.length;
+        const updated = [...prev];
+        updated[index] = {
+          ...target,
+          displayed: nextDisplayed,
+          isTyping: stillTyping,
+        };
+
+        if (!stillTyping) {
+          clearInterval(typingIntervalRef.current);
+          typingIntervalRef.current = null;
+          typingMessageRef.current = null;
+        }
+
+        return updated;
+      });
+    }, TYPEWRITER_DELAY);
+  }, [messages]);
+
+  const lastMessage = messages[messages.length - 1];
+  const coachIsTyping = lastMessage?.author === 'ia' && lastMessage?.isTyping;
+  const coachIsSpeaking = mutation.isPending || coachIsTyping;
+
+  useEffect(() => {
+    if (coachIsSpeaking) {
+      setActiveFrame(0);
+      if (!speakingIntervalRef.current) {
+        speakingIntervalRef.current = setInterval(() => {
+          setActiveFrame((prev) => (prev + 1) % coachFrames.length);
+        }, 120);
+      }
+    } else {
+      if (speakingIntervalRef.current) {
+        clearInterval(speakingIntervalRef.current);
+        speakingIntervalRef.current = null;
+      }
+      setActiveFrame(0);
+    }
+  }, [coachIsSpeaking]);
+
+  useEffect(
+    () => () => {
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+      if (speakingIntervalRef.current) {
+        clearInterval(speakingIntervalRef.current);
+      }
+    },
+    [],
+  );
+
+  const sendMessage = useCallback(
+    (text, extra = {}) => {
+      const trimmed = text?.trim();
+      if (!trimmed || mutation.isPending) return;
+
+      if (isEnergyLoading) {
+        setInfoBanner({ severity: 'info', message: "Chargement de ton énergie..." });
+        return;
+      }
+
+      if (!energy) {
+        refetchEnergy();
+        setInfoBanner({ severity: 'info', message: "Chargement de ton énergie..." });
+        return;
+      }
+
+      const messageCost = energy?.message_cost ?? 1;
+      if (!energy.is_unlimited && energy.current < messageCost) {
+        const waitDuration = formatDuration(energy.seconds_until_next_message);
+        setInfoBanner({
+          severity: 'warning',
+          message: `⚡ Plus d'énergie disponible. ${waitDuration ? `Prochain message dans ${waitDuration}.` : 'Patiente un instant avant de réessayer.'}`,
+        });
+        return;
+      }
+
+      setInfoBanner(null);
+      const context = { path: location.pathname, ...params };
+      const history = messagesRef.current.slice(1).map(({ author, message }) => ({ author, message }));
+
+      setMessages((prev) => [...prev, createMessage('user', trimmed)]);
+      mutation.mutate({
+        message: trimmed,
+        context,
+        history,
+        quick_action: extra.quick_action || null,
+        selection: extra.selection || null,
+      });
+    },
+    [mutation, isEnergyLoading, energy, refetchEnergy, setInfoBanner, location.pathname, params],
+  );
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+    sendMessage(input);
+    setInput('');
+  };
+
+  const handleQuickAction = (action) => {
+    if (action.type === 'agent_mode') {
+      setIsAgentMode((prev) => !prev);
+      setInfoBanner({
+        severity: 'info',
+        message: !isAgentMode ? t('coach.agent.enabled') : t('coach.agent.disabled'),
+      });
+      return;
+    }
+
+    if (action.type === 'explain_chapter') {
+      const lessonEl = document.querySelector('[data-coach-section="lesson"]');
+      const lessonText = lessonEl?.innerText?.trim() || '';
+      sendMessage(action.message, {
+        quick_action: action.type,
+        selection: lessonText
+          ? {
+              text: lessonText.slice(0, 2000),
+              path: location.pathname,
+              section: 'lesson',
+            }
+          : null,
+      });
+      if (!lessonText) {
+        setInfoBanner({ severity: 'warning', message: t('coach.errors.lessonNotFound') });
+      }
+      return;
+    }
+
+    sendMessage(action.message, { quick_action: action.type });
+  };
 
   useEffect(() => {
     if (!isAgentMode) {
@@ -394,84 +667,7 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
       document.body.style.cursor = '';
       document.removeEventListener('click', handler, true);
     };
-  }, [isAgentMode, location.pathname]);
-
-  const sendMessage = (text, extra = {}) => {
-    const trimmed = text?.trim();
-    if (!trimmed || mutation.isPending) return;
-
-    if (isEnergyLoading) {
-      setInfoBanner({ severity: 'info', message: "Chargement de ton énergie..." });
-      return;
-    }
-
-    if (!energy) {
-      refetchEnergy();
-      setInfoBanner({ severity: 'info', message: "Chargement de ton énergie..." });
-      return;
-    }
-
-    const messageCost = energy?.message_cost ?? 1;
-    if (!energy.is_unlimited && energy.current < messageCost) {
-      const waitDuration = formatDuration(energy.seconds_until_next_message);
-      setInfoBanner({
-        severity: 'warning',
-        message: `⚡ Plus d'énergie disponible. ${waitDuration ? `Prochain message dans ${waitDuration}.` : 'Patiente un instant avant de réessayer.'}`,
-      });
-      return;
-    }
-
-    setInfoBanner(null);
-    const context = { path: location.pathname, ...params };
-    const history = messages.slice(1);
-
-    setMessages((prev) => [...prev, { author: 'user', message: trimmed }]);
-    mutation.mutate({
-      message: trimmed,
-      context,
-      history,
-      quick_action: extra.quick_action || null,
-      selection: extra.selection || null,
-    });
-  };
-
-  const handleSend = () => {
-    if (!input.trim()) return;
-    sendMessage(input);
-    setInput('');
-  };
-
-  const handleQuickAction = (action) => {
-    if (action.type === 'agent_mode') {
-      setIsAgentMode((prev) => !prev);
-      setInfoBanner({
-        severity: 'info',
-        message: !isAgentMode ? t('coach.agent.enabled') : t('coach.agent.disabled'),
-      });
-      return;
-    }
-
-    if (action.type === 'explain_chapter') {
-      const lessonEl = document.querySelector('[data-coach-section="lesson"]');
-      const lessonText = lessonEl?.innerText?.trim() || '';
-      sendMessage(action.message, {
-        quick_action: action.type,
-        selection: lessonText
-          ? {
-              text: lessonText.slice(0, 2000),
-              path: location.pathname,
-              section: 'lesson',
-            }
-          : null,
-      });
-      if (!lessonText) {
-        setInfoBanner({ severity: 'warning', message: t('coach.errors.lessonNotFound') });
-      }
-      return;
-    }
-
-    sendMessage(action.message, { quick_action: action.type });
-  };
+  }, [isAgentMode, location.pathname, sendMessage, t]);
 
   return (
     <ChatWindow elevation={12} ref={chatWindowRef} layout={layout}>
@@ -544,13 +740,16 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
       </ChatHeader>
 
       <Stack sx={{ flexGrow: 1, p: 2, overflowY: 'auto', gap: 1 }}>
-        {messages.map((msg, index) => (
-          <Fade in key={index} timeout={300}>
-            <div>
-              <ChatMessage author={msg.author} message={msg.message} />
-            </div>
-          </Fade>
-        ))}
+        {messages.map((msg, index) => {
+          const isActive = index === messages.length - 1 && msg.author === 'ia' && msg.isTyping;
+          return (
+            <Fade in key={msg.id} timeout={300}>
+              <div>
+                <ChatMessage message={msg} isActive={isActive} activeFrameSrc={coachFrames[activeFrame]} />
+              </div>
+            </Fade>
+          );
+        })}
 
         {mutation.isPending && (
           <TypingIndicator>
