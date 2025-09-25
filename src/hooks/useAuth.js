@@ -34,33 +34,46 @@ const fetchUser = async () => {
   }
 };
 
-const resolveAccessToken = (data) => {
-  if (!data || typeof data !== 'object') {
+const TOKEN_KEYS = ['access_token', 'accessToken', 'token', 'access'];
+
+const resolveAccessToken = (input) => {
+  if (!input) {
     return null;
   }
 
-  if (typeof data.access_token === 'string' && data.access_token.trim()) {
-    return data.access_token;
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    return trimmed.length > 0 ? trimmed : null;
   }
 
-  if (typeof data.accessToken === 'string' && data.accessToken.trim()) {
-    return data.accessToken;
+  if (Array.isArray(input)) {
+    for (const item of input) {
+      const nested = resolveAccessToken(item);
+      if (nested) {
+        return nested;
+      }
+    }
+    return null;
   }
 
-  if (typeof data.token === 'string' && data.token.trim()) {
-    return data.token;
+  if (typeof input !== 'object') {
+    return null;
   }
 
-  if (typeof data.access === 'string' && data.access.trim()) {
-    return data.access;
+  for (const key of TOKEN_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(input, key)) {
+      const nested = resolveAccessToken(input[key]);
+      if (nested) {
+        return nested;
+      }
+    }
   }
 
-  if (data.detail && typeof data.detail === 'object') {
-    return resolveAccessToken(data.detail);
-  }
-
-  if (data.data && typeof data.data === 'object') {
-    return resolveAccessToken(data.data);
+  for (const value of Object.values(input)) {
+    const nested = resolveAccessToken(value);
+    if (nested) {
+      return nested;
+    }
   }
 
   return null;
