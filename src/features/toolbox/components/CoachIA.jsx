@@ -1,5 +1,5 @@
 // src/features/toolbox/components/CoachIA.jsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../api/axiosConfig';
@@ -345,13 +345,178 @@ const ChatMessage = ({ message, isActive, activeFrameSrc }) => {
   );
 };
 
-const quickActions = [
-  { label: '💡 Donne-moi un conseil', message: 'Peux-tu me donner un conseil personnalisé pour continuer mon apprentissage ?', type: 'advice' },
-  { label: '📚 Explique ce chapitre', message: 'Explique-moi ce chapitre en détail, avec des exemples si possible.', type: 'explain_chapter' },
-  { label: '🎯 Créer un quiz', message: 'Prépare un quiz rapide pour tester mes connaissances sur cette leçon.', type: 'create_quiz' },
-  { label: '⚡ Résumé rapide', message: 'Fais-moi un résumé rapide du contenu.', type: 'summary' },
-  { label: '🕵️ Mode agent', message: '', type: 'agent_mode' },
-];
+const determineCoachContext = (pathname) => {
+  if (!pathname) return 'general';
+
+  if (/^\/capsule\/[^/]+\/granule\/[^/]+\/molecule\//.test(pathname) || /^\/session\/molecule\//.test(pathname)) {
+    return 'learning';
+  }
+
+  if (/^\/capsule\/[^/]+\/[^/]+\/[^/]+\/plan/.test(pathname)) {
+    return 'capsulePlan';
+  }
+
+  if (/^\/capsule\/[^/]+\/[^/]+\/[^/]+$/.test(pathname)) {
+    return 'capsuleDetail';
+  }
+
+  if (pathname.startsWith('/library') || pathname.startsWith('/capsules')) {
+    return 'library';
+  }
+
+  if (pathname.startsWith('/dashboard')) {
+    return 'dashboard';
+  }
+
+  if (pathname.startsWith('/toolbox')) {
+    return 'toolbox';
+  }
+
+  return 'general';
+};
+
+const contextualQuickActions = {
+  dashboard: [
+    {
+      label: '🎯 Priorités du jour',
+      message: 'Analyse mon tableau de bord et propose-moi mes priorités du moment.',
+      type: 'dashboard_focus',
+    },
+    {
+      label: '📈 Comprendre mes progrès',
+      message: 'Peux-tu analyser mes statistiques et m’expliquer où j’en suis ?',
+      type: 'analyze_progress',
+    },
+    {
+      label: '🧭 Où aller ensuite ?',
+      message: 'Suggère-moi la prochaine activité pertinente à partir de ce que tu vois ici.',
+      type: 'next_step',
+    },
+  ],
+  library: [
+    {
+      label: '🔍 Trouve une capsule',
+      message: 'Recommande-moi une capsule adaptée à mon niveau et à mes objectifs.',
+      type: 'recommend_capsule',
+    },
+    {
+      label: '🗂️ Organise ma bibliothèque',
+      message: 'Aide-moi à organiser ou filtrer les capsules pertinentes pour moi.',
+      type: 'organize_library',
+    },
+    {
+      label: '✨ Découverte du moment',
+      message: 'Propose-moi une capsule inspirante à explorer dès maintenant.',
+      type: 'discover_capsule',
+    },
+  ],
+  capsuleDetail: [
+    {
+      label: '🧠 Résumé de la capsule',
+      message: 'Fais-moi un résumé clair de cette capsule et de ce que je vais y apprendre.',
+      type: 'capsule_summary',
+    },
+    {
+      label: '🎓 Objectifs pédagogiques',
+      message: 'Explique-moi les objectifs clés de cette capsule et comment elle va m’aider.',
+      type: 'capsule_objectives',
+    },
+    {
+      label: '🚀 Plan d’étude',
+      message: 'Aide-moi à planifier comment progresser efficacement dans cette capsule.',
+      type: 'capsule_plan',
+    },
+  ],
+  capsulePlan: [
+    {
+      label: '🗺️ Parcours conseillé',
+      message: 'Analyse le plan de cette capsule et indique-moi par où commencer.',
+      type: 'plan_guidance',
+    },
+    {
+      label: '📌 Points importants',
+      message: 'Identifie les molécules clés sur lesquelles je devrais me concentrer.',
+      type: 'plan_highlights',
+    },
+    {
+      label: '📝 Préparation de session',
+      message: 'Aide-moi à préparer ma prochaine session d’apprentissage sur cette capsule.',
+      type: 'plan_preparation',
+    },
+  ],
+  toolbox: [
+    {
+      label: '🛠️ Aide sur la toolbox',
+      message: 'Explique-moi comment profiter des outils avancés disponibles ici.',
+      type: 'toolbox_help',
+    },
+    {
+      label: '🧭 Navigation toolbox',
+      message: 'Guide-moi vers les fonctionnalités les plus utiles de la toolbox.',
+      type: 'toolbox_navigation',
+    },
+    {
+      label: '💡 Cas d’usage',
+      message: 'Donne-moi des idées concrètes pour utiliser ces outils dans ma session.',
+      type: 'toolbox_use_cases',
+    },
+  ],
+  learning: [
+    {
+      label: '📚 Explique cette leçon',
+      message: 'Explique-moi cette leçon en détail avec des exemples concrets.',
+      type: 'explain_chapter',
+    },
+    {
+      label: '⚡ Résumé rapide',
+      message: 'Fais-moi un résumé rapide de ce que je dois retenir.',
+      type: 'summary',
+    },
+    {
+      label: '🎯 Créer un quiz',
+      message: 'Prépare un quiz pour tester ma compréhension de cette leçon.',
+      type: 'create_quiz',
+    },
+    {
+      label: '🧠 Flashcards express',
+      message: 'Génère quelques flashcards pour réviser les points clés.',
+      type: 'flashcards',
+    },
+  ],
+  general: [
+    {
+      label: '💡 Donne-moi un conseil',
+      message: 'Peux-tu me donner un conseil personnalisé pour continuer mon apprentissage ?',
+      type: 'advice',
+    },
+    {
+      label: '🧭 Besoin d’orientation',
+      message: 'Aide-moi à savoir quelle est la prochaine étape pertinente dans la plateforme.',
+      type: 'orientation',
+    },
+    {
+      label: '✨ Découverte',
+      message: 'Propose-moi une activité ou une capsule intéressante à explorer maintenant.',
+      type: 'discovery',
+    },
+  ],
+};
+
+const buildQuickActions = (context, isAgentAvailable) => {
+  const actions = [...(contextualQuickActions[context] || contextualQuickActions.general)];
+
+  actions.push({
+    label: '🕵️ Mode agent',
+    message: '',
+    type: 'agent_mode',
+    disabled: !isAgentAvailable,
+    tooltip: !isAgentAvailable
+      ? 'Le mode agent permet de sélectionner un passage d’une molécule pour obtenir de l’aide. Ouvre une leçon pour l’utiliser.'
+      : 'Active le mode agent pour sélectionner un passage précis dans la leçon.',
+  });
+
+  return actions;
+};
 
 const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const { t } = useI18n();
@@ -374,6 +539,14 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const typingMessageRef = useRef(null);
   const speakingIntervalRef = useRef(null);
   const [activeFrame, setActiveFrame] = useState(0);
+
+  const coachContext = useMemo(() => determineCoachContext(location.pathname), [location.pathname]);
+  const isAgentAvailable = coachContext === 'learning';
+  const quickActions = useMemo(
+    () => buildQuickActions(coachContext, isAgentAvailable),
+    [coachContext, isAgentAvailable],
+  );
+  const agentTooltip = quickActions.find((action) => action.type === 'agent_mode')?.tooltip;
 
   const queryClient = useQueryClient();
   const {
@@ -631,6 +804,10 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   };
 
   const handleQuickAction = (action) => {
+    if (action?.disabled) {
+      return;
+    }
+
     if (action.type === 'agent_mode') {
       setIsAgentMode((prev) => !prev);
       setInfoBanner({
@@ -661,6 +838,16 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
 
     sendMessage(action.message, { quick_action: action.type });
   };
+
+  useEffect(() => {
+    if (isAgentMode && !isAgentAvailable) {
+      setIsAgentMode(false);
+      setInfoBanner({
+        severity: 'info',
+        message: 'Le mode agent est disponible uniquement lorsque vous ouvrez une molécule.',
+      });
+    }
+  }, [isAgentMode, isAgentAvailable]);
 
   useEffect(() => {
     if (!isAgentMode) {
@@ -749,14 +936,22 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
                 </IconButton>
               </Tooltip>
             )}
-            <Chip
-              icon={<CenterFocusStrongIcon />}
-              label={isAgentMode ? 'Agent actif' : 'Mode agent'}
-              size="small"
-              clickable
-              color={isAgentMode ? 'success' : 'default'}
-              onClick={() => handleQuickAction({ type: 'agent_mode', label: '', message: '' })}
-            />
+            <Tooltip title={agentTooltip || ''} placement="bottom">
+              <span>
+                <Chip
+                  icon={<CenterFocusStrongIcon />}
+                  label={isAgentMode ? 'Agent actif' : 'Mode agent'}
+                  size="small"
+                  clickable={isAgentAvailable}
+                  disabled={!isAgentAvailable}
+                  color={isAgentMode ? 'success' : 'default'}
+                  onClick={() => handleQuickAction({ type: 'agent_mode', label: '', message: '' })}
+                  sx={{
+                    cursor: isAgentAvailable ? 'pointer' : 'not-allowed',
+                  }}
+                />
+              </span>
+            </Tooltip>
             {onClose && (
               <IconButton onClick={onClose} size="small" sx={{ bgcolor: alpha('#000', 0.05), '&:hover': { bgcolor: alpha('#000', 0.1) } }}>
                 <CloseIcon fontSize="small" />
@@ -805,24 +1000,43 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
             Actions rapides :
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {quickActions.map((action) => (
-              <Chip
-                key={action.label}
-                label={action.label}
-                size="small"
-                clickable
-                onClick={() => handleQuickAction(action)}
-                sx={{
-                  borderRadius: 2,
-                  fontSize: '0.75rem',
-                  '&:hover': {
-                    bgcolor: 'primary.main',
-                    color: 'white',
-                    transform: 'scale(1.05)',
-                  },
-                }}
-              />
-            ))}
+            {quickActions.map((action) => {
+              const chip = (
+                <Chip
+                  label={action.label}
+                  size="small"
+                  clickable={!action.disabled}
+                  disabled={action.disabled}
+                  onClick={!action.disabled ? () => handleQuickAction(action) : undefined}
+                  sx={{
+                    borderRadius: 2,
+                    fontSize: '0.75rem',
+                    cursor: action.disabled ? 'not-allowed' : 'pointer',
+                    '&:hover': action.disabled
+                      ? {}
+                      : {
+                          bgcolor: 'primary.main',
+                          color: 'white',
+                          transform: 'scale(1.05)',
+                        },
+                  }}
+                />
+              );
+
+              if (action.tooltip) {
+                return (
+                  <Tooltip key={action.label} title={action.tooltip} arrow>
+                    <span>{chip}</span>
+                  </Tooltip>
+                );
+              }
+
+              return (
+                <span key={action.label}>
+                  {chip}
+                </span>
+              );
+            })}
           </Stack>
         </Box>
       )}
