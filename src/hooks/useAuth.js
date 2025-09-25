@@ -1,14 +1,35 @@
 // Fichier: src/hooks/useAuth.js
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/axiosConfig';
 import { useWebSocket } from '../contexts/WebSocketProvider';
 import { clearStoredAccessToken, setStoredAccessToken } from '../utils/authTokens';
+import {
+  clearStoredUserProfile,
+  getStoredUserProfile,
+  setStoredUserProfile,
+} from '../utils/userProfileStorage';
 
 const fetchUser = async () => {
   try {
     const { data } = await apiClient.get('/users/me');
+    if (data) {
+      setStoredUserProfile(data);
+    } else {
+      clearStoredUserProfile();
+    }
     return data;
-  } catch {
+  } catch (error) {
+    if (error?.response?.status === 401) {
+      clearStoredUserProfile();
+      return null;
+    }
+
+    const cached = getStoredUserProfile();
+    if (cached) {
+      return cached;
+    }
+
     return null;
   }
 };
@@ -71,7 +92,16 @@ export const useAuth = () => {
     queryFn: fetchUser,
     staleTime: Infinity,
     retry: false,
+    initialData: () => getStoredUserProfile(),
   });
+
+  useEffect(() => {
+    if (user) {
+      setStoredUserProfile(user);
+    } else if (!isLoading) {
+      clearStoredUserProfile();
+    }
+  }, [user, isLoading]);
 
   // Après login: invalidation + refetch de l'utilisateur, puis reconnect WS
   const loginMutation = useMutation({
@@ -93,6 +123,7 @@ export const useAuth = () => {
     mutationFn: logoutUser,
     onSuccess: () => {
       queryClient.setQueryData(['user'], null);
+      clearStoredUserProfile();
       disconnect();
     },
   });
