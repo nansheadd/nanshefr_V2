@@ -39,10 +39,10 @@ const caretBlink = keyframes`
 `;
 
 const coachFrames = [
-  '/avatars/coach-frame-1.svg',
-  '/avatars/coach-frame-2.svg',
-  '/avatars/coach-frame-3.svg',
-  '/avatars/coach-frame-4.svg',
+  '/avatars/frame-1.png',
+  '/avatars/frame-2.png',
+  '/avatars/frame-3.png',
+  '/avatars/frame-4.png',
 ];
 
 const TYPEWRITER_DELAY = 22;
@@ -53,11 +53,20 @@ const ChatWindow = styled(Paper, {
   const base = {
     display: 'flex',
     flexDirection: 'column',
-    borderRadius: 20,
-    background: `rgba(255, 255, 255, 0.95)`,
-    backdropFilter: 'blur(20px)',
-    border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-    boxShadow: `0 16px 48px ${alpha(theme.palette.common.black, 0.15)}`,
+    borderRadius: 24,
+    background:
+      theme.palette.mode === 'dark'
+        ? `linear-gradient(160deg, ${alpha(theme.palette.background.paper, 0.92)}, ${alpha(
+            theme.palette.background.default,
+            0.82,
+          )})`
+        : `linear-gradient(160deg, ${alpha(theme.palette.common.white, 0.98)}, ${alpha(
+            theme.palette.secondary.light,
+            0.18,
+          )})`,
+    backdropFilter: 'blur(22px)',
+    border: `1px solid ${alpha(theme.palette.primary.main, 0.18)}`,
+    boxShadow: `0 22px 60px ${alpha(theme.palette.common.black, 0.16)}`,
     overflow: 'hidden',
   };
 
@@ -80,16 +89,22 @@ const ChatWindow = styled(Paper, {
 
   return {
     ...base,
-    width: 380,
-    height: 560,
+    width: 'min(640px, 92vw)',
+    height: 'min(420px, 70vh)',
   };
 });
 
 const ChatHeader = styled(Box)(({ theme }) => ({
   padding: theme.spacing(2.5),
-  background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.secondary.main}15)`,
-  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+  background: `linear-gradient(140deg, ${alpha(theme.palette.primary.main, 0.12)}, ${alpha(
+    theme.palette.secondary.main,
+    0.18,
+  )})`,
+  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
   position: 'relative',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(1.5),
   '&::before': {
     content: '""',
     position: 'absolute',
@@ -99,41 +114,56 @@ const ChatHeader = styled(Box)(({ theme }) => ({
     height: 3,
     background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
   },
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    inset: 0,
+    background: `radial-gradient(circle at top right, ${alpha(theme.palette.common.white, 0.25)}, transparent 55%)`,
+    pointerEvents: 'none',
+    mixBlendMode: 'soft-light',
+  },
+  '& > *': {
+    position: 'relative',
+    zIndex: 1,
+  },
 }));
 
 const MessageContainer = styled(Box)(({ isUser, theme }) => ({
   animation: `${slideIn} 0.3s ease-out`,
   alignSelf: isUser ? 'flex-end' : 'flex-start',
-  maxWidth: isUser ? '85%' : '100%',
+  maxWidth: isUser ? '78%' : '88%',
   margin: theme.spacing(0.5, 0),
 }));
 
 const MessageBubble = styled(Paper)(({ isUser, theme }) => ({
   padding: theme.spacing(1.75, 2.25),
-  borderRadius: isUser ? '20px 20px 4px 20px' : '18px',
+  borderRadius: isUser ? '22px 22px 6px 22px' : '20px',
   background: isUser
     ? `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`
-    : `linear-gradient(180deg, ${alpha(theme.palette.secondary.light, 0.35)}, ${alpha(
+    : `linear-gradient(165deg, ${alpha(theme.palette.secondary.light, 0.45)}, ${alpha(
         theme.palette.background.paper,
-        0.95,
+        0.98,
       )})`,
   color: isUser ? theme.palette.primary.contrastText : theme.palette.text.primary,
   boxShadow: isUser
-    ? `0 4px 16px ${alpha(theme.palette.common.black, 0.15)}`
-    : `0 12px 26px ${alpha(theme.palette.common.black, 0.18)}`,
-  border: isUser ? 'none' : `2px solid ${alpha(theme.palette.secondary.main, 0.25)}`,
+    ? `0 6px 18px ${alpha(theme.palette.common.black, 0.22)}`
+    : `0 16px 34px ${alpha(theme.palette.common.black, 0.18)}`,
+  border: isUser
+    ? `1px solid ${alpha(theme.palette.primary.light, 0.5)}`
+    : `1px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
   position: 'relative',
   overflow: 'hidden',
+  backdropFilter: 'blur(6px)',
 }));
 
 const PortraitFrame = styled(Box)(({ theme }) => ({
-  width: 96,
-  height: 96,
-  borderRadius: 18,
+  width: 86,
+  height: 86,
+  borderRadius: 20,
   overflow: 'hidden',
   position: 'relative',
-  border: `3px solid ${alpha(theme.palette.primary.dark, 0.5)}`,
-  boxShadow: `0 18px 28px ${alpha(theme.palette.common.black, 0.35)}`,
+  border: `3px solid ${alpha(theme.palette.primary.dark, 0.45)}`,
+  boxShadow: `0 16px 32px ${alpha(theme.palette.common.black, 0.35)}`,
   background: `radial-gradient(circle at 30% 20%, ${alpha(theme.palette.primary.light, 0.4)}, ${alpha(
     theme.palette.common.black,
     0.6,
@@ -143,8 +173,9 @@ const PortraitFrame = styled(Box)(({ theme }) => ({
 const PortraitImage = styled('img')({
   width: '100%',
   height: '100%',
-  objectFit: 'cover',
+  objectFit: 'contain',
   display: 'block',
+  backgroundColor: 'rgba(0,0,0,0.35)',
 });
 
 const PortraitGlow = styled('div')(({ theme, isActive }) => ({
@@ -200,10 +231,12 @@ const TypingIndicator = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(1),
-  padding: theme.spacing(1.5, 2),
-  borderRadius: 20,
-  background: alpha(theme.palette.background.paper, 0.9),
-  border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+  padding: theme.spacing(1.4, 2),
+  borderRadius: 999,
+  background: alpha(theme.palette.background.paper, 0.82),
+  border: `1px solid ${alpha(theme.palette.secondary.main, 0.25)}`,
+  boxShadow: `0 10px 26px ${alpha(theme.palette.common.black, 0.12)}`,
+  backdropFilter: 'blur(10px)',
   maxWidth: 'fit-content',
   '& .dot': {
     width: 8,
