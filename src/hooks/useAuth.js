@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/axiosConfig';
 import { useWebSocket } from '../contexts/WebSocketProvider';
-import { clearStoredAccessToken, setStoredAccessToken, getStoredAccessToken } from '../utils/authTokens';
+import { clearStoredAccessToken, setStoredAccessToken } from '../utils/authTokens';
 import {
   clearStoredUserProfile,
   getStoredUserProfile,
@@ -28,7 +28,7 @@ const fetchUser = async () => {
 };
 
 // Login: envoie form-urlencoded, garde access_token du body en fallback localStorage si présent
-const loginUser = async ({ username, password }) => {
+const loginUser = async ({ username, password, rememberMe = false }) => {
   clearStoredAccessToken(); // reset du fallback avant login
   const form = new URLSearchParams();
   form.set('username', String(username ?? ''));
@@ -38,11 +38,14 @@ const loginUser = async ({ username, password }) => {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
 
-  if (data && typeof data.access_token === 'string' && data.access_token.trim()) {
-    setStoredAccessToken(data.access_token);
+  if (rememberMe) {
+    if (data && typeof data.access_token === 'string' && data.access_token.trim()) {
+      setStoredAccessToken(data.access_token);
+    } else {
+      console.warn('[Auth] Login succeeded but no access_token in response body (cookie-only auth).');
+    }
   } else {
-    // eslint-disable-next-line no-console
-    console.warn('[Auth] Login succeeded but no access_token in response body (cookie-only auth).');
+    console.info('[Auth] Login succeeded without remember-me fallback.');
   }
   return data;
 };
@@ -120,7 +123,11 @@ export const useAuth = () => {
 
   const registerAndLogin = async (userData) => {
     await registerMutation.mutateAsync(userData);
-    await loginMutation.mutateAsync({ username: userData.username, password: userData.password });
+    await loginMutation.mutateAsync({
+      username: userData.username,
+      password: userData.password,
+      rememberMe: true,
+    });
   };
 
   return {

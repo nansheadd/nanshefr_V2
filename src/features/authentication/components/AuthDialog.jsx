@@ -4,6 +4,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { useI18n } from '../../../i18n/I18nContext';
 import { useAuth } from '../../../hooks/useAuth';
+import {
+  PASSWORD_RULES,
+  getPasswordChecks,
+  isPasswordCompliant,
+} from '../../../utils/passwordValidation';
 import styles from './AuthDialog.module.css'; // nouveau module CSS (voir plus bas)
 
 export default function AuthDialog({ open, defaultTab = 'login', onClose }) {
@@ -20,6 +25,19 @@ export default function AuthDialog({ open, defaultTab = 'login', onClose }) {
     passwordConfirm: '',
   });
   const [error, setError] = React.useState('');
+  const [rememberMe, setRememberMe] = React.useState(true);
+  const [showLoginPassword, setShowLoginPassword] = React.useState(false);
+  const [showSignupPassword, setShowSignupPassword] = React.useState(false);
+  const [showSignupPasswordConfirm, setShowSignupPasswordConfirm] = React.useState(false);
+
+  const signupPasswordChecks = React.useMemo(
+    () => getPasswordChecks(signupForm.password),
+    [signupForm.password]
+  );
+  const signupPasswordValid = React.useMemo(
+    () => isPasswordCompliant(signupForm.password),
+    [signupForm.password]
+  );
 
   React.useEffect(() => {
     if (open) {
@@ -34,7 +52,7 @@ export default function AuthDialog({ open, defaultTab = 'login', onClose }) {
     e.preventDefault();
     setError('');
     try {
-      await login({ username: loginForm.username, password: loginForm.password });
+      await login({ username: loginForm.username, password: loginForm.password, rememberMe });
       onClose?.();
       navigate('/dashboard');
     } catch (err) {
@@ -45,6 +63,11 @@ export default function AuthDialog({ open, defaultTab = 'login', onClose }) {
   const onSignup = async (e) => {
     e.preventDefault();
     setError('');
+    if (!signupPasswordValid) {
+      setError(t('errors.passwordWeak') || 'Le mot de passe ne respecte pas les règles demandées.');
+      return;
+    }
+
     if (signupForm.password !== signupForm.passwordConfirm) {
       setError(t('errors.passwordMismatch') || 'Les mots de passe ne correspondent pas.');
       return;
@@ -105,15 +128,35 @@ export default function AuthDialog({ open, defaultTab = 'login', onClose }) {
               autoComplete="username"
               required
             />
-            <input
-              type="password"
-              className={styles.input}
-              placeholder={t('auth.password')}
-              value={loginForm.password}
-              onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-              autoComplete="current-password"
-              required
-            />
+            <div className={styles.inputWrapper}>
+              <input
+                type={showLoginPassword ? 'text' : 'password'}
+                className={styles.input}
+                placeholder={t('auth.password')}
+                value={loginForm.password}
+                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                className={styles.inputToggle}
+                onClick={() => setShowLoginPassword((prev) => !prev)}
+                aria-label={showLoginPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {showLoginPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
+
+            <label className={styles.rememberRow}>
+              <input
+                type="checkbox"
+                className={styles.rememberCheckbox}
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              <span>Rester connecté</span>
+            </label>
             <button className={clsx(styles.button, styles.buttonPrimary)} disabled={isLoading}>
               {t('auth.loginButton')}
             </button>
@@ -154,24 +197,54 @@ export default function AuthDialog({ open, defaultTab = 'login', onClose }) {
               autoComplete="email"
               required
             />
-            <input
-              type="password"
-              className={styles.input}
-              placeholder={t('auth.password')}
-              value={signupForm.password}
-              onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
-              autoComplete="new-password"
-              required
-            />
-            <input
-              type="password"
-              className={styles.input}
-              placeholder={t('auth.passwordConfirm') || 'Confirmez le mot de passe'}
-              value={signupForm.passwordConfirm}
-              onChange={(e) => setSignupForm({ ...signupForm, passwordConfirm: e.target.value })}
-              autoComplete="new-password"
-              required
-            />
+            <div className={styles.inputWrapper}>
+              <input
+                type={showSignupPassword ? 'text' : 'password'}
+                className={styles.input}
+                placeholder={t('auth.password')}
+                value={signupForm.password}
+                onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
+                autoComplete="new-password"
+                required
+              />
+              <button
+                type="button"
+                className={styles.inputToggle}
+                onClick={() => setShowSignupPassword((prev) => !prev)}
+                aria-label={showSignupPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {showSignupPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
+            <div className={styles.inputWrapper}>
+              <input
+                type={showSignupPasswordConfirm ? 'text' : 'password'}
+                className={styles.input}
+                placeholder={t('auth.passwordConfirm') || 'Confirmez le mot de passe'}
+                value={signupForm.passwordConfirm}
+                onChange={(e) => setSignupForm({ ...signupForm, passwordConfirm: e.target.value })}
+                autoComplete="new-password"
+                required
+              />
+              <button
+                type="button"
+                className={styles.inputToggle}
+                onClick={() => setShowSignupPasswordConfirm((prev) => !prev)}
+                aria-label={showSignupPasswordConfirm ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {showSignupPasswordConfirm ? '🙈' : '👁️'}
+              </button>
+            </div>
+            <div className={styles.passwordRules}>
+              <p>Votre mot de passe doit contenir :</p>
+              <ul>
+                {PASSWORD_RULES.map((rule) => (
+                  <li key={rule.key} data-valid={signupPasswordChecks[rule.key]}>
+                    {rule.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
             <button
               className={clsx(styles.button, styles.buttonPrimary)}
               disabled={
@@ -179,7 +252,8 @@ export default function AuthDialog({ open, defaultTab = 'login', onClose }) {
                 !signupForm.username.trim() ||
                 !signupForm.email.trim() ||
                 !signupForm.password ||
-                signupForm.password !== signupForm.passwordConfirm
+                signupForm.password !== signupForm.passwordConfirm ||
+                !signupPasswordValid
               }
             >
               {t('auth.signupButton')}
