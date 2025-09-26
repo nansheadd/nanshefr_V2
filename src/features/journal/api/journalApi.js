@@ -16,16 +16,87 @@ const toBoolean = (value, fallback = false) => {
   return fallback;
 };
 
-const toArray = (value) => {
-  if (!value) return [];
+const KNOWN_ARRAY_KEYS = [
+  'entries',
+  'items',
+  'results',
+  'data',
+  'records',
+  'list',
+  'notes',
+  'rows',
+];
+
+const toArray = (value, depth = 0) => {
+  if (!value || depth > 3) return [];
   if (Array.isArray(value)) return value;
   if (typeof value !== 'object') return [];
-  if (Array.isArray(value.entries)) return value.entries;
-  if (Array.isArray(value.items)) return value.items;
-  if (Array.isArray(value.results)) return value.results;
-  if (Array.isArray(value.data)) return value.data;
-  if (Array.isArray(value.records)) return value.records;
+
+  for (const key of KNOWN_ARRAY_KEYS) {
+    const candidate = value[key];
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  for (const key of KNOWN_ARRAY_KEYS) {
+    const candidate = value[key];
+    if (candidate && typeof candidate === 'object') {
+      const nested = toArray(candidate, depth + 1);
+      if (nested.length > 0) {
+        return nested;
+      }
+    }
+  }
+
+  if (value.data && typeof value.data === 'object') {
+    const nested = toArray(value.data, depth + 1);
+    if (nested.length > 0) {
+      return nested;
+    }
+  }
+
   return [];
+};
+
+const toObject = (value) => {
+  if (!value || typeof value !== 'object') return {};
+  return value;
+};
+
+const mergeObjects = (...sources) => Object.assign({}, ...sources.map(toObject));
+
+const pickFirstPath = (source, paths, fallback = undefined) => {
+  const value = paths
+    .map((path) => {
+      const segments = Array.isArray(path) ? path : String(path).split('.');
+      let current = source;
+      for (const segment of segments) {
+        if (!current || typeof current !== 'object') return undefined;
+        current = current[segment];
+      }
+      return current;
+    })
+    .find((result) => result !== undefined && result !== null);
+
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return value;
+  }
+
+  if (value && typeof value === 'object' && 'value' in value) {
+    return value.value;
+  }
+
+  return fallback;
 };
 
 const pickFirstString = (source, keys, fallback = '') => {
@@ -81,48 +152,85 @@ const toIsoString = (value) => {
   return null;
 };
 
+const extractEntityTitle = (entity) => {
+  if (!entity) return '';
+  if (typeof entity === 'string') return entity;
+  if (Array.isArray(entity)) {
+    const candidate = entity.find((item) => typeof item === 'string' || (item && typeof item === 'object'));
+    return extractEntityTitle(candidate);
+  }
+  if (typeof entity !== 'object') return '';
+  if (entity.title) return String(entity.title);
+  if (entity.name) return String(entity.name);
+  if (entity.label) return String(entity.label);
+  if (entity.data) return extractEntityTitle(entity.data);
+  if (entity.attributes) return extractEntityTitle(entity.attributes);
+  return '';
+};
+
 const normalizeJournalEntry = (entry = {}) => {
-  const metadata = entry.metadata && typeof entry.metadata === 'object' ? entry.metadata : {};
+  const attributes = toObject(entry.attributes);
+  const data = toObject(entry.data);
+  const payload = mergeObjects(attributes, data, entry);
+  const metadata = mergeObjects(entry.metadata, entry.meta, attributes.metadata, data.metadata, payload.metadata);
 
   const content =
-    entry.content ??
-    entry.body ??
-    entry.text ??
-    entry.note ??
-    metadata.content ??
+    pickFirstPath(payload, [['content'], ['body'], ['text'], ['note']]) ??
+    pickFirstPath(metadata, [['content']]) ??
     '';
 
   const summary =
-    entry.summary ??
-    entry.preview ??
-    entry.excerpt ??
-    metadata.summary ??
-    content?.slice ? content.slice(0, 280) : '';
+    pickFirstPath(payload, [['summary'], ['preview'], ['excerpt']]) ??
+    pickFirstPath(metadata, [['summary']]) ??
+    (content?.slice ? content.slice(0, 280) : '');
 
-  const tags = normalizeTags(entry.tags ?? entry.labels ?? metadata.tags);
+  const tags = normalizeTags(payload.tags ?? payload.labels ?? metadata.tags);
+
+  const capsuleSource =
+    payload.capsule ??
+    payload.capsule_info ??
+    payload.capsuleData ??
+    payload.relationships?.capsule ??
+    metadata.capsule;
+  const moleculeSource =
+    payload.molecule ??
+    payload.lesson ??
+    payload.relationships?.molecule ??
+    payload.relationships?.lesson ??
+    metadata.molecule;
 
   return {
     id:
-      entry.id ??
-      entry.entry_id ??
-      entry.uuid ??
-      entry.external_id ??
-      metadata.entry_id ??
+      pickFirstPath(payload, [['id'], ['entry_id'], ['uuid'], ['external_id']]) ??
+      pickFirstPath(metadata, [['entry_id']]) ??
       null,
-    title: pickFirstString(entry, ['title', 'subject', 'heading'], 'Journal'),
+    title: pickFirstString(payload, ['title', 'subject', 'heading'], 'Journal'),
     content,
     summary,
-    mood: pickFirstString(entry, ['mood', 'emotion', 'feeling'], metadata.mood ?? ''),
+    mood: pickFirstString(payload, ['mood', 'emotion', 'feeling'], metadata.mood ?? ''),
     tags,
-    capsule_id: entry.capsule_id ?? entry.capsuleId ?? metadata.capsule_id ?? null,
-    capsule_title: pickFirstString(entry, ['capsule_title', 'capsuleName'], metadata.capsule_title ?? ''),
-    molecule_id: entry.molecule_id ?? metadata.molecule_id ?? null,
-    molecule_title: pickFirstString(entry, ['molecule_title', 'lesson_title'], metadata.molecule_title ?? ''),
-    is_pinned: toBoolean(entry.is_pinned ?? metadata.is_pinned, false),
+    capsule_id:
+      pickFirstPath(payload, [['capsule_id'], ['capsuleId']]) ??
+      pickFirstPath(metadata, [['capsule_id']]) ??
+      null,
+    capsule_title:
+      pickFirstString(payload, ['capsule_title', 'capsuleName'], metadata.capsule_title ?? '') ||
+      extractEntityTitle(capsuleSource),
+    molecule_id: pickFirstPath(payload, [['molecule_id']]) ?? pickFirstPath(metadata, [['molecule_id']]) ?? null,
+    molecule_title:
+      pickFirstString(payload, ['molecule_title', 'lesson_title'], metadata.molecule_title ?? '') ||
+      extractEntityTitle(moleculeSource),
+    is_pinned: toBoolean(pickFirstPath(payload, [['is_pinned']]) ?? metadata.is_pinned, false),
     created_at:
-      toIsoString(entry.created_at ?? entry.createdAt ?? entry.inserted_at ?? entry.timestamp ?? metadata.created_at) ?? null,
+      toIsoString(
+        pickFirstPath(payload, [['created_at'], ['createdAt'], ['inserted_at'], ['timestamp']]) ??
+          pickFirstPath(metadata, [['created_at']]),
+      ) ?? null,
     updated_at:
-      toIsoString(entry.updated_at ?? entry.updatedAt ?? entry.modified_at ?? metadata.updated_at) ?? null,
+      toIsoString(
+        pickFirstPath(payload, [['updated_at'], ['updatedAt'], ['modified_at']]) ??
+          pickFirstPath(metadata, [['updated_at']]),
+      ) ?? null,
     metadata,
     raw: entry,
   };
@@ -131,14 +239,62 @@ const normalizeJournalEntry = (entry = {}) => {
 const normalizeJournalList = (payload) => {
   const entries = toArray(payload).map(normalizeJournalEntry);
   const container = payload && typeof payload === 'object' ? payload : {};
-  const total = container.total ?? container.count ?? entries.length;
+  const total =
+    container.total ??
+    container.count ??
+    container.size ??
+    container.length ??
+    pickFirstPath(container, [
+      ['meta', 'total'],
+      ['meta', 'count'],
+      ['meta', 'pagination', 'total'],
+      ['meta', 'pagination', 'count'],
+      ['pagination', 'total'],
+      ['pagination', 'count'],
+      ['pagination', 'total_entries'],
+      ['data', 'meta', 'total'],
+      ['data', 'meta', 'count'],
+      ['data', 'pagination', 'total'],
+    ]) ??
+    entries.length;
   return {
     items: entries,
     total: toNumber(total, entries.length),
-    next: container.next ?? null,
-    previous: container.previous ?? null,
+    next:
+      container.next ??
+      pickFirstPath(container, [['links', 'next'], ['meta', 'next'], ['pagination', 'next'], ['data', 'links', 'next']]) ??
+      null,
+    previous:
+      container.previous ??
+      pickFirstPath(container, [['links', 'prev'], ['links', 'previous'], ['pagination', 'previous']]) ??
+      null,
     raw: payload,
   };
+};
+
+const extractFirstEntry = (payload) => {
+  if (!payload) return null;
+  if (Array.isArray(payload)) {
+    return payload[0] ?? null;
+  }
+  if (typeof payload !== 'object') return null;
+  if (payload.entry && typeof payload.entry === 'object') {
+    return payload.entry;
+  }
+  if (payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
+    if (payload.data.entry) {
+      return payload.data.entry;
+    }
+    if (payload.data.item) {
+      return payload.data.item;
+    }
+    if (payload.data.attributes || payload.data.data) {
+      return mergeObjects(payload.data);
+    }
+  }
+  const fromArray = toArray(payload)[0];
+  if (fromArray) return fromArray;
+  return payload;
 };
 
 export const fetchJournalEntries = async (params = {}) => {
@@ -168,11 +324,12 @@ export const createJournalEntry = async (payload) => {
     '/toolbox/journal',
   ], { data });
   const body = response?.data ?? {};
-  if (Array.isArray(body.entries) || Array.isArray(body.items)) {
+  if (Array.isArray(body.entries) || Array.isArray(body.items) || Array.isArray(body.data)) {
     const list = normalizeJournalList(body);
     return list.items[0] ?? null;
   }
-  return normalizeJournalEntry(body);
+  const entry = extractFirstEntry(body);
+  return normalizeJournalEntry(entry ?? body);
 };
 
 export const updateJournalEntry = async (entryId, payload) => {
@@ -184,7 +341,9 @@ export const updateJournalEntry = async (entryId, payload) => {
     `/journal/${entryId}`,
     `/toolbox/journal/${entryId}`,
   ], { data });
-  return normalizeJournalEntry(response?.data ?? {});
+  const body = response?.data ?? {};
+  const entry = extractFirstEntry(body);
+  return normalizeJournalEntry(entry ?? body);
 };
 
 export const deleteJournalEntry = async (entryId) => {
