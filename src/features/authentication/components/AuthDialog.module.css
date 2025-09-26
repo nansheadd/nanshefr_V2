@@ -23,3 +23,18 @@
 .linkRow{text-align:right}
 .linkInline{font-size:.9rem;color:#8b5cf6;text-decoration:none}
 .alertError{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:10px;padding:10px;margin-bottom:10px}
+.inputWrapper{position:relative;display:flex;align-items:center}
+.inputWrapper .input{width:100%;padding-right:44px}
+.inputToggle{position:absolute;right:12px;background:transparent;border:0;font-size:1.1rem;cursor:pointer;opacity:.7;transition:opacity .2s ease}
+.inputToggle:hover{opacity:1}
+.rememberRow{display:flex;align-items:center;gap:8px;font-size:.9rem;color:inherit;cursor:pointer;user-select:none}
+.rememberCheckbox{width:18px;height:18px;border-radius:4px}
+.passwordRules{margin-top:6px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.18);border-radius:12px;padding:12px}
+.passwordRules p{margin:0 0 6px;font-weight:600;font-size:.9rem}
+.passwordRules ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:.85rem}
+.passwordRules li{list-style:'✦ ';color:rgba(17,17,27,.8)}
+@media (prefers-color-scheme: dark){
+  .passwordRules{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.3)}
+  .passwordRules li{color:rgba(240,230,255,.85)}
+}
+.passwordRules li[data-valid=true]{color:#10b981;font-weight:600;list-style:'✔ ';}

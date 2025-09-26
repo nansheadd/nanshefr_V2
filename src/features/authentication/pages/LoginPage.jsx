@@ -1,6 +1,6 @@
 // Fichier: src/features/authentication/pages/LoginPage.jsx (FINAL)
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import {
   TextField,
@@ -13,9 +13,11 @@ import {
   InputAdornment,
   IconButton,
   Stack,
-  Divider
+  Divider,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material';
-import { styled, alpha, keyframes, useTheme } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import Visibility from '@mui/icons-material/Visibility';
@@ -28,10 +30,10 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const { login, isLoading } = useAuth();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const navigate = useNavigate();
 
   const background = isDark
     ? `radial-gradient(1200px 600px at 10% 10%, ${alpha(theme.palette.primary.main,0.13)}, transparent 60%),
@@ -75,7 +77,7 @@ const LoginPage = () => {
     e.preventDefault();
     setError('');
     try {
-      await login({ username, password });
+      await login({ username, password, rememberMe });
     } catch (err) {
       setError(err.response?.data?.detail || "Nom d'utilisateur ou mot de passe incorrect.");
     }
@@ -177,6 +179,18 @@ const LoginPage = () => {
             >
               {isLoading ? <CircularProgress size={22} /> : 'Se connecter'}
             </Button>
+
+            <FormControlLabel
+              control={(
+                <Checkbox
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  color="secondary"
+                />
+              )}
+              label="Rester connecté"
+              sx={{ mt: 1, color: theme.palette.text.secondary }}
+            />
 
             <Stack direction="row" alignItems="center" justifyContent="center" sx={{ mt: 2 }}>
               <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
