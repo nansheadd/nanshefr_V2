@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Container, Typography, Grid, Paper, Button, CircularProgress, Stack } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import apiClient from '../../../api/axiosConfig';
 import DashboardHeader from '../components/DashboardHeader';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
@@ -10,6 +10,8 @@ import { useI18n } from '../../../i18n/I18nContext';
 import DashboardCapsuleBoard from '../components/DashboardCapsuleBoard';
 import { getCurrentStreakDays, getTotalStudyTimeSeconds } from '../utils/studyStats';
 import { fetchMyCapsules } from '../../capsules/api/capsulesApi';
+import JournalWidget from '../../journal/components/JournalWidget';
+import SrsOverviewWidget from '../../srs/components/SrsOverviewWidget';
 
 const fetchStats = async () => {
   const { data } = await apiClient.get('/progress/stats');
@@ -33,6 +35,7 @@ const StatCard = ({ title, value, suffix }) => (
 );
 
 const DashboardPage = () => {
+  const navigate = useNavigate();
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['progress', 'stats'],
     queryFn: fetchStats,
@@ -198,6 +201,15 @@ const DashboardPage = () => {
             </Paper>
           </Grid>
         ))}
+      </Grid>
+
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={6}>
+          <JournalWidget onOpen={() => navigate('/journal')} />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <SrsOverviewWidget onStart={() => navigate('/reviews')} />
+        </Grid>
       </Grid>
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>

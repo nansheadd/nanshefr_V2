@@ -1,8 +1,8 @@
 // src/features/toolbox/components/CoachIA.jsx
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../../../api/axiosConfig';
+import requestWithFallback from '../../../utils/apiFallback';
 import { useI18n } from '../../../i18n/I18nContext';
 import {
   Box,
@@ -18,7 +18,6 @@ import {
   Alert,
   Tooltip,
   LinearProgress,
-  CircularProgress,
 } from '@mui/material';
 import { styled, alpha, keyframes } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
@@ -28,7 +27,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import BoltIcon from '@mui/icons-material/Bolt';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 const slideIn = keyframes`
   from { opacity: 0; transform: translateY(10px); }
@@ -41,54 +39,109 @@ const caretBlink = keyframes`
 `;
 
 const coachFrames = [
-  '/avatars/frame-1.png',
-  '/avatars/frame-2.png',
-  '/avatars/frame-3.png',
-  '/avatars/frame-4.png',
+  '/avatars/coach-frame-1.svg',
+  '/avatars/coach-frame-2.svg',
+  '/avatars/coach-frame-3.svg',
+  '/avatars/coach-frame-4.svg',
 ];
 
 const TYPEWRITER_DELAY = 22;
 
-const COACH_WELCOME_MESSAGE =
-  "👋 Salut ! Je suis votre Coach IA personnel.\n\nComment puis-je vous accompagner dans votre apprentissage aujourd'hui ?";
-
-const COACH_CONVERSATION_STORAGE_KEY = 'nanshe.coach.conversationId';
-
-const getConversationStorage = () => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  try {
-    return window.sessionStorage || window.localStorage || null;
-  } catch (error) {
-    console.warn('CoachIA: unable to access sessionStorage for conversations.', error);
-    return null;
-  }
+const toNumber = (value, fallback = 0) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
 };
 
-const readStoredConversationId = () => {
-  const storage = getConversationStorage();
-  if (!storage) return null;
-  try {
-    return storage.getItem(COACH_CONVERSATION_STORAGE_KEY);
-  } catch (error) {
-    console.warn('CoachIA: unable to read stored conversation id.', error);
-    return null;
+const toBoolean = (value, fallback = false) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const lowered = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'y'].includes(lowered)) return true;
+    if (['false', '0', 'no', 'n'].includes(lowered)) return false;
   }
+  return fallback;
 };
 
-const writeStoredConversationId = (value) => {
-  const storage = getConversationStorage();
-  if (!storage) return;
-  try {
-    if (value) {
-      storage.setItem(COACH_CONVERSATION_STORAGE_KEY, value);
-    } else {
-      storage.removeItem(COACH_CONVERSATION_STORAGE_KEY);
+const normalizeEnergyStatus = (status) => {
+  if (!status || typeof status !== 'object') {
+    return null;
+  }
+
+  const current = toNumber(
+    status.current ?? status.energy ?? status.available ?? status.balance ?? status.remaining ?? 0,
+    0,
+  );
+  const rawMax = status.max ?? status.capacity ?? status.limit ?? status.maximum ?? status.total ?? null;
+  const messageCost = toNumber(
+    status.message_cost ?? status.cost_per_message ?? status.cost ?? status.price_per_message ?? 1,
+    1,
+  ) || 1;
+  const rawPercentage = status.percentage ?? status.ratio ?? status.progress ?? status.fill ?? null;
+  const secondsUntilNext = toNumber(
+    status.seconds_until_next_message ??
+      status.next_message_in_seconds ??
+      status.cooldown_seconds ??
+      status.next_refill_in ??
+      status.next_refill_seconds ??
+      status.next_increment_in ??
+      status.next_available_in,
+    0,
+  );
+  const unlimitedBooleans = [status.is_unlimited, status.unlimited, status.limit === Infinity];
+  const unlimitedStrings = [status.mode, status.plan, status.tier];
+  const isUnlimited =
+    unlimitedBooleans.some((value) => toBoolean(value, false)) ||
+    unlimitedStrings.some((value) =>
+      typeof value === 'string' ? value.trim().toLowerCase() === 'unlimited' : false,
+    );
+
+  let percentage = null;
+  if (rawPercentage != null) {
+    const numeric = Number(rawPercentage);
+    if (Number.isFinite(numeric)) {
+      percentage = numeric > 1 ? numeric / 100 : numeric;
     }
-  } catch (error) {
-    console.warn('CoachIA: unable to persist conversation id.', error);
   }
+
+  const max = rawMax != null ? toNumber(rawMax, current || messageCost) : null;
+  const computedMax = max && max > 0 ? max : percentage && percentage > 0 ? current / percentage : messageCost;
+  const normalizedMax = isUnlimited ? Math.max(messageCost, current || messageCost) : Math.max(messageCost, computedMax);
+  const normalizedPercentage = Math.max(
+    0,
+    Math.min(1, percentage != null ? percentage : normalizedMax > 0 ? current / normalizedMax : isUnlimited ? 1 : 0),
+  );
+
+  let availableMessages = status.available_messages ?? status.messages ?? null;
+  if (availableMessages != null && Number.isFinite(Number(availableMessages))) {
+    availableMessages = Math.max(0, Math.floor(Number(availableMessages)));
+  } else {
+    availableMessages = isUnlimited
+      ? Number.POSITIVE_INFINITY
+      : Math.max(0, Math.floor((current || 0) / (messageCost || 1)));
+  }
+
+  return {
+    current,
+    max: normalizedMax,
+    message_cost: messageCost,
+    available_messages: availableMessages,
+    percentage: normalizedPercentage,
+    seconds_until_next_message: secondsUntilNext,
+    is_unlimited: isUnlimited,
+    raw: status,
+  };
+};
+
+const extractEnergyStatus = (payload) => {
+  if (!payload) return null;
+  if (payload.energy_status) return normalizeEnergyStatus(payload.energy_status);
+  if (payload.energy) return normalizeEnergyStatus(payload.energy);
+  if (payload.status && typeof payload.status === 'object') {
+    const normalized = normalizeEnergyStatus(payload.status);
+    if (normalized) return normalized;
+  }
+  return normalizeEnergyStatus(payload);
 };
 
 const ChatWindow = styled(Paper, {
@@ -97,20 +150,11 @@ const ChatWindow = styled(Paper, {
   const base = {
     display: 'flex',
     flexDirection: 'column',
-    borderRadius: 24,
-    background:
-      theme.palette.mode === 'dark'
-        ? `linear-gradient(160deg, ${alpha(theme.palette.background.paper, 0.92)}, ${alpha(
-            theme.palette.background.default,
-            0.82,
-          )})`
-        : `linear-gradient(160deg, ${alpha(theme.palette.common.white, 0.98)}, ${alpha(
-            theme.palette.secondary.light,
-            0.18,
-          )})`,
-    backdropFilter: 'blur(22px)',
-    border: `1px solid ${alpha(theme.palette.primary.main, 0.18)}`,
-    boxShadow: `0 22px 60px ${alpha(theme.palette.common.black, 0.16)}`,
+    borderRadius: 20,
+    background: `rgba(255, 255, 255, 0.95)`,
+    backdropFilter: 'blur(20px)',
+    border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+    boxShadow: `0 16px 48px ${alpha(theme.palette.common.black, 0.15)}`,
     overflow: 'hidden',
   };
 
@@ -133,22 +177,16 @@ const ChatWindow = styled(Paper, {
 
   return {
     ...base,
-    width: 'min(640px, 92vw)',
-    height: 'min(420px, 70vh)',
+    width: 380,
+    height: 560,
   };
 });
 
 const ChatHeader = styled(Box)(({ theme }) => ({
   padding: theme.spacing(2.5),
-  background: `linear-gradient(140deg, ${alpha(theme.palette.primary.main, 0.12)}, ${alpha(
-    theme.palette.secondary.main,
-    0.18,
-  )})`,
-  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
+  background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.secondary.main}15)`,
+  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
   position: 'relative',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: theme.spacing(1.5),
   '&::before': {
     content: '""',
     position: 'absolute',
@@ -158,56 +196,41 @@ const ChatHeader = styled(Box)(({ theme }) => ({
     height: 3,
     background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
   },
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    inset: 0,
-    background: `radial-gradient(circle at top right, ${alpha(theme.palette.common.white, 0.25)}, transparent 55%)`,
-    pointerEvents: 'none',
-    mixBlendMode: 'soft-light',
-  },
-  '& > *': {
-    position: 'relative',
-    zIndex: 1,
-  },
 }));
 
 const MessageContainer = styled(Box)(({ isUser, theme }) => ({
   animation: `${slideIn} 0.3s ease-out`,
   alignSelf: isUser ? 'flex-end' : 'flex-start',
-  maxWidth: isUser ? '78%' : '88%',
+  maxWidth: isUser ? '85%' : '100%',
   margin: theme.spacing(0.5, 0),
 }));
 
 const MessageBubble = styled(Paper)(({ isUser, theme }) => ({
   padding: theme.spacing(1.75, 2.25),
-  borderRadius: isUser ? '22px 22px 6px 22px' : '20px',
+  borderRadius: isUser ? '20px 20px 4px 20px' : '18px',
   background: isUser
     ? `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`
-    : `linear-gradient(165deg, ${alpha(theme.palette.secondary.light, 0.45)}, ${alpha(
+    : `linear-gradient(180deg, ${alpha(theme.palette.secondary.light, 0.35)}, ${alpha(
         theme.palette.background.paper,
-        0.98,
+        0.95,
       )})`,
   color: isUser ? theme.palette.primary.contrastText : theme.palette.text.primary,
   boxShadow: isUser
-    ? `0 6px 18px ${alpha(theme.palette.common.black, 0.22)}`
-    : `0 16px 34px ${alpha(theme.palette.common.black, 0.18)}`,
-  border: isUser
-    ? `1px solid ${alpha(theme.palette.primary.light, 0.5)}`
-    : `1px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
+    ? `0 4px 16px ${alpha(theme.palette.common.black, 0.15)}`
+    : `0 12px 26px ${alpha(theme.palette.common.black, 0.18)}`,
+  border: isUser ? 'none' : `2px solid ${alpha(theme.palette.secondary.main, 0.25)}`,
   position: 'relative',
   overflow: 'hidden',
-  backdropFilter: 'blur(6px)',
 }));
 
 const PortraitFrame = styled(Box)(({ theme }) => ({
-  width: 86,
-  height: 86,
-  borderRadius: 20,
+  width: 96,
+  height: 96,
+  borderRadius: 18,
   overflow: 'hidden',
   position: 'relative',
-  border: `3px solid ${alpha(theme.palette.primary.dark, 0.45)}`,
-  boxShadow: `0 16px 32px ${alpha(theme.palette.common.black, 0.35)}`,
+  border: `3px solid ${alpha(theme.palette.primary.dark, 0.5)}`,
+  boxShadow: `0 18px 28px ${alpha(theme.palette.common.black, 0.35)}`,
   background: `radial-gradient(circle at 30% 20%, ${alpha(theme.palette.primary.light, 0.4)}, ${alpha(
     theme.palette.common.black,
     0.6,
@@ -217,9 +240,8 @@ const PortraitFrame = styled(Box)(({ theme }) => ({
 const PortraitImage = styled('img')({
   width: '100%',
   height: '100%',
-  objectFit: 'contain',
+  objectFit: 'cover',
   display: 'block',
-  backgroundColor: 'rgba(0,0,0,0.35)',
 });
 
 const PortraitGlow = styled('div')(({ theme, isActive }) => ({
@@ -275,12 +297,10 @@ const TypingIndicator = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(1),
-  padding: theme.spacing(1.4, 2),
-  borderRadius: 999,
-  background: alpha(theme.palette.background.paper, 0.82),
-  border: `1px solid ${alpha(theme.palette.secondary.main, 0.25)}`,
-  boxShadow: `0 10px 26px ${alpha(theme.palette.common.black, 0.12)}`,
-  backdropFilter: 'blur(10px)',
+  padding: theme.spacing(1.5, 2),
+  borderRadius: 20,
+  background: alpha(theme.palette.background.paper, 0.9),
+  border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
   maxWidth: 'fit-content',
   '& .dot': {
     width: 8,
@@ -297,255 +317,28 @@ const TypingIndicator = styled(Box)(({ theme }) => ({
   },
 }));
 
-const askCoachAPI = (payload) => apiClient.post('/toolbox/coach', payload).then((res) => res.data);
-const fetchCoachEnergy = () => apiClient.get('/toolbox/coach/energy').then((res) => res.data);
-
-const fetchCoachConversation = async (conversationId) => {
-  const endpoints = conversationId
-    ? [
-        `/toolbox/coach/conversations/${encodeURIComponent(conversationId)}`,
-        `/toolbox/coach/conversation/${encodeURIComponent(conversationId)}`,
-      ]
-    : [
-        '/toolbox/coach/conversations/current',
-        '/toolbox/coach/conversations/latest',
-        '/toolbox/coach/conversation',
-      ];
-
-  for (const endpoint of endpoints) {
-    try {
-      const response = await apiClient.get(endpoint);
-      if (response?.data) {
-        return response.data;
-      }
-    } catch (error) {
-      const status = error?.response?.status;
-      if (status && [400, 404, 405].includes(status)) {
-        continue;
-      }
-      console.warn('CoachIA: unable to fetch conversation.', endpoint, error);
-      throw error;
-    }
-  }
-
-  return null;
+const askCoachAPI = async (payload) => {
+  const { __userMessageId, ...data } = payload || {};
+  const response = await requestWithFallback('post', [
+    '/toolbox/coach/messages',
+    '/toolbox/coach',
+    '/coach/messages',
+  ], { data });
+  return response?.data ?? {};
 };
 
-const resetCoachConversation = async (conversationId) => {
-  const attempts = [];
-  if (conversationId) {
-    const encoded = encodeURIComponent(conversationId);
-    attempts.push({ method: 'delete', url: `/toolbox/coach/conversations/${encoded}` });
-    attempts.push({ method: 'delete', url: `/toolbox/coach/conversation/${encoded}` });
-  }
-  attempts.push({ method: 'post', url: '/toolbox/coach/conversations/reset' });
-  attempts.push({ method: 'delete', url: '/toolbox/coach/conversations/current' });
-  attempts.push({ method: 'delete', url: '/toolbox/coach/conversation' });
+const fetchCoachEnergy = async () => {
+  const response = await requestWithFallback('get', [
+    '/toolbox/coach/energy',
+    '/coach/energy',
+    '/coach/status',
+  ], { validateStatus: (status) => [200, 204].includes(status) });
 
-  let lastError = null;
-  for (const attempt of attempts) {
-    const { method, url } = attempt;
-    if (!apiClient[method]) continue;
-    try {
-      const response = await apiClient[method](url);
-      return response?.data ?? null;
-    } catch (error) {
-      const status = error?.response?.status;
-      if (status && [400, 404, 405].includes(status)) {
-        lastError = error;
-        continue;
-      }
-      lastError = error;
-      break;
-    }
-  }
-
-  if (lastError) {
-    throw lastError;
-  }
-
-  return null;
-};
-
-const pickString = (...values) => {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-  return null;
-};
-
-const extractConversationData = (payload) => {
-  if (!payload || typeof payload !== 'object') {
-    return { conversationId: null, messages: null, responseText: '', energy: null };
-  }
-
-  const conversation =
-    payload.conversation ||
-    payload.data?.conversation ||
-    payload.session ||
-    payload.thread ||
-    null;
-
-  const conversationId = pickString(
-    payload.conversation_id,
-    payload.conversationId,
-    conversation?.id,
-    conversation?.conversation_id,
-    conversation?.uuid,
-    payload.id,
-    payload.session_id,
-    payload.thread_id,
-  );
-
-  const messages =
-    (Array.isArray(payload.messages) && payload.messages) ||
-    (Array.isArray(payload.history) && payload.history) ||
-    (Array.isArray(payload.message_history) && payload.message_history) ||
-    (Array.isArray(payload.entries) && payload.entries) ||
-    (Array.isArray(payload.items) && payload.items) ||
-    (Array.isArray(payload.data?.messages) && payload.data.messages) ||
-    (Array.isArray(payload.data?.history) && payload.data.history) ||
-    (Array.isArray(conversation?.messages) && conversation.messages) ||
-    (Array.isArray(conversation?.history) && conversation.history) ||
-    null;
-
-  const responseText =
-    pickString(
-      payload.response,
-      payload.answer,
-      payload.message,
-      payload.text,
-      payload.output,
-      payload.content,
-      payload.reply,
-      payload.data?.response,
-      payload.data?.answer,
-    ) || '';
-
-  const energy =
-    payload.energy ||
-    payload.meta?.energy ||
-    conversation?.energy ||
-    payload.data?.energy ||
-    null;
-
-  return { conversationId, messages, responseText, energy };
-};
-
-const extractMessageRole = (raw) => {
-  if (!raw) return '';
-
-  if (raw.is_assistant || raw.isAssistant) return 'assistant';
-  if (raw.is_user || raw.isUser) return 'user';
-
-  const seen = [];
-  const push = (value) => {
-    if (typeof value === 'string' && value.trim().length > 0) {
-      seen.push(value.trim());
-    }
-  };
-
-  const sources = [raw, raw.message, raw.payload, raw.data, raw.event, raw.meta];
-  sources.forEach((source) => {
-    if (!source || typeof source !== 'object') return;
-    push(source.role);
-    push(source.author_role);
-    push(source.authorRole);
-    push(source.sender_role);
-    push(source.senderRole);
-    push(source.user_role);
-    push(source.type);
-    push(source.author);
-    push(source.from);
-    push(source.participant?.role);
-  });
-
-  if (typeof raw.role === 'string') push(raw.role);
-  if (typeof raw.author === 'string') push(raw.author);
-
-  return seen.length > 0 ? seen[0].toLowerCase() : '';
-};
-
-const determineAuthorFromRole = (role) => {
-  if (!role) return 'user';
-  const normalized = role.toLowerCase();
-  if (['assistant', 'coach', 'ai', 'ia', 'bot'].includes(normalized)) return 'ia';
-  if (['system', 'narrator', 'moderator'].includes(normalized)) return 'ia';
-  return 'user';
-};
-
-const extractMessageContent = (raw) => {
-  if (raw == null) return '';
-  if (typeof raw === 'string') return raw;
-
-  const contents = [];
-  const push = (value) => {
-    if (typeof value === 'string' && value.trim().length > 0) {
-      contents.push(value);
-    }
-  };
-
-  const walk = (source) => {
-    if (!source) return;
-    if (typeof source === 'string') {
-      push(source);
-      return;
-    }
-    if (typeof source !== 'object') return;
-    push(source.content);
-    push(source.message);
-    push(source.text);
-    push(source.body);
-    push(source.value);
-    push(source.output);
-    push(source.summary);
-    push(source.response);
-    push(source.reply);
-    if (source.delta && typeof source.delta === 'object') {
-      push(source.delta.content);
-      push(source.delta.text);
-    }
-    if (Array.isArray(source.parts)) {
-      source.parts.forEach((part) => walk(part));
-    }
-    if (Array.isArray(source.content)) {
-      source.content.forEach((part) => walk(part));
-    }
-  };
-
-  walk(raw);
-
-  return contents.find((value) => value && value.trim().length > 0) || '';
-};
-
-const mapApiMessageToLocal = (raw, { animateAssistant = false, isLast = false } = {}) => {
-  if (raw == null) return null;
-
-  const role = extractMessageRole(raw);
-  const author = determineAuthorFromRole(role);
-  const content = extractMessageContent(raw);
-
-  if (!content) {
+  if (!response || response.status === 204) {
     return null;
   }
 
-  const shouldAnimateAssistant = animateAssistant && isLast && author === 'ia';
-
-  return createMessage(author, content, { immediate: author !== 'ia' || !shouldAnimateAssistant });
-};
-
-const convertConversationMessages = (messages = [], { animateAssistant = false } = {}) => {
-  if (!Array.isArray(messages)) return [];
-  return messages
-    .map((entry, index) =>
-      mapApiMessageToLocal(entry, {
-        animateAssistant,
-        isLast: index === messages.length - 1,
-      }),
-    )
-    .filter(Boolean);
+  return extractEnergyStatus(response.data ?? response);
 };
 
 const formatDuration = (seconds) => {
@@ -568,7 +361,10 @@ const formatDuration = (seconds) => {
 
 const formatEnergyValue = (value) => {
   if (value == null) return '0';
-  const rounded = Math.round(value * 10) / 10;
+  if (value === Number.POSITIVE_INFINITY) return '∞';
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '0';
+  const rounded = Math.round(numeric * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 };
 
@@ -637,187 +433,23 @@ const ChatMessage = ({ message, isActive, activeFrameSrc }) => {
   );
 };
 
-const determineCoachContext = (pathname) => {
-  if (!pathname) return 'general';
-
-  if (/^\/capsule\/[^/]+\/granule\/[^/]+\/molecule\//.test(pathname) || /^\/session\/molecule\//.test(pathname)) {
-    return 'learning';
-  }
-
-  if (/^\/capsule\/[^/]+\/[^/]+\/[^/]+\/plan/.test(pathname)) {
-    return 'capsulePlan';
-  }
-
-  if (/^\/capsule\/[^/]+\/[^/]+\/[^/]+$/.test(pathname)) {
-    return 'capsuleDetail';
-  }
-
-  if (pathname.startsWith('/library') || pathname.startsWith('/capsules')) {
-    return 'library';
-  }
-
-  if (pathname.startsWith('/dashboard')) {
-    return 'dashboard';
-  }
-
-  if (pathname.startsWith('/toolbox')) {
-    return 'toolbox';
-  }
-
-  return 'general';
-};
-
-const contextualQuickActions = {
-  dashboard: [
-    {
-      label: '🎯 Priorités du jour',
-      message: 'Analyse mon tableau de bord et propose-moi mes priorités du moment.',
-      type: 'dashboard_focus',
-    },
-    {
-      label: '📈 Comprendre mes progrès',
-      message: 'Peux-tu analyser mes statistiques et m’expliquer où j’en suis ?',
-      type: 'analyze_progress',
-    },
-    {
-      label: '🧭 Où aller ensuite ?',
-      message: 'Suggère-moi la prochaine activité pertinente à partir de ce que tu vois ici.',
-      type: 'next_step',
-    },
-  ],
-  library: [
-    {
-      label: '🔍 Trouve une capsule',
-      message: 'Recommande-moi une capsule adaptée à mon niveau et à mes objectifs.',
-      type: 'recommend_capsule',
-    },
-    {
-      label: '🗂️ Organise ma bibliothèque',
-      message: 'Aide-moi à organiser ou filtrer les capsules pertinentes pour moi.',
-      type: 'organize_library',
-    },
-    {
-      label: '✨ Découverte du moment',
-      message: 'Propose-moi une capsule inspirante à explorer dès maintenant.',
-      type: 'discover_capsule',
-    },
-  ],
-  capsuleDetail: [
-    {
-      label: '🧠 Résumé de la capsule',
-      message: 'Fais-moi un résumé clair de cette capsule et de ce que je vais y apprendre.',
-      type: 'capsule_summary',
-    },
-    {
-      label: '🎓 Objectifs pédagogiques',
-      message: 'Explique-moi les objectifs clés de cette capsule et comment elle va m’aider.',
-      type: 'capsule_objectives',
-    },
-    {
-      label: '🚀 Plan d’étude',
-      message: 'Aide-moi à planifier comment progresser efficacement dans cette capsule.',
-      type: 'capsule_plan',
-    },
-  ],
-  capsulePlan: [
-    {
-      label: '🗺️ Parcours conseillé',
-      message: 'Analyse le plan de cette capsule et indique-moi par où commencer.',
-      type: 'plan_guidance',
-    },
-    {
-      label: '📌 Points importants',
-      message: 'Identifie les molécules clés sur lesquelles je devrais me concentrer.',
-      type: 'plan_highlights',
-    },
-    {
-      label: '📝 Préparation de session',
-      message: 'Aide-moi à préparer ma prochaine session d’apprentissage sur cette capsule.',
-      type: 'plan_preparation',
-    },
-  ],
-  toolbox: [
-    {
-      label: '🛠️ Aide sur la toolbox',
-      message: 'Explique-moi comment profiter des outils avancés disponibles ici.',
-      type: 'toolbox_help',
-    },
-    {
-      label: '🧭 Navigation toolbox',
-      message: 'Guide-moi vers les fonctionnalités les plus utiles de la toolbox.',
-      type: 'toolbox_navigation',
-    },
-    {
-      label: '💡 Cas d’usage',
-      message: 'Donne-moi des idées concrètes pour utiliser ces outils dans ma session.',
-      type: 'toolbox_use_cases',
-    },
-  ],
-  learning: [
-    {
-      label: '📚 Explique cette leçon',
-      message: 'Explique-moi cette leçon en détail avec des exemples concrets.',
-      type: 'explain_chapter',
-    },
-    {
-      label: '⚡ Résumé rapide',
-      message: 'Fais-moi un résumé rapide de ce que je dois retenir.',
-      type: 'summary',
-    },
-    {
-      label: '🎯 Créer un quiz',
-      message: 'Prépare un quiz pour tester ma compréhension de cette leçon.',
-      type: 'create_quiz',
-    },
-    {
-      label: '🧠 Flashcards express',
-      message: 'Génère quelques flashcards pour réviser les points clés.',
-      type: 'flashcards',
-    },
-  ],
-  general: [
-    {
-      label: '💡 Donne-moi un conseil',
-      message: 'Peux-tu me donner un conseil personnalisé pour continuer mon apprentissage ?',
-      type: 'advice',
-    },
-    {
-      label: '🧭 Besoin d’orientation',
-      message: 'Aide-moi à savoir quelle est la prochaine étape pertinente dans la plateforme.',
-      type: 'orientation',
-    },
-    {
-      label: '✨ Découverte',
-      message: 'Propose-moi une activité ou une capsule intéressante à explorer maintenant.',
-      type: 'discovery',
-    },
-  ],
-};
-
-const buildQuickActions = (context, isAgentAvailable) => {
-  const actions = [...(contextualQuickActions[context] || contextualQuickActions.general)];
-
-  actions.push({
-    label: '🕵️ Mode agent',
-    message: '',
-    type: 'agent_mode',
-    disabled: !isAgentAvailable,
-    tooltip: !isAgentAvailable
-      ? 'Le mode agent permet de sélectionner un passage d’une molécule pour obtenir de l’aide. Ouvre une leçon pour l’utiliser.'
-      : 'Active le mode agent pour sélectionner un passage précis dans la leçon.',
-  });
-
-  return actions;
-};
+const quickActions = [
+  { label: '💡 Donne-moi un conseil', message: 'Peux-tu me donner un conseil personnalisé pour continuer mon apprentissage ?', type: 'advice' },
+  { label: '📚 Explique ce chapitre', message: 'Explique-moi ce chapitre en détail, avec des exemples si possible.', type: 'explain_chapter' },
+  { label: '🎯 Créer un quiz', message: 'Prépare un quiz rapide pour tester mes connaissances sur cette leçon.', type: 'create_quiz' },
+  { label: '⚡ Résumé rapide', message: 'Fais-moi un résumé rapide du contenu.', type: 'summary' },
+  { label: '🕵️ Mode agent', message: '', type: 'agent_mode' },
+];
 
 const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const { t } = useI18n();
   const [messages, setMessages] = useState(() => [
-    createMessage('ia', COACH_WELCOME_MESSAGE, { immediate: false }),
+    createMessage(
+      'ia',
+      "👋 Salut ! Je suis votre Coach IA personnel.\n\nComment puis-je vous accompagner dans votre apprentissage aujourd'hui ?",
+      { immediate: false },
+    ),
   ]);
-  const [conversationId, setConversationId] = useState(null);
-  const [isLoadingConversation, setIsLoadingConversation] = useState(false);
-  const [isResettingConversation, setIsResettingConversation] = useState(false);
   const [input, setInput] = useState('');
   const [isAgentMode, setIsAgentMode] = useState(false);
   const [infoBanner, setInfoBanner] = useState(null);
@@ -826,76 +458,18 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const chatEndRef = useRef(null);
   const chatWindowRef = useRef(null);
   const messagesRef = useRef([]);
-  const hasHydratedConversationRef = useRef(false);
   const typingIntervalRef = useRef(null);
   const typingMessageRef = useRef(null);
   const speakingIntervalRef = useRef(null);
   const [activeFrame, setActiveFrame] = useState(0);
-
-  const coachContext = useMemo(() => determineCoachContext(location.pathname), [location.pathname]);
-  const isAgentAvailable = coachContext === 'learning';
-  const quickActions = useMemo(
-    () => buildQuickActions(coachContext, isAgentAvailable),
-    [coachContext, isAgentAvailable],
-  );
-  const agentTooltip = quickActions.find((action) => action.type === 'agent_mode')?.tooltip;
-
-  const queryClient = useQueryClient();
+  const [conversationId, setConversationId] = useState(null);
+  const conversationRef = useRef(null);
 
   useEffect(() => {
-    writeStoredConversationId(conversationId);
+    conversationRef.current = conversationId;
   }, [conversationId]);
 
-  useEffect(() => {
-    if (hasHydratedConversationRef.current) {
-      return;
-    }
-
-    hasHydratedConversationRef.current = true;
-    let cancelled = false;
-
-    const loadConversation = async () => {
-      setIsLoadingConversation(true);
-      try {
-        const storedId = readStoredConversationId();
-        const data = await fetchCoachConversation(storedId);
-        if (!data || cancelled) {
-          return;
-        }
-
-        const { conversationId: nextId, messages: rawMessages, energy } = extractConversationData(data);
-        const effectiveId = nextId || storedId || null;
-        if (effectiveId) {
-          setConversationId(effectiveId);
-        }
-
-        if (energy) {
-          queryClient.setQueryData(['coach-energy'], energy);
-        }
-
-        if (Array.isArray(rawMessages) && rawMessages.length > 0) {
-          const normalized = convertConversationMessages(rawMessages, { animateAssistant: false });
-          if (normalized.length > 0) {
-            setMessages(normalized);
-          }
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.warn('CoachIA: unable to hydrate conversation history.', error);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingConversation(false);
-        }
-      }
-    };
-
-    loadConversation();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [queryClient]);
+  const queryClient = useQueryClient();
   const {
     data: energy,
     isLoading: isEnergyLoading,
@@ -911,41 +485,69 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const mutation = useMutation({
     mutationFn: askCoachAPI,
     onSuccess: (data) => {
-      const { conversationId: nextId, messages: rawMessages, responseText, energy } = extractConversationData(data);
+      const replies = [];
 
-      if (nextId) {
-        setConversationId(nextId);
+      if (Array.isArray(data?.messages)) {
+        data.messages.forEach((message) => {
+          if (!message) return;
+          if (typeof message === 'string') {
+            replies.push(message);
+            return;
+          }
+          const content =
+            message.message ??
+            message.response ??
+            message.text ??
+            (Array.isArray(message.parts) ? message.parts.join('\n\n') : null) ??
+            message.content ??
+            null;
+          if (content) {
+            replies.push(content);
+          }
+        });
       }
 
-      if (energy) {
-        queryClient.setQueryData(['coach-energy'], energy);
-      } else if (data.energy) {
-        queryClient.setQueryData(['coach-energy'], data.energy);
+      const fallbackReply =
+        data?.response ?? data?.message ?? data?.reply ?? data?.text ?? data?.content ?? null;
+
+      if (replies.length === 0 && fallbackReply) {
+        replies.push(fallbackReply);
       }
 
-      const normalizedMessages = convertConversationMessages(rawMessages, { animateAssistant: true });
-      const previousCount = messagesRef.current.length;
+      if (replies.length === 0) {
+        replies.push(t('coach.errors.emptyResponse', 'Le coach est momentanément silencieux.'));
+      }
 
-      if (normalizedMessages.length >= previousCount && normalizedMessages.length > 0) {
-        setMessages(normalizedMessages);
-      } else if (normalizedMessages.length > 0) {
-        const lastServerMessage = normalizedMessages[normalizedMessages.length - 1];
-        if (lastServerMessage && lastServerMessage.author === 'ia') {
-          setMessages((prev) => [...prev, createMessage('ia', lastServerMessage.message, { immediate: false })]);
-        }
-      } else if (responseText || data.response) {
-        const text = responseText || data.response;
-        setMessages((prev) => [...prev, createMessage('ia', text, { immediate: false })]);
+      setMessages((prev) => [
+        ...prev,
+        ...replies.map((reply) => createMessage('ia', reply, { immediate: false })),
+      ]);
+
+      const energyUpdate = extractEnergyStatus(data);
+      if (energyUpdate) {
+        queryClient.setQueryData(['coach-energy'], energyUpdate);
+      }
+
+      const conversation =
+        data?.conversation_id ?? data?.conversationId ?? data?.conversation?.id ?? null;
+      if (conversation) {
+        setConversationId(conversation);
       }
 
       setInfoBanner(null);
     },
-    onError: (error) => {
+    onError: (error, variables) => {
+      const userMessageId = variables?.__userMessageId;
+      if (userMessageId) {
+        setMessages((prev) => prev.filter((message) => message.id !== userMessageId));
+      }
+
       const detail = error?.response?.data?.detail;
       if (detail?.code === 'coach_energy_depleted') {
-        const status = detail.energy;
-        queryClient.setQueryData(['coach-energy'], status);
-        setMessages((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
+        const status = extractEnergyStatus(detail.energy ?? detail);
+        if (status) {
+          queryClient.setQueryData(['coach-energy'], status);
+        }
         const waitDuration = formatDuration(status?.seconds_until_next_message);
         setInfoBanner({
           severity: 'warning',
@@ -987,9 +589,25 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
       );
     }
 
-    const percentage = Math.max(0, Math.min(100, Math.round((energyStatus.percentage || 0) * 100)));
+    const percentage = Math.max(0, Math.min(100, Math.round((energyStatus.percentage ?? 0) * 100)));
     const messageCost = energyStatus.message_cost || 1;
-    const availableMessages = Math.max(0, Math.floor(energyStatus.current / messageCost));
+    const rawAvailable = energyStatus.available_messages;
+    const availableMessagesValue =
+      rawAvailable === Number.POSITIVE_INFINITY
+        ? Number.POSITIVE_INFINITY
+        : Number.isFinite(Number(rawAvailable))
+          ? Math.max(0, Math.floor(Number(rawAvailable)))
+          : Math.max(0, Math.floor((energyStatus.current ?? 0) / (messageCost || 1)));
+    const availableLabel =
+      availableMessagesValue === Number.POSITIVE_INFINITY
+        ? '∞'
+        : String(availableMessagesValue);
+    const pluralSuffix =
+      availableMessagesValue === Number.POSITIVE_INFINITY
+        ? 's'
+        : Number(availableMessagesValue) > 1
+          ? 's'
+          : '';
     const nextBonus = energyStatus.seconds_until_next_message && energyStatus.seconds_until_next_message > 0
       ? `+1 message dans ${formatDuration(energyStatus.seconds_until_next_message)}`
       : 'Prêt pour un nouveau message';
@@ -1003,7 +621,7 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <BoltIcon sx={{ fontSize: 14 }} />
             <Typography variant="caption" color="text.secondary">
-              {`${availableMessages} message${availableMessages > 1 ? 's' : ''}`}
+              {`${availableLabel} message${pluralSuffix}`}
             </Typography>
           </Stack>
         </Stack>
@@ -1099,20 +717,19 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
 
   useEffect(() => {
     if (coachIsSpeaking) {
+      setActiveFrame(0);
       if (!speakingIntervalRef.current) {
-        setActiveFrame(0);
         speakingIntervalRef.current = setInterval(() => {
           setActiveFrame((prev) => (prev + 1) % coachFrames.length);
         }, 120);
       }
-      return;
+    } else {
+      if (speakingIntervalRef.current) {
+        clearInterval(speakingIntervalRef.current);
+        speakingIntervalRef.current = null;
+      }
+      setActiveFrame(0);
     }
-
-    if (speakingIntervalRef.current) {
-      clearInterval(speakingIntervalRef.current);
-      speakingIntervalRef.current = null;
-    }
-    setActiveFrame(0);
   }, [coachIsSpeaking]);
 
   useEffect(
@@ -1130,14 +747,7 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const sendMessage = useCallback(
     (text, extra = {}) => {
       const trimmed = text?.trim();
-      if (
-        !trimmed ||
-        mutation.isPending ||
-        isLoadingConversation ||
-        isResettingConversation
-      ) {
-        return;
-      }
+      if (!trimmed || mutation.isPending) return;
 
       if (isEnergyLoading) {
         setInfoBanner({ severity: 'info', message: "Chargement de ton énergie..." });
@@ -1163,36 +773,20 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
       setInfoBanner(null);
       const context = { path: location.pathname, ...params };
       const history = messagesRef.current.slice(1).map(({ author, message }) => ({ author, message }));
+      const userMessage = createMessage('user', trimmed);
 
-      setMessages((prev) => [...prev, createMessage('user', trimmed)]);
-      const payload = {
+      setMessages((prev) => [...prev, userMessage]);
+      mutation.mutate({
         message: trimmed,
         context,
         history,
         quick_action: extra.quick_action || null,
         selection: extra.selection || null,
-      };
-
-      if (conversationId) {
-        payload.conversation_id = conversationId;
-        payload.conversationId = conversationId;
-        payload.conversation = { id: conversationId };
-      }
-
-      mutation.mutate(payload);
+        conversation_id: conversationRef.current ?? conversationId ?? null,
+        __userMessageId: userMessage.id,
+      });
     },
-    [
-      mutation,
-      isEnergyLoading,
-      energy,
-      refetchEnergy,
-      setInfoBanner,
-      location.pathname,
-      params,
-      conversationId,
-      isLoadingConversation,
-      isResettingConversation,
-    ],
+    [mutation, isEnergyLoading, energy, refetchEnergy, setInfoBanner, location.pathname, params, conversationId],
   );
 
   const handleSend = () => {
@@ -1201,32 +795,7 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
     setInput('');
   };
 
-  const handleResetConversation = useCallback(async () => {
-    if (isResettingConversation || mutation.isPending) {
-      return;
-    }
-
-    setIsResettingConversation(true);
-    setInfoBanner(null);
-
-    try {
-      await resetCoachConversation(conversationId);
-      setConversationId(null);
-      setMessages([createMessage('ia', COACH_WELCOME_MESSAGE, { immediate: false })]);
-      writeStoredConversationId(null);
-    } catch (error) {
-      console.warn('CoachIA: unable to reset conversation.', error);
-      setInfoBanner({ severity: 'error', message: 'Impossible de réinitialiser la conversation pour le moment.' });
-    } finally {
-      setIsResettingConversation(false);
-    }
-  }, [conversationId, isResettingConversation, mutation.isPending, setInfoBanner]);
-
   const handleQuickAction = (action) => {
-    if (action?.disabled) {
-      return;
-    }
-
     if (action.type === 'agent_mode') {
       setIsAgentMode((prev) => !prev);
       setInfoBanner({
@@ -1257,16 +826,6 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
 
     sendMessage(action.message, { quick_action: action.type });
   };
-
-  useEffect(() => {
-    if (isAgentMode && !isAgentAvailable) {
-      setIsAgentMode(false);
-      setInfoBanner({
-        severity: 'info',
-        message: 'Le mode agent est disponible uniquement lorsque vous ouvrez une molécule.',
-      });
-    }
-  }, [isAgentMode, isAgentAvailable]);
 
   useEffect(() => {
     if (!isAgentMode) {
@@ -1355,40 +914,14 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
                 </IconButton>
               </Tooltip>
             )}
-            <Tooltip title={agentTooltip || ''} placement="bottom">
-              <span>
-                <Chip
-                  icon={<CenterFocusStrongIcon />}
-                  label={isAgentMode ? 'Agent actif' : 'Mode agent'}
-                  size="small"
-                  clickable={isAgentAvailable}
-                  disabled={!isAgentAvailable}
-                  color={isAgentMode ? 'success' : 'default'}
-                  onClick={() => handleQuickAction({ type: 'agent_mode', label: '', message: '' })}
-                  sx={{
-                    cursor: isAgentAvailable ? 'pointer' : 'not-allowed',
-                  }}
-                />
-              </span>
-            </Tooltip>
-            <Tooltip title="Nouvelle conversation" placement="bottom">
-              <span>
-                <IconButton
-                  onClick={handleResetConversation}
-                  size="small"
-                  disabled={
-                    isResettingConversation || mutation.isPending || isLoadingConversation
-                  }
-                  sx={{ bgcolor: alpha('#000', 0.05), '&:hover': { bgcolor: alpha('#000', 0.1) } }}
-                >
-                  {isResettingConversation ? (
-                    <CircularProgress size={16} sx={{ color: 'text.secondary' }} />
-                  ) : (
-                    <RestartAltIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </span>
-            </Tooltip>
+            <Chip
+              icon={<CenterFocusStrongIcon />}
+              label={isAgentMode ? 'Agent actif' : 'Mode agent'}
+              size="small"
+              clickable
+              color={isAgentMode ? 'success' : 'default'}
+              onClick={() => handleQuickAction({ type: 'agent_mode', label: '', message: '' })}
+            />
             {onClose && (
               <IconButton onClick={onClose} size="small" sx={{ bgcolor: alpha('#000', 0.05), '&:hover': { bgcolor: alpha('#000', 0.1) } }}>
                 <CloseIcon fontSize="small" />
@@ -1406,14 +939,6 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
       </ChatHeader>
 
       <Stack sx={{ flexGrow: 1, p: 2, overflowY: 'auto', gap: 1 }}>
-        {isLoadingConversation && (
-          <Stack alignItems="center" spacing={1} sx={{ py: 2 }}>
-            <CircularProgress size={18} />
-            <Typography variant="caption" color="text.secondary">
-              Chargement de ta conversation...
-            </Typography>
-          </Stack>
-        )}
         {messages.map((msg, index) => {
           const isActive = index === messages.length - 1 && msg.author === 'ia' && msg.isTyping;
           return (
@@ -1445,43 +970,24 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
             Actions rapides :
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {quickActions.map((action) => {
-              const chip = (
-                <Chip
-                  label={action.label}
-                  size="small"
-                  clickable={!action.disabled}
-                  disabled={action.disabled}
-                  onClick={!action.disabled ? () => handleQuickAction(action) : undefined}
-                  sx={{
-                    borderRadius: 2,
-                    fontSize: '0.75rem',
-                    cursor: action.disabled ? 'not-allowed' : 'pointer',
-                    '&:hover': action.disabled
-                      ? {}
-                      : {
-                          bgcolor: 'primary.main',
-                          color: 'white',
-                          transform: 'scale(1.05)',
-                        },
-                  }}
-                />
-              );
-
-              if (action.tooltip) {
-                return (
-                  <Tooltip key={action.label} title={action.tooltip} arrow>
-                    <span>{chip}</span>
-                  </Tooltip>
-                );
-              }
-
-              return (
-                <span key={action.label}>
-                  {chip}
-                </span>
-              );
-            })}
+            {quickActions.map((action) => (
+              <Chip
+                key={action.label}
+                label={action.label}
+                size="small"
+                clickable
+                onClick={() => handleQuickAction(action)}
+                sx={{
+                  borderRadius: 2,
+                  fontSize: '0.75rem',
+                  '&:hover': {
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    transform: 'scale(1.05)',
+                  },
+                }}
+              />
+            ))}
           </Stack>
         </Box>
       )}
@@ -1497,17 +1003,12 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-          disabled={mutation.isPending || isLoadingConversation || isResettingConversation}
+          disabled={mutation.isPending}
           InputProps={{
             endAdornment: (
               <IconButton
                 onClick={handleSend}
-                disabled={
-                  mutation.isPending ||
-                  isLoadingConversation ||
-                  isResettingConversation ||
-                  !input.trim()
-                }
+                disabled={mutation.isPending || !input.trim()}
                 sx={{
                   bgcolor: 'primary.main',
                   color: 'white',
