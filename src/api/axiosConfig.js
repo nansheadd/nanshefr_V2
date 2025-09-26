@@ -2,6 +2,7 @@
 import axios from 'axios';
 import { API_V2_URL } from '../config/api';
 import { getStoredAccessToken } from '../utils/authTokens';
+import { getBrowserTimeZone, getTimezoneOffsetMinutes } from '../utils/timezone';
 
 // Client axios unique pour l'API v2
 const apiClient = axios.create({
@@ -12,9 +13,26 @@ const apiClient = axios.create({
 // Interceptor: ajoute Authorization si un fallback token (localStorage) existe
 apiClient.interceptors.request.use((config) => {
   const token = getStoredAccessToken();
+  const timezone = getBrowserTimeZone();
+  const timezoneOffset = getTimezoneOffsetMinutes();
+
   if (token) {
     config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (timezone) {
+    config.headers = config.headers || {};
+    if (!config.headers['X-Timezone']) {
+      config.headers['X-Timezone'] = timezone;
+    }
+  }
+
+  if (typeof timezoneOffset === 'number') {
+    config.headers = config.headers || {};
+    if (!config.headers['X-Timezone-Offset']) {
+      config.headers['X-Timezone-Offset'] = timezoneOffset;
+    }
   }
   return config;
 });
