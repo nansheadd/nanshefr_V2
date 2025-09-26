@@ -388,5 +388,88 @@
       { "label": "Advanced mode (AI & guided projects)", "free": false, "premium": true },
       { "label": "PDF capsule generation (coming soon)", "free": false, "premium": false, "comingSoon": true }
     ]
+  },
+  "journal": {
+    "widget": {
+      "title": "Learning journal",
+      "cta": "Open journal",
+      "empty": "Add your first note to keep track of your progress.",
+      "error": "Unable to load the journal right now.",
+      "untitled": "Entry",
+      "capsule": "Capsule: {{capsule}}",
+      "lesson": "Lesson: {{lesson}}"
+    },
+    "page": {
+      "title": "Learning journal",
+      "subtitle": "Record your reflections after each session to follow your progress.",
+      "form": {
+        "title": "Title (optional)",
+        "mood": "Mood",
+        "content": "What did you learn today?",
+        "submit": "Save entry"
+      },
+      "list": {
+        "title": "Recent entries",
+        "empty": "Your notes will appear here once saved.",
+        "delete": "Delete",
+        "capsule": "Capsule: {{capsule}}",
+        "lesson": "Lesson: {{lesson}}"
+      },
+      "notifications": {
+        "saved": "Entry saved!",
+        "error": "Unable to save the note.",
+        "deleted": "Entry deleted.",
+        "deleteError": "Unable to delete the entry right now.",
+        "empty": "Add some content before saving."
+      },
+      "error": "Unable to load the journal."
+    }
+  },
+  "srs": {
+    "widget": {
+      "title": "Spaced repetition",
+      "cta": "Start reviews",
+      "error": "Unable to load spaced repetition stats.",
+      "newCount": "{{count}} new cards",
+      "nextReview": "Next card available {{time}}",
+      "empty": "Nothing to review for now.",
+      "dueLabel": "Cards due today",
+      "overdueLabel": "Overdue cards"
+    },
+    "page": {
+      "title": "Review session",
+      "subtitle": "Review the due cards to strengthen your knowledge.",
+      "ratings": {
+        "again": "Again",
+        "hard": "Hard",
+        "good": "Good",
+        "easy": "Easy"
+      },
+      "errors": {
+        "start": "Unable to prepare the session.",
+        "submit": "Unable to record your answer."
+      },
+      "loading": "Preparing your cards...",
+      "completed": "Great job! You're fully caught up for now.",
+      "completedHint": "Keep studying capsules to unlock new cards.",
+      "restart": "Reload session",
+      "queueCount": "{{count}} card(s) remaining",
+      "dueAt": "Due {{date}}",
+      "capsule": "Capsule: {{capsule}}",
+      "lesson": "Lesson: {{lesson}}",
+      "emptyPrompt": "No question available.",
+      "answer": "Answer",
+      "emptyAnswer": "No answer provided.",
+      "reveal": "Show answer",
+      "sessionSummary": "Session summary",
+      "summaryDue": "{{count}} card(s) due",
+      "summaryOverdue": "{{count}} card(s) overdue",
+      "nextReview": "Next review {{time}}"
+    }
+  },
+  "coach": {
+    "errors": {
+      "emptyResponse": "The coach didn't send a response."
+    }
   }
 }
