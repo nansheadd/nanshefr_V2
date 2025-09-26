@@ -388,5 +388,88 @@
       { "label": "Geavanceerde modus (AI & begeleide projecten)", "free": false, "premium": true },
       { "label": "Capsules genereren vanuit PDF (binnenkort)", "free": false, "premium": false, "comingSoon": true }
     ]
+  },
+  "journal": {
+    "widget": {
+      "title": "Leerjournaal",
+      "cta": "Journaal openen",
+      "empty": "Voeg je eerste notitie toe om je vooruitgang bij te houden.",
+      "error": "Het journaal kan nu niet worden geladen.",
+      "untitled": "Notitie",
+      "capsule": "Capsule: {{capsule}}",
+      "lesson": "Les: {{lesson}}"
+    },
+    "page": {
+      "title": "Leerjournaal",
+      "subtitle": "Noteer je reflecties na elke sessie om je vooruitgang te volgen.",
+      "form": {
+        "title": "Titel (optioneel)",
+        "mood": "Stemming",
+        "content": "Wat heb je vandaag geleerd?",
+        "submit": "Opslaan"
+      },
+      "list": {
+        "title": "Recente notities",
+        "empty": "Je notities verschijnen hier zodra ze zijn opgeslagen.",
+        "delete": "Verwijderen",
+        "capsule": "Capsule: {{capsule}}",
+        "lesson": "Les: {{lesson}}"
+      },
+      "notifications": {
+        "saved": "Notitie opgeslagen!",
+        "error": "Kan de notitie niet opslaan.",
+        "deleted": "Notitie verwijderd.",
+        "deleteError": "Verwijderen lukt momenteel niet.",
+        "empty": "Voeg inhoud toe voordat je opslaat."
+      },
+      "error": "Het journaal kan niet worden geladen."
+    }
+  },
+  "srs": {
+    "widget": {
+      "title": "Gespreide herhaling",
+      "cta": "Herhalen starten",
+      "error": "Kan de statistieken van de herhaling niet laden.",
+      "newCount": "{{count}} nieuwe kaarten",
+      "nextReview": "Volgende kaart beschikbaar {{time}}",
+      "empty": "Er zijn geen kaarten om te herhalen.",
+      "dueLabel": "Kaarten voor vandaag",
+      "overdueLabel": "Achterstallige kaarten"
+    },
+    "page": {
+      "title": "Herhaalsessie",
+      "subtitle": "Herhaal de kaarten die vandaag aan de beurt zijn om je kennis te versterken.",
+      "ratings": {
+        "again": "Opnieuw",
+        "hard": "Moeilijk",
+        "good": "Goed",
+        "easy": "Makkelijk"
+      },
+      "errors": {
+        "start": "Kan de sessie niet voorbereiden.",
+        "submit": "Kan je antwoord niet opslaan."
+      },
+      "loading": "Bezig met kaarten voorbereiden...",
+      "completed": "Goed gedaan! Je bent helemaal bij.",
+      "completedHint": "Ga verder met je capsules om nieuwe kaarten vrij te spelen.",
+      "restart": "Sessie herladen",
+      "queueCount": "{{count}} kaart(en) resterend",
+      "dueAt": "Vervaldatum {{date}}",
+      "capsule": "Capsule: {{capsule}}",
+      "lesson": "Les: {{lesson}}",
+      "emptyPrompt": "Geen vraag beschikbaar.",
+      "answer": "Antwoord",
+      "emptyAnswer": "Geen antwoord beschikbaar.",
+      "reveal": "Antwoord tonen",
+      "sessionSummary": "Samenvatting van de sessie",
+      "summaryDue": "{{count}} kaart(en) verschuldigd",
+      "summaryOverdue": "{{count}} kaart(en) te laat",
+      "nextReview": "Volgende herhaling {{time}}"
+    }
+  },
+  "coach": {
+    "errors": {
+      "emptyResponse": "De coach gaf geen antwoord."
+    }
   }
 }

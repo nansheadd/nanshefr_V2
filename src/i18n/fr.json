@@ -388,5 +388,88 @@
       { "label": "Mode avancé (IA & projets guidés)", "free": false, "premium": true },
       { "label": "Génération de capsules depuis un PDF (Bientôt)", "free": false, "premium": false, "comingSoon": true }
     ]
+  },
+  "journal": {
+    "widget": {
+      "title": "Journal d'apprentissage",
+      "cta": "Ouvrir le journal",
+      "empty": "Ajoute ta première note pour garder une trace de ta progression.",
+      "error": "Impossible de charger le journal pour le moment.",
+      "untitled": "Entrée",
+      "capsule": "Capsule : {{capsule}}",
+      "lesson": "Leçon : {{lesson}}"
+    },
+    "page": {
+      "title": "Journal d'apprentissage",
+      "subtitle": "Note tes réflexions après chaque session pour suivre ta progression.",
+      "form": {
+        "title": "Titre (optionnel)",
+        "mood": "Humeur",
+        "content": "Qu'as-tu appris aujourd'hui ?",
+        "submit": "Enregistrer"
+      },
+      "list": {
+        "title": "Entrées récentes",
+        "empty": "Tes notes apparaîtront ici après les avoir enregistrées.",
+        "delete": "Supprimer",
+        "capsule": "Capsule : {{capsule}}",
+        "lesson": "Leçon : {{lesson}}"
+      },
+      "notifications": {
+        "saved": "Entrée enregistrée !",
+        "error": "Impossible de sauvegarder la note.",
+        "deleted": "Entrée supprimée.",
+        "deleteError": "Suppression impossible pour le moment.",
+        "empty": "Ajoute du contenu avant d'enregistrer."
+      },
+      "error": "Impossible de charger le journal."
+    }
+  },
+  "srs": {
+    "widget": {
+      "title": "Révisions espacées",
+      "cta": "Lancer les révisions",
+      "error": "Impossible de charger les statistiques de révision.",
+      "newCount": "{{count}} nouvelles cartes",
+      "nextReview": "Prochaine carte disponible {{time}}",
+      "empty": "Aucune carte à réviser pour le moment.",
+      "dueLabel": "Cartes à revoir aujourd'hui",
+      "overdueLabel": "Cartes en retard"
+    },
+    "page": {
+      "title": "Session de révision",
+      "subtitle": "Révise les cartes dues pour renforcer tes apprentissages.",
+      "ratings": {
+        "again": "Revoir",
+        "hard": "Difficile",
+        "good": "Bien",
+        "easy": "Facile"
+      },
+      "errors": {
+        "start": "Impossible de préparer la session.",
+        "submit": "Enregistrement de la réponse impossible."
+      },
+      "loading": "Préparation de tes cartes...",
+      "completed": "Bravo ! Aucune carte à réviser pour le moment.",
+      "completedHint": "Continue tes capsules pour générer de nouvelles cartes.",
+      "restart": "Recharger la session",
+      "queueCount": "{{count}} carte(s) restantes",
+      "dueAt": "Échéance {{date}}",
+      "capsule": "Capsule : {{capsule}}",
+      "lesson": "Leçon : {{lesson}}",
+      "emptyPrompt": "Aucune question disponible.",
+      "answer": "Réponse",
+      "emptyAnswer": "Pas de réponse fournie.",
+      "reveal": "Voir la réponse",
+      "sessionSummary": "Résumé de la session",
+      "summaryDue": "{{count}} carte(s) dues",
+      "summaryOverdue": "{{count}} carte(s) en retard",
+      "nextReview": "Prochaine révision {{time}}"
+    }
+  },
+  "coach": {
+    "errors": {
+      "emptyResponse": "Le coach est momentanément silencieux."
+    }
   }
 }

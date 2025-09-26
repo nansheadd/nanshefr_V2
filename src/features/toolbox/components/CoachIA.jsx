@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../../../api/axiosConfig';
+import requestWithFallback from '../../../utils/apiFallback';
 import { useI18n } from '../../../i18n/I18nContext';
 import {
   Box,
@@ -46,6 +46,103 @@ const coachFrames = [
 ];
 
 const TYPEWRITER_DELAY = 22;
+
+const toNumber = (value, fallback = 0) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const toBoolean = (value, fallback = false) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const lowered = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'y'].includes(lowered)) return true;
+    if (['false', '0', 'no', 'n'].includes(lowered)) return false;
+  }
+  return fallback;
+};
+
+const normalizeEnergyStatus = (status) => {
+  if (!status || typeof status !== 'object') {
+    return null;
+  }
+
+  const current = toNumber(
+    status.current ?? status.energy ?? status.available ?? status.balance ?? status.remaining ?? 0,
+    0,
+  );
+  const rawMax = status.max ?? status.capacity ?? status.limit ?? status.maximum ?? status.total ?? null;
+  const messageCost = toNumber(
+    status.message_cost ?? status.cost_per_message ?? status.cost ?? status.price_per_message ?? 1,
+    1,
+  ) || 1;
+  const rawPercentage = status.percentage ?? status.ratio ?? status.progress ?? status.fill ?? null;
+  const secondsUntilNext = toNumber(
+    status.seconds_until_next_message ??
+      status.next_message_in_seconds ??
+      status.cooldown_seconds ??
+      status.next_refill_in ??
+      status.next_refill_seconds ??
+      status.next_increment_in ??
+      status.next_available_in,
+    0,
+  );
+  const unlimitedBooleans = [status.is_unlimited, status.unlimited, status.limit === Infinity];
+  const unlimitedStrings = [status.mode, status.plan, status.tier];
+  const isUnlimited =
+    unlimitedBooleans.some((value) => toBoolean(value, false)) ||
+    unlimitedStrings.some((value) =>
+      typeof value === 'string' ? value.trim().toLowerCase() === 'unlimited' : false,
+    );
+
+  let percentage = null;
+  if (rawPercentage != null) {
+    const numeric = Number(rawPercentage);
+    if (Number.isFinite(numeric)) {
+      percentage = numeric > 1 ? numeric / 100 : numeric;
+    }
+  }
+
+  const max = rawMax != null ? toNumber(rawMax, current || messageCost) : null;
+  const computedMax = max && max > 0 ? max : percentage && percentage > 0 ? current / percentage : messageCost;
+  const normalizedMax = isUnlimited ? Math.max(messageCost, current || messageCost) : Math.max(messageCost, computedMax);
+  const normalizedPercentage = Math.max(
+    0,
+    Math.min(1, percentage != null ? percentage : normalizedMax > 0 ? current / normalizedMax : isUnlimited ? 1 : 0),
+  );
+
+  let availableMessages = status.available_messages ?? status.messages ?? null;
+  if (availableMessages != null && Number.isFinite(Number(availableMessages))) {
+    availableMessages = Math.max(0, Math.floor(Number(availableMessages)));
+  } else {
+    availableMessages = isUnlimited
+      ? Number.POSITIVE_INFINITY
+      : Math.max(0, Math.floor((current || 0) / (messageCost || 1)));
+  }
+
+  return {
+    current,
+    max: normalizedMax,
+    message_cost: messageCost,
+    available_messages: availableMessages,
+    percentage: normalizedPercentage,
+    seconds_until_next_message: secondsUntilNext,
+    is_unlimited: isUnlimited,
+    raw: status,
+  };
+};
+
+const extractEnergyStatus = (payload) => {
+  if (!payload) return null;
+  if (payload.energy_status) return normalizeEnergyStatus(payload.energy_status);
+  if (payload.energy) return normalizeEnergyStatus(payload.energy);
+  if (payload.status && typeof payload.status === 'object') {
+    const normalized = normalizeEnergyStatus(payload.status);
+    if (normalized) return normalized;
+  }
+  return normalizeEnergyStatus(payload);
+};
 
 const ChatWindow = styled(Paper, {
   shouldForwardProp: (prop) => prop !== 'layout',
@@ -220,8 +317,29 @@ const TypingIndicator = styled(Box)(({ theme }) => ({
   },
 }));
 
-const askCoachAPI = (payload) => apiClient.post('/toolbox/coach', payload).then((res) => res.data);
-const fetchCoachEnergy = () => apiClient.get('/toolbox/coach/energy').then((res) => res.data);
+const askCoachAPI = async (payload) => {
+  const { __userMessageId, ...data } = payload || {};
+  const response = await requestWithFallback('post', [
+    '/toolbox/coach/messages',
+    '/toolbox/coach',
+    '/coach/messages',
+  ], { data });
+  return response?.data ?? {};
+};
+
+const fetchCoachEnergy = async () => {
+  const response = await requestWithFallback('get', [
+    '/toolbox/coach/energy',
+    '/coach/energy',
+    '/coach/status',
+  ], { validateStatus: (status) => [200, 204].includes(status) });
+
+  if (!response || response.status === 204) {
+    return null;
+  }
+
+  return extractEnergyStatus(response.data ?? response);
+};
 
 const formatDuration = (seconds) => {
   if (seconds == null) return '';
@@ -243,7 +361,10 @@ const formatDuration = (seconds) => {
 
 const formatEnergyValue = (value) => {
   if (value == null) return '0';
-  const rounded = Math.round(value * 10) / 10;
+  if (value === Number.POSITIVE_INFINITY) return '∞';
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '0';
+  const rounded = Math.round(numeric * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 };
 
@@ -341,6 +462,12 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const typingMessageRef = useRef(null);
   const speakingIntervalRef = useRef(null);
   const [activeFrame, setActiveFrame] = useState(0);
+  const [conversationId, setConversationId] = useState(null);
+  const conversationRef = useRef(null);
+
+  useEffect(() => {
+    conversationRef.current = conversationId;
+  }, [conversationId]);
 
   const queryClient = useQueryClient();
   const {
@@ -358,16 +485,69 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
   const mutation = useMutation({
     mutationFn: askCoachAPI,
     onSuccess: (data) => {
-      setMessages((prev) => [...prev, createMessage('ia', data.response, { immediate: false })]);
-      queryClient.setQueryData(['coach-energy'], data.energy);
+      const replies = [];
+
+      if (Array.isArray(data?.messages)) {
+        data.messages.forEach((message) => {
+          if (!message) return;
+          if (typeof message === 'string') {
+            replies.push(message);
+            return;
+          }
+          const content =
+            message.message ??
+            message.response ??
+            message.text ??
+            (Array.isArray(message.parts) ? message.parts.join('\n\n') : null) ??
+            message.content ??
+            null;
+          if (content) {
+            replies.push(content);
+          }
+        });
+      }
+
+      const fallbackReply =
+        data?.response ?? data?.message ?? data?.reply ?? data?.text ?? data?.content ?? null;
+
+      if (replies.length === 0 && fallbackReply) {
+        replies.push(fallbackReply);
+      }
+
+      if (replies.length === 0) {
+        replies.push(t('coach.errors.emptyResponse', 'Le coach est momentanément silencieux.'));
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        ...replies.map((reply) => createMessage('ia', reply, { immediate: false })),
+      ]);
+
+      const energyUpdate = extractEnergyStatus(data);
+      if (energyUpdate) {
+        queryClient.setQueryData(['coach-energy'], energyUpdate);
+      }
+
+      const conversation =
+        data?.conversation_id ?? data?.conversationId ?? data?.conversation?.id ?? null;
+      if (conversation) {
+        setConversationId(conversation);
+      }
+
       setInfoBanner(null);
     },
-    onError: (error) => {
+    onError: (error, variables) => {
+      const userMessageId = variables?.__userMessageId;
+      if (userMessageId) {
+        setMessages((prev) => prev.filter((message) => message.id !== userMessageId));
+      }
+
       const detail = error?.response?.data?.detail;
       if (detail?.code === 'coach_energy_depleted') {
-        const status = detail.energy;
-        queryClient.setQueryData(['coach-energy'], status);
-        setMessages((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
+        const status = extractEnergyStatus(detail.energy ?? detail);
+        if (status) {
+          queryClient.setQueryData(['coach-energy'], status);
+        }
         const waitDuration = formatDuration(status?.seconds_until_next_message);
         setInfoBanner({
           severity: 'warning',
@@ -409,9 +589,25 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
       );
     }
 
-    const percentage = Math.max(0, Math.min(100, Math.round((energyStatus.percentage || 0) * 100)));
+    const percentage = Math.max(0, Math.min(100, Math.round((energyStatus.percentage ?? 0) * 100)));
     const messageCost = energyStatus.message_cost || 1;
-    const availableMessages = Math.max(0, Math.floor(energyStatus.current / messageCost));
+    const rawAvailable = energyStatus.available_messages;
+    const availableMessagesValue =
+      rawAvailable === Number.POSITIVE_INFINITY
+        ? Number.POSITIVE_INFINITY
+        : Number.isFinite(Number(rawAvailable))
+          ? Math.max(0, Math.floor(Number(rawAvailable)))
+          : Math.max(0, Math.floor((energyStatus.current ?? 0) / (messageCost || 1)));
+    const availableLabel =
+      availableMessagesValue === Number.POSITIVE_INFINITY
+        ? '∞'
+        : String(availableMessagesValue);
+    const pluralSuffix =
+      availableMessagesValue === Number.POSITIVE_INFINITY
+        ? 's'
+        : Number(availableMessagesValue) > 1
+          ? 's'
+          : '';
     const nextBonus = energyStatus.seconds_until_next_message && energyStatus.seconds_until_next_message > 0
       ? `+1 message dans ${formatDuration(energyStatus.seconds_until_next_message)}`
       : 'Prêt pour un nouveau message';
@@ -425,7 +621,7 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <BoltIcon sx={{ fontSize: 14 }} />
             <Typography variant="caption" color="text.secondary">
-              {`${availableMessages} message${availableMessages > 1 ? 's' : ''}`}
+              {`${availableLabel} message${pluralSuffix}`}
             </Typography>
           </Stack>
         </Stack>
@@ -577,17 +773,20 @@ const CoachIA = ({ onClose, onExpand, layout = 'dock' }) => {
       setInfoBanner(null);
       const context = { path: location.pathname, ...params };
       const history = messagesRef.current.slice(1).map(({ author, message }) => ({ author, message }));
+      const userMessage = createMessage('user', trimmed);
 
-      setMessages((prev) => [...prev, createMessage('user', trimmed)]);
+      setMessages((prev) => [...prev, userMessage]);
       mutation.mutate({
         message: trimmed,
         context,
         history,
         quick_action: extra.quick_action || null,
         selection: extra.selection || null,
+        conversation_id: conversationRef.current ?? conversationId ?? null,
+        __userMessageId: userMessage.id,
       });
     },
-    [mutation, isEnergyLoading, energy, refetchEnergy, setInfoBanner, location.pathname, params],
+    [mutation, isEnergyLoading, energy, refetchEnergy, setInfoBanner, location.pathname, params, conversationId],
   );
 
   const handleSend = () => {
